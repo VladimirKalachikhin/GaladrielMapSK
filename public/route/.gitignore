@@ -1,0 +1,6 @@
+# ignore everything except .gitignore
+*
+!.gitignore
+!BalticHarbours_5.gpx
+!StagerSaimaaHarbors.csv
+!StagerSaimaaPhotos.csv

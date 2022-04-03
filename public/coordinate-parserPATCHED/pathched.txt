@@ -1,0 +1,6 @@
+Remove require and module lines
+Include as
+	<script src="coordinate-parserPATCHED/coordinates.js">	</script>
+	<script src="coordinate-parserPATCHED/validator.js"></script>
+	<script src="coordinate-parserPATCHED/coordinate-number.js"></script> 
+lines

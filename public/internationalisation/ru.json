@@ -1,0 +1,80 @@
+{
+	"dashboardDepthMesTXT" : "Глубина",	
+	"dashboardMeterMesTXT" : "м.",
+	"latTXT" : "Ш",
+	"longTXT" : "Д",
+	"copyToClipboardMessageOkTXT" : "Копирование в буфер обмена выполнено ",
+	"copyToClipboardMessageBadTXT" : "Копирование в буфер обмена не удалось ",
+	"AISstatusTXT" : {
+		"0" : "Двигаюсь под мотором",
+		"1" : "На якоре",
+		"2" : "Без экипажа",
+		"3" : "Ограничен в манёвре",
+		"4" : "Ограничен осадкой",
+		"5" : "Ошвартован",
+		"6" : "На мели",
+		"7" : "Занят ловлей рыбы",
+		"8" : "Двигаюсь под парусом",
+		"11" : "Тяну буксир",
+		"12" : "Толкаю состав или буксирую под бортом"
+	},
+	"relBearingTXT" : [
+		"прямо по курсу",
+		"справа впереди",
+		"справа по борту",	
+		"справа сзади",
+		"сзади по корме",
+		"слева сзади",
+		"слева по борту",	
+		"слева впереди"
+	],
+
+		
+	"routeSaveTXT" : "Название",
+	"goToPositionTXT" : "Переместить карту в",
+	"routeSaveDescrTXT" : "Описание маршрута",
+	"realTXT" : "Дробное число",
+
+	"stringsandliterals" : {
+	 	"homeHeaderTXT" : "Карты",
+	 	"dashboardHeaderTXT" : "Скорость и направление",
+	 	"dashboardSpeedTXT" : "Скорость",
+	 	"dashboardSpeedMesTXT" : "км/ч", 	
+	 	"dashboardHeadingTXT" : "Курс",
+	 	"dashboardHeadingAltTXT" : "Course",
+	 	"dashboardPosTXT" : "Местоположение",
+	 	"dashboardPosAltTXT" : "Latitude &nbsp; Longitude",
+	 	"dashboardSpeedZoomTXT" : "Вектор скорости - расстояние за",
+	 	"dashboardSpeedZoomMesTXT" : "минут",
+	 	"dashboardMeterMesTXT" : "м.",
+
+	 	"tracksHeaderTXT" : "Треки",
+	 	"loggingTXT" : "Запись пути",
+
+	 	"measureHeaderTXT" : "Маршрут",
+	 	"routeControlsBeginTXT" : "Начать",
+	 	"routeControlsContinueTXT" : "Продолжить",
+	 	"routeControlsClearTXT" : "Стереть",	
+	 	"routePosTXT" : "Широта &nbsp; Долгота",
+	 	"routeSaveTitle" : "Сохранить маршрут на сервере",
+	 	"routesHeaderTXT" : "Места и маршруты",
+
+	 	"settingsHeaderTXT" : "Параметры",
+	 	"settingsCursorTXT" : "Следование <br>за курсором",
+	 	"settingsTrackTXT" : "Текущй трек <br>всегда показывается",
+	 	"settingsRoutesAlwaysTXT" : "Выбранные маршруты <br>всегда показываются",
+	 	"DisplayAIS_TXT" : "Отображение AIS",
+	 	"minWATCHintervalTXT" : "Обновлять положение не чаще, чем раз в, сек. ",
+
+	 	"mobTXT" : "Человек за бортом!",
+	 	"addMarkerTXT" : "Ещё маркер",
+	 	"mobPosTXT" : "Местоположение",
+	 	"mobPosAltTXT" : "Latitude &nbsp; Longitude",
+	 	"bearingTXT" : "Абсолютный азимут",
+	 	"altBearingTXT" : "bearing",
+	 	"distanceTXT" : "Расстояние",
+	 	"altDistanceTXT" : "distance",
+	 	"removeMarkerTXT" : "Убрать маркер",
+	 	"cancelMOBTXT" : "Завершить"
+	}
+}
