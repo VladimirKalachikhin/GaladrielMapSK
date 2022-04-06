@@ -303,4 +303,8 @@ ul { /* нужно, чтобы стили работали */
 	opacity: 0.7;
 }
 
+.NoGpsCursorIcon {
+	filter: grayscale(100%);
+}
+
 

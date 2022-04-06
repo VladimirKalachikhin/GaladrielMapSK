@@ -425,12 +425,13 @@ function updateCurrTrack() {
 // в формате GeoJSON
 //console.log(currentTrackServerURI,currentTrackName);
 var xhr = new XMLHttpRequest();
-xhr.open('GET', encodeURI('getlasttrkpt/'+currentTrackName), true); 	// Подготовим асинхронный запрос
+xhr.open('GET', encodeURI(currentTrackServerURI+'/'+currentTrackName), true); 	// Подготовим асинхронный запрос
 xhr.send();
 xhr.onreadystatechange = function() { // 
 	if (this.readyState != 4) return; 	// запрос ещё не завершился, покинем функцию
 	if (this.status != 200) { 	// запрос завершлся, но неудачно
-		console.log('Server return '+this.status+'\ncurrentTrackServerURI='+currentTrackServerURI+'\ncurrTrackName='+currentTrackName+'\n\n');
+		//console.log('Server return '+this.status+'\ncurrentTrackServerURI='+currentTrackServerURI+'\ncurrTrackName='+currentTrackName+'\n\n');
+		console.log('To updateCurrTrack server return '+this.status+' instead '+currentTrackName);
 		return; 	// что-то не то с сервером
 	}
 	//console.log(this.responseText);
@@ -980,16 +981,16 @@ currentTrackName = '';
 
 function loggingRun() {
 /* запускает/останавливает запись трека по кнопке в интерфейсе */
-let logging = 'logging.php';
+let logging = 'logging/';
 if(loggingSwitch.checked) {
-	logging += '?startLogging=1';
+	logging += 'startLogging';
 	if(!currentTrackUpdateProcess) {
 		currentTrackUpdateProcess =  setInterval(currentTrackUpdate,3000);	// запустим слежение за логом, если ещё не
 		//console.log('[loggingRun] Запущено слежение за логом, currentTrackUpdateProcess=', currentTrackUpdateProcess);
 	}
 }
 else {
-	logging += '?stopLogging=1';
+	logging += 'stopLogging';
 	doNotCurrentTrackName(currentTrackName);
 	//console.log('[loggingRun] прекратим следить за логом');
 	clearInterval(currentTrackUpdateProcess);	 
@@ -1104,11 +1105,12 @@ mobMarker.eachLayer(function (layer) { 	// удалим признак current �
 
 
 function MOBclose() {
+//console.log('Завершаем режим MOB');
 mobMarker.remove(); 	// убрать мультислой-маркер с карты
 mobMarker.clearLayers(); 	// очистить мультислой от маркеров
 mobMarker.addLayer(toMOBline); 	// вернём туда линию
 sendMOBtoServer(false); 	// передадим на сервер, что режим MOB прекращён
-document.cookie = "GaladrielMapMOB=; expires=0; path=/; samesite=Lax"; 	// удалим куку
+document.cookie = 'GaladrielMapMOB=; expires=0; path=/; samesite=Lax'; 	// удалим куку
 azimuthMOBdisplay.innerHTML = '&nbsp;';
 distanceMOBdisplay.innerHTML = '&nbsp;';
 directionMOBdisplay.innerHTML = '&nbsp;';
@@ -1147,26 +1149,8 @@ function sendMOBtoServer(status=true){
 mobMarker -- это Leaflet LayerGroup, т.е. там исчерпывающая информация
 */
 //console.log("sendMOBtoServer status=",status);
-upData.MOB = {};
-upData.MOB.class = 'MOB';
-upData.MOB.source = instanceSelf;
-upData.MOB.status = status; 	// 
-upData.MOB.points = [];
-//upData.MOB.LineString = {};
 let mobMarkerJSON = mobMarker.toGeoJSON(); 	//
-for(let feature of mobMarkerJSON.features){
-	switch(feature.geometry.type){
-	case "Point":
-		upData.MOB.points.push({'coordinates':feature.geometry.coordinates,'current':feature.properties.current});
-		break;
-	case "LineString":
-		//upData.MOB.LineString.coordinates = feature.geometry.coordinates;	// линия только одна
-		break;
-	}
-}
-//console.log('Sending to server upData.MOB',upData.MOB);
-//console.log('upData',JSON.stringify(upData.MOB));
-//console.log(spatialWebSocket);
+//console.log('Sending to server mobMarkerJSON',mobMarkerJSON);
 let delta;
 if(status) {
 	delta = {
@@ -1180,7 +1164,8 @@ if(status) {
 							"method": ["visual", "sound"],
 							"state": "emergency",
 							"message": "A man overboard!",
-							"position": upData.MOB
+							"source": instanceSelf,
+							"position": mobMarkerJSON
 						},
 					}
 				],
@@ -1208,7 +1193,7 @@ else {
 
 spatialWebSocket.send(JSON.stringify(delta)); 	// отдадим данные MOB для передачи на сервер через глобальный сокет для передачи координат. Он есть, иначе -- нет координат и нет проблем.
 
-// Посадим куку
+//console.log('[sendMOBtoServer] Посадим куку MOB');
 mobMarkerJSON = JSON.stringify(mobMarkerJSON);
 const expires =  new Date();
 expires.setTime(expires.getTime() + (30*24*60*60*1000)); 	// протухнет через месяц
@@ -1254,6 +1239,25 @@ if(SelectedRoutesSwitch.checked) {
 	}
 }
 } // end function restoreDisplayedRoutes
+
+function generateUUID() { 
+// Public Domain/MIT https://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid
+// мне пофигу их соображеия о "небезопасности", ибо они вне контекста
+    var d = new Date().getTime();//Timestamp
+    var d2 = ((typeof performance !== 'undefined') && performance.now && (performance.now()*1000)) || 0;//Time in microseconds since page-load or 0 if unsupported
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16;//random number between 0 and 16
+        if(d > 0){//Use timestamp until depleted
+            r = (d + r)%16 | 0;
+            d = Math.floor(d/16);
+        } else {//Use microseconds since page-load if supported
+            r = (d2 + r)%16 | 0;
+            d2 = Math.floor(d2/16);
+        }
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+}
+
 
 
 function realtime(dataUrl,fUpdate,upData) {

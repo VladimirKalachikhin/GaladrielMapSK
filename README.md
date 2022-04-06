@@ -21,6 +21,13 @@ Press Submit to save changes.
 ## Usage
 Go to Webapps menu of SignalK web control panel and open **Galadrielmap_sk**; or open _http://your-signalk:3000/galadrielmap_sk/_
 
+## Extension of SignalK protocol
+The `value` of `notifications.mob` path has  the following additional properties except specified in the documentation:  
+
+`"source":` the UUID of instance firing of notification,  
+`"position":` the GeoJSON object with MOB spatial info
+
+
 ## Support
 [Discussions](https://github.com/VladimirKalachikhin/Galadriel-map/discussions)
 

@@ -1,9 +1,9 @@
 /* @preserve
- * Leaflet 1.7.1, a JS library for interactive maps. http://leafletjs.com
+ * Leaflet 1.6.0+Detached: bd88f73e8ddb90eb945a28bc1de9eb07f7386118.bd88f73, a JS library for interactive maps. http://leafletjs.com
  * (c) 2010-2019 Vladimir Agafonkin, (c) 2010-2011 CloudMade
  */
 
-var version = "1.7.1";
+var version = "1.6.0";
 
 /*
  * @namespace Util

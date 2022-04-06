@@ -1,6 +1,6 @@
 {
   "name": "galadrielmap_sk",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "a server-based chart plotter navigation software for pleasure crafts, motorhomes, and off-road cars. It's can be used on tablets and smartphones without install any app. Only browser need.",
   "main": "index.js",
   "author": "Vladimir Kalachikhin",

@@ -367,7 +367,13 @@ app.get(`/${plugin.id}/checkRoutes`, function(request, response) {
 	response.json(shanged);
 });
 
+// Подготовим картинку для передачи её клиенту, чтобы тот мог видеть её и при потере связи с сервером
+const mob_markerImg = "data:image/png;base64,"+fs.readFileSync(path.resolve(__dirname,'./public','img/mob_marker.png'), 'base64');
+
+
+// Запишем файл для передачи клиенту
 const optionsjs = `// This file created automatically. Don't edit it!
+const mob_markerImg = '${mob_markerImg}';
 let PosFreshBefore = ${options.PosFreshBefore * 1000}; 	// время в милисекундах, через которое положение считается протухшим
 const aisFreshBefore = ${options.aisFreshBefore * 1000}; 	// время в милисекундах, через которое цели AIS считаются протухшими
 const TPVsubscribe = {

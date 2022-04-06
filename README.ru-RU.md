@@ -23,6 +23,14 @@
 ## Использование
 В меню Webapps веб-панели SignalK запустите **Galadrielmap_sk**, или откройте _http://your-signalk:3000/galadrielmap_sk/_ в браузере.
 
+## Расширения протокола SignalK
+Объект `value` по пути `notifications.mob` кроме указанных в документации свойств содержит также:  
+
+`"source":` UUID экземпляра клиентского приложения, пославшего сигнал,  
+`"position":` Объект в формате GeoJSON, содержащий георграфическую информацию о событии.
+
+
+
 ## Поддержка
 [Форум](https://github.com/VladimirKalachikhin/Galadriel-map/discussions)
 

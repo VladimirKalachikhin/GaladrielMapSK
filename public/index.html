@@ -9,6 +9,7 @@
     <!-- Leaflet -->
 	<link rel="stylesheet" href="leaflet/leaflet.css" type="text/css">
 	<script src="leaflet/leaflet.js"></script>
+    <script src="Leaflet.RotatedMarker/leaflet.rotatedMarker.js"></script>
     <!-- Leaflet sidebar -->
     <link rel="stylesheet" href="leaflet-sidebar-v2/css/leaflet-sidebar.min.css" />
 	<script src="leaflet-sidebar-v2/js/leaflet-sidebar.min.js"></script>
@@ -21,7 +22,6 @@
 	<script src="leaflet-measure-path/leaflet-measure-path.js"></script>
 
     <script src="L.TileLayer.Mercator/src/L.TileLayer.Mercator.js"></script>
-    <script src="Leaflet.RotatedMarker/leaflet.rotatedMarker.js"></script>
 	<script src='supercluster/supercluster.js'></script>
 	<script src="leaflet-tracksymbolPATCHED/leaflet-tracksymbol.js"></script>
 
@@ -339,7 +339,7 @@ var vehicles = []; 	// list of visible by AIS data vehicle objects
 // Loader
 var downJob = false; 	// флаг - не создаётся ли задание на скачивание
 // Пути и маршруты
-var currentTrackServerURI = ''; 	// адрес для подключения к сервису, отдающему сегменты текущего трека
+var currentTrackServerURI = 'getlasttrkpt'; 	// адрес для подключения к сервису, отдающему сегменты текущего трека
 var trackDirURI = 'track'; 	// адрес каталога с треками
 var routeDirURI = 'route'; 	// адрес каталога с маршрутами
 var currentTrackName = ''; 	// имя текущего (пишущегося сейчас) трека
@@ -363,7 +363,7 @@ var upData = {};
 var vesselSelf;
 var instanceSelf = getCookie('GaladrielMapInstance');	// идентификатор экземпляра программы
 if(!instanceSelf) {
-	instanceSelf = crypto.randomUUID();
+	instanceSelf = generateUUID();
 	let expires =  new Date();
 	expires.setTime(expires.getTime() + (60*24*60*60*1000)); 	// протухнет через два месяца
 	document.cookie = "GaladrielMapInstance="+instanceSelf+"; expires="+expires+"; path=/; samesite=Lax";
@@ -529,35 +529,36 @@ var GpsCursor = L.icon({
 	//popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
 });
 
-var NoGpsCursor = L.icon({
-	iconUrl: './img/nogpscursor.png',
+// курсор
+var NoGpsCursor = L.icon({	// этот значёк может показываться и при пропаже связи с сервером, а в этом случае загрузить картинку не удастся. Попытка загрузить её заранее не получилась: Leaflet, видимо, убивает долго неиспользуемые объекты. Или сборщик мусора?
+	iconUrl: './img/gpscursor.png',
 	iconSize:     [120, 120], // size of the icon
 	iconAnchor:   [60, 60], // point of the icon which will correspond to marker's location
+	className: "NoGpsCursorIcon"	// galadrielmap.css
 });
 var velocityCursor = L.icon({
 	iconUrl: './img/1x1.png',
 	//iconUrl: './img/minLine.svg',
 });
-
-// курсор
-let NoCursor = L.icon({
+var NoCursor = L.icon({
 	iconUrl: './img/1x1.png',
 	iconSize: [0, 0], // size of the icon
 });
-let cursor = L.marker(startCenter, {
+var cursor = L.marker(startCenter, {
 	'icon': GpsCursor,
 	rotationAngle: heading, // начальный угол поворота маркера
 	rotationOrigin: "50% 50%", 	// вертим маркер вокруг центра
 });
+
 // указатель скорости
-let velocityVector = L.marker(cursor.getLatLng(), {
+var velocityVector = L.marker(cursor.getLatLng(), {
 	'icon': velocityCursor,
 	rotationAngle: heading, // начальный угол поворота маркера
 	opacity: 0.1
 });
 velocityVectorLengthInMnDisplay.innerHTML = velocityVectorLengthInMn; 	// нарисуем цену вектора скорости на панели управления
 // Точность ГПС
-let GNSScircle = L.circle(cursor.getLatLng(), {
+var GNSScircle = L.circle(cursor.getLatLng(), {
 	'radius': 10,
 	'color':'#000000',
 	'weight':0,
@@ -568,7 +569,7 @@ var positionCursor = L.layerGroup([GNSScircle,velocityVector,cursor]);
 
 // MOB marker
 var mobIcon = L.icon({ 	// 
-	iconUrl: "img/mob_marker.png",
+	iconUrl: mob_markerImg,	// options.js
 	//iconUrl: "img/mob.png",
 	iconSize: [32, 37],
 	//iconSize: [64, 74],
@@ -586,6 +587,7 @@ var toMOBline = L.polyline([], {
 
 // восстановим маркеры
 var mobMarker = getCookie('GaladrielMapMOB'); 	// getCookie from galadrielmap.js
+//console.log('Восстановление MOB: mobMarker',mobMarker);
 if(mobMarker) {
 	// Восстановим мультислой маркеров из GeoJSON, а потом каждому маркеру в мультислое присвоим иконку, которая в GeoJSON не сохраняется.
 	mobMarker = L.geoJSON(JSON.parse(mobMarker));
@@ -598,6 +600,15 @@ if(mobMarker) {
 	});
 	mobMarker.addLayer(toMOBline);
 	mobMarker.addTo(map);
+	mobMarker.eachLayer(function (layer) { 	// сделаем каждый маркер draggable
+		if(layer instanceof L.Marker)	{	
+			layer.dragging.enable(); 	// переключение возможно, только если маркер на карте
+			layer.on('dragend', function(event){
+				//console.log("New MOB marker from server data dragged end, send to server new coordinates",currentMOBmarker);
+				sendMOBtoServer(); 
+			}); 	// отправим на сервер новые сведения, когда перемещение маркера закончилось. Если просто указать функцию -- в sendMOBtoServer передаётся event. Если в одну строку -- всё равно передаётся event. Что за???
+		}
+	});
 }
 else mobMarker = L.layerGroup().addLayer(toMOBline);
 
@@ -619,6 +630,9 @@ function spatialWebSocketStart(){
 		TPVsubscribe.subscribe.forEach(subscribe => subscribe.minPeriod = minWATCHinterval);	//  signalKsubscribe в options.js
 		event.target.send(JSON.stringify(TPVsubscribe));	// подписываемся на получение данных
 		console.log("[spatialWebSocket open] Subscribe sended");
+		if(map.hasLayer(mobMarker)){ 	// если показывается мультислой с маркерами MOB
+			sendMOBtoServer(); 	// отдадим данные MOB для передачи на сервер, на всякий случай -- вдруг там не знают
+		}
 		// Хоть какая-то проверка актуальности координат -- за отсутствием чего-то такого в SignalK
 		checkDataFreshInterval = setInterval(function (){
 			if((Date.now()-lastDataUpdate)>PosFreshBefore){
@@ -683,26 +697,9 @@ function spatialWebSocketStart(){
 						continue byUpdates;
 					}
 					//console.log('режим MOB есть, пришли новые данные');
-					let MOBdata = value.value.position;
-					//console.log('Index MOBdata',MOBdata);
-					if(MOBdata.source == instanceSelf) continue byUpdates;	// это нами же установленный MOB
-					// создадим GeoJSON
-					let mobMarkerJSON = {"type":"FeatureCollection",
-										"features":[]
-										};
-					for(let point of MOBdata.points){
-						let feature = 	{	
-											"type":"Feature",
-											"properties":{
-												"current": point.current
-											},
-											"geometry":{
-												"type":"Point",
-												"coordinates": point.coordinates
-											}
-										};
-						mobMarkerJSON.features.push(feature);
-					}
+					if(value.value.source == instanceSelf) continue byUpdates;	// это нами же установленный MOB
+					let mobMarkerJSON = value.value.position;	// Это GeoJSON
+					//console.log('mobMarkerJSON:',mobMarkerJSON);
 					// Восстановим мультислой маркеров из GeoJSON, а потом каждому маркеру в мультислое присвоим иконку, которая в GeoJSON не сохраняется.
 					mobMarker.remove(); 	// убрать мультислой-маркер с карты
 					mobMarker = null; 	// реально удалим объект
@@ -743,15 +740,16 @@ function spatialWebSocketStart(){
 
 	spatialWebSocket.onclose = function(event) {
 		console.log(`spatialWebSocket closed: connection broken with code ${event.code} by reason ${event.reason}`);
-		window.setTimeout(spatialWebSocketStart, 3000); 	// перезапустим сокет через  секунд. В каком контексте здесь вызывается callback -- мне осталось непонятным, поэтому сокет ваще глобален
+		//console.log('lastDataUpdate',lastDataUpdate,'PosFreshBefore',PosFreshBefore);
 		if((Date.now()-lastDataUpdate)>PosFreshBefore*30) positionCursor.remove(); 	// уберём курсор (layerGroup) с карты
-		else cursor.setIcon(NoGpsCursor)	// заменим курсор (значёк) на серый
+		else {cursor.setIcon(NoGpsCursor);}	// заменим курсор (значёк) на серый
 		velocityDial.innerHTML = '&nbsp;'; 	// обнулим панель приборов
 		headingDisplay.innerHTML = '&nbsp;';
 		locationDisplay.innerHTML = '&nbsp;';
 		depthDial.innerHTML = '';
 		//MOBtab.className='disabled'; 	// если нет курсора (координат) -- невозможно включить режим MOB. Это плохая идея.
 		clearInterval(checkDataFreshInterval);	// остановить периодическую проверку свежести
+		window.setTimeout(spatialWebSocketStart, 3000); 	// перезапустим сокет через  секунд. В каком контексте здесь вызывается callback -- мне осталось непонятным, поэтому сокет ваще глобален
 	}; // end spatialWebSocket.onclose
 
 	spatialWebSocket.onerror = function(error) {
@@ -763,7 +761,7 @@ function spatialWebSocketStart(){
 		//console.log('Index gpsdData.MOB',gpsdData.MOB);
 		// Положение неизвестно
 		//console.log('Index gpsdData',gpsdData.lon,gpsdData.lat);
-		if(gpsdData.error || isNaN(gpsdData.lon)||isNaN(gpsdData.lat)) { 	// 
+		if(gpsdData.error || (gpsdData.lon == null)||(gpsdData.lat == null) || (gpsdData.lon == undefined)||(gpsdData.lat == undefined)) { 	// 
 			console.log('No spatial info in GPSD data',gpsdData);
 			positionCursor.remove(); 	// уберём курсор с карты
 			velocityDial.innerHTML = '&nbsp;'; 	// обнулим панель приборов
@@ -857,6 +855,7 @@ function spatialWebSocketStart(){
 			toMOBline.setLatLngs([latlng1,latlng2]); 	// обновим линию к текущему маркеру MOB
 			// информация о MOB на панели
 			const azimuth = bearing(latlng1, latlng2);
+			//console.log('azimuth=',azimuth,latlng1, latlng2)
 			azimuthMOBdisplay.innerHTML = Math.round(azimuth);
 			distanceMOBdisplay.innerHTML = Math.round(latlng1.distanceTo(latlng2));
 			locationMOBdisplay.innerHTML = latTXT+' '+Math.round(currentMOBmarker.getLatLng().lat*10000)/10000+' '+longTXT+' '+Math.round(currentMOBmarker.getLatLng().lng*10000)/10000;	
@@ -950,8 +949,8 @@ function watchAISstart() {
 							break;
 						case 'communication':
 							//console.log(data.context,key,value.value[key]);
-							if(!isNaN(value.value[key].callsignVhf)) AISdata[vessel].callsign = value.value[key].callsignVhf;
-							if(!isNaN(value.value[key].netAIS)) AISdata[vessel].netAIS = value.value[key].netAIS;
+							if(value.value[key].callsignVhf) AISdata[vessel].callsign = value.value[key].callsignVhf;
+							if(value.value[key].netAIS) AISdata[vessel].netAIS = value.value[key].netAIS;
 							break;
 						}
 					}
@@ -1055,7 +1054,7 @@ function watchAISstart() {
 		//console.log(vehicle,aisData[vehicle]);
 		if(vehicle.toLowerCase() == 'error') break;
 		//console.log(aisData[vehicle].lat,aisData[vehicle].lon);
-		if(isNaN(aisData[vehicle].lat) || isNaN(aisData[vehicle].lon)) continue;	// не показываем цели без координат
+		if((aisData[vehicle].lat === null) || (aisData[vehicle].lon === null) || (aisData[vehicle].lat === undefined) || (aisData[vehicle].lon === undefined)) continue;	// не показываем цели без координат
 		//console.log(vehicles);
 		if(!vehicles[vehicle]) { 	// global var, массив layers с целями
 			//console.log('Create layers',vehicle,aisData[vehicle]);
