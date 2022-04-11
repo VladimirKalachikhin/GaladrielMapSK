@@ -85,21 +85,21 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="dashboardHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
 			<div class="big_symbol"> <!-- передвинуть карту на место курсора -->
 				<div>
-					<div style="line-height:0.4;" onClick="map.setView(cursor.getLatLng());">				
+					<div style="line-height:0.6;" onClick="map.setView(cursor.getLatLng());">				
 						<div style="font-size:50%;"><span id="dashboardSpeedTXT"></span></div><br>
 						<div id='velocityDial'></div><br>
 						<div style="font-size:50%;"><span id="dashboardSpeedMesTXT"></span></div>
 					</div>
 					<div id='depthDial' style="line-height:0.4;" onClick="map.setView(cursor.getLatLng());">				
 					</div>
-					<div style="font-size:60%;line-height:0.4;" onClick="map.setView(cursor.getLatLng());">
-						<br><br><span style="font-size:50%;"><span id="dashboardHeadingTXT"></span></span>
+					<div style="line-height:0.6;" onClick="map.setView(cursor.getLatLng());">
+						<br><span style="font-size:50%;"><span id="dashboardHeadingTXT"></span></span>
 						<span style="font-size:30%; "><br><span id="dashboardHeadingAltTXT"></span></span>
 					</div>
-					<div style="font-size:50%;">
+					<div style="">
 						<span id='headingDisplay'></span>
 					</div>
-					<div style="font-size:50%;line-height:0.4;" onClick="doCopyToClipboard(lat+' '+lng);" >
+					<div style="font-size:50%;line-height:0.6;" onClick="doCopyToClipboard(lat+' '+lng);" >
 						<br><span style="font-size:50%;" id="mobPosTXT"></span><br>
 						<span style="font-size:30%;" id="mobPosAltTXT"></span>
 					</div>
@@ -108,7 +108,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 					</div>
 				</div>
 			</div>
-			<div style="text-align:center; position: absolute; bottom: 0;">
+			<div class="scaledText" style="text-align:center; position: absolute; bottom: 0;">
 				<span id="dashboardSpeedZoomTXT"></span> <span id='velocityVectorLengthInMnDisplay'></span> <span id="dashboardSpeedZoomMesTXT"></span>.
 			</div>
 		</div>
@@ -634,6 +634,14 @@ function spatialWebSocketStart(){
 			sendMOBtoServer(); 	// отдадим данные MOB для передачи на сервер, на всякий случай -- вдруг там не знают
 		}
 		// Хоть какая-то проверка актуальности координат -- за отсутствием чего-то такого в SignalK
+		if(useSystemTimeouts){	// options.js
+			// Попытка сделать правильно в этом кривом SignalK
+			// Во-первых, meta.timeout реально вообще нигде нет. По идее, его должен указывать производитель данных, но нет.
+			// Во-вторых, к этому моменту может вообще не быть navigation, а по подписке не присылается meta
+			// В-третьих, в доке указано, что должен быть meta.timeout, но если смотреть по аналогии с units, скажем, то оно meta.properties.longitude.timeout Как оно правильно -- неизвестно
+			const timeout = getSelfPathC('navigation.position.meta.timeout');
+			if(timeout) PosFreshBefore = timeout*1000;
+		}
 		checkDataFreshInterval = setInterval(function (){
 			if((Date.now()-lastDataUpdate)>PosFreshBefore){
 				console.log('The latest TPV data was received too long ago, trying to reconnect for checking.');
@@ -654,15 +662,18 @@ function spatialWebSocketStart(){
 		}
 		//console.log('From SignalK',data,vesselSelf);
 		if(!data.updates){	// ответ на какой-то запрос
-			//console.log('Other From SignalK',data,vesselSelf);
+			//console.log('Other From SignalK',data);
 			if(data.self){	// handshaiking
 				vesselSelf = data.self.substring(8);	// vessels.
 			}
 			return;
 		}
 		byUpdates: for(let update of data.updates){
-			for(let value of update.values){
-				lastDataUpdate = Date.now();	// какое-то обновление данных пришло.
+			//console.log('update:',update);
+			if(!update.values) continue;	// непонятно, почему может не быть values, но иногда их нет
+			for(let value of update.values){	// какое-то обновление данных пришло.
+				//console.log('recieved data',data);
+				lastDataUpdate = Date.now();
 				switch(value.path){
 				case 'navigation.position':
 					TPVdata.lon = value.value.longitude;

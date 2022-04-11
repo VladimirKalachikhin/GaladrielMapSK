@@ -55,9 +55,9 @@ MOBclose()
 delMOBmarker()
 sendMOBtoServer()
 
-bearing(latlng1, latlng2)
-
 restoreDisplayedRoutes()
+bearing(latlng1, latlng2)
+getSelfPathC
 
 realtime(dataUrl,fUpdate)
 
@@ -1147,6 +1147,7 @@ sendMOBtoServer(); 	// отдадим данные MOB для передачи �
 function sendMOBtoServer(status=true){
 /* Кладёт данные MOB в массив, который передаётся на сервер 
 mobMarker -- это Leaflet LayerGroup, т.е. там исчерпывающая информация
+На сервер оно передаётся путём отсылки delta сообщения в веб-сокет
 */
 //console.log("sendMOBtoServer status=",status);
 let mobMarkerJSON = mobMarker.toGeoJSON(); 	//
@@ -1200,6 +1201,30 @@ expires.setTime(expires.getTime() + (30*24*60*60*1000)); 	// протухнет 
 document.cookie = "GaladrielMapMOB="+mobMarkerJSON+"; expires="+expires+"; path=/; samesite=Lax"; 	// 
 } // end function sendMOBtoServer
 
+function restoreDisplayedRoutes(){
+// Восстановим показываемые маршруты
+if(SelectedRoutesSwitch.checked) {
+	let showRoutes = JSON.parse(getCookie('GaladrielRoutes')); 	// getCookie from galadrielmap.js
+	if(showRoutes) {
+		showRoutes.forEach(
+			function(layerName){ 	// 
+				for (let i = 0; i < routeList.children.length; i++) { 	// для каждого потомка списка routeList маршрутов
+					if (routeList.children[i].innerHTML==layerName) { 	// 
+						selectTrack(routeList.children[i],routeList,routeDisplayed,displayRoute)
+						break;
+					}
+				}
+			}
+		);
+	}
+}
+} // end function restoreDisplayedRoutes
+
+
+
+
+
+
 
 function bearing(latlng1, latlng2) {
 /* азимут направления между двумя точками */
@@ -1221,25 +1246,6 @@ if(bearing >= 360) bearing = bearing-360;
 return bearing;
 } // end function bearing
 
-function restoreDisplayedRoutes(){
-// Восстановим показываемые маршруты
-if(SelectedRoutesSwitch.checked) {
-	let showRoutes = JSON.parse(getCookie('GaladrielRoutes')); 	// getCookie from galadrielmap.js
-	if(showRoutes) {
-		showRoutes.forEach(
-			function(layerName){ 	// 
-				for (let i = 0; i < routeList.children.length; i++) { 	// для каждого потомка списка routeList маршрутов
-					if (routeList.children[i].innerHTML==layerName) { 	// 
-						selectTrack(routeList.children[i],routeList,routeDisplayed,displayRoute)
-						break;
-					}
-				}
-			}
-		);
-	}
-}
-} // end function restoreDisplayedRoutes
-
 function generateUUID() { 
 // Public Domain/MIT https://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid
 // мне пофигу их соображеия о "небезопасности", ибо они вне контекста
@@ -1258,7 +1264,24 @@ function generateUUID() {
     });
 }
 
-
+function getSelfPathC(path=''){
+// Получает с сервера path, синхронно
+// возвращает объект или атом
+path = path.replace(/\./g,'/');
+let res=null;
+const xhr = new XMLHttpRequest();
+xhr.open('GET', '/signalk/v1/api/vessels/self/'+path, false); 	// Подготовим синхронный запрос
+xhr.send();
+if (xhr.status == 200) { 	// Успешно
+	try {
+		res = JSON.parse(xhr.responseText); 	// 
+	}
+	catch(err) { 	// 
+		console.error('Get path '+path+' error:',err.message);
+	}
+}
+return res;
+} // end function getSelfPathC
 
 function realtime(dataUrl,fUpdate,upData) {
 /*
@@ -1284,7 +1307,7 @@ fetch(dataUrl)
 	catch(err) {
 		// error handling
 		//console.log(err);
-		throw Error(err); 	// просто сбросим ошибку ближайшему catch
+		throw Error(err.message); 	// просто сбросим ошибку ближайшему catch
 	}
 })
 .then(data => {

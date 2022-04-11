@@ -9,7 +9,7 @@ plugin.description = "a server-based chart plotter navigation software for pleas
 plugin.schema = {
 	title: plugin.name,
 	type: 'object',
-	required: ['PosFreshBefore,routeDir'],
+	required: ['PosFreshBefore','routeDir'],
 	properties: {
 		trackProp:{
 			title: '',
@@ -78,17 +78,28 @@ plugin.schema = {
 			description:'It depends of format of track file name, how it is created by tracking app.',
 			default: false
 		},
-		PosFreshBefore:{
-			type: 'number',
-			title: 'The position is considered correct no longer than this time. If the position older - cursor is grey, seconds.',
-			description: `All devices on your network must have the same time (with differents less than 1 sec.) -- check this and you can be sure that you see actual data.`,
-			default: 5
-		},
-		aisFreshBefore:{
-			type: 'number',
-			title: 'The AIS targets are visible no longer than this time after last update it, seconds.',
-			description: ``,
-			default: 600
+		timeouts:{
+			type: 'object',
+			title: 'Data actuality timeouts',
+			properties: {
+				useSystem:{
+					type: 'boolean',
+					title: 'Use data actuality timeouts from  SignalK, if available.',
+					default: true
+				},
+				PosFreshBefore:{
+					type: 'number',
+					title: 'The position is considered correct no longer than this time. If the position older - cursor is grey, seconds.',
+					description: `All devices on your network must have the same time (with differents less than 1 sec.) -- check this and you can be sure that you see actual data.`,
+					default: 5
+				},
+				aisFreshBefore:{
+					type: 'number',
+					title: 'The AIS targets are visible no longer than this time after last update it, seconds.',
+					description: ``,
+					default: 600
+				}
+			}
 		}
 	}
 };
@@ -99,9 +110,8 @@ const fs = require("fs");
 const path = require('path');
 const cp = require('child_process');
 
+app.debug('GaladrielMap started');
 let currentTrackName = '';
-
-//app.debug('options:',options);
 if(!options.routeDir) options.routeDir = 'route';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
 if(options.trackProp.feature.includes('COG')) options.trackProp.feature = 'navigation.courseOverGroundTrue';
 else if(options.trackProp.feature.includes('HT')) options.trackProp.feature = 'navigation.headingTrue';
@@ -370,12 +380,12 @@ app.get(`/${plugin.id}/checkRoutes`, function(request, response) {
 // Подготовим картинку для передачи её клиенту, чтобы тот мог видеть её и при потере связи с сервером
 const mob_markerImg = "data:image/png;base64,"+fs.readFileSync(path.resolve(__dirname,'./public','img/mob_marker.png'), 'base64');
 
-
 // Запишем файл для передачи клиенту
 const optionsjs = `// This file created automatically. Don't edit it!
 const mob_markerImg = '${mob_markerImg}';
-let PosFreshBefore = ${options.PosFreshBefore * 1000}; 	// время в милисекундах, через которое положение считается протухшим
-const aisFreshBefore = ${options.aisFreshBefore * 1000}; 	// время в милисекундах, через которое цели AIS считаются протухшими
+let PosFreshBefore = ${options.timeouts.PosFreshBefore * 1000}; 	// время в милисекундах, через которое положение считается протухшим
+let aisFreshBefore = ${options.timeouts.aisFreshBefore * 1000}; 	// время в милисекундах, через которое цели AIS считаются протухшими
+let useSystemTimeouts = ${options.timeouts.useSystem};	// пытаться использовать время жизни от SignalK
 const TPVsubscribe = {
 	"context": "vessels.self",
 	"subscribe": [
@@ -527,6 +537,11 @@ const AISsubscribe = {
 `;
 fs.writeFileSync(__dirname+'/public/options.js',optionsjs);
 
+plugin.stop = function () {
+// Here we put logic we need when the plugin stops
+//app.debug('Plugin stopped');
+};
+
 
 
 
@@ -545,11 +560,6 @@ function tailCustom(filepath,lines) {
 } // end function tailCustom
 
 }; // end plugin.start
-
-plugin.stop = function () {
-// Here we put logic we need when the plugin stops
-//app.debug('Plugin stopped');
-};
 
 function gpx2geoJSONpoint(gpxPts) {
 /* Получает массив строк trkpt, rtept или wpt, разделённую \n , вовращает GeoJSON LineString */
