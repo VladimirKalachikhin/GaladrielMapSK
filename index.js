@@ -112,7 +112,6 @@ const cp = require('child_process');
 
 app.debug('GaladrielMap started');
 let currentTrackName = '';
-if(!options.routeDir) options.routeDir = 'route';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
 if(options.trackProp.feature.includes('COG')) options.trackProp.feature = 'navigation.courseOverGroundTrue';
 else if(options.trackProp.feature.includes('HT')) options.trackProp.feature = 'navigation.headingTrue';
 else if(options.trackProp.feature.includes('HM')) options.trackProp.feature = 'navigation.headingMagnetic';
@@ -133,7 +132,7 @@ try {
 	filesList = filesList.filter(item => {	// менее череззадого способа удалить имена скрытых и служебных файлов не нашлось. Верните меня в PHP!!!
 		const exstension = path.extname(item).toLowerCase();
 		if((!(item.startsWith('.') || item.endsWith('~'))) || (fileTypes.includes(exstension))){
-			//app.debug('exstension=',exstension,'chkCurrent=',chkCurrent);
+			//app.debug('fileListHelper','filename=',item,'exstension=',exstension,'chkCurrent=',chkCurrent);
 			if((exstension == '.gpx') && chkCurrent){	// проверять завершённость файлов gpx на предмет обнаружения текущего трека
 				if(app.getSelfPath('navigation.trip.track')){	// если есть текущий трек в SignalK
 					if(fileDir+'/'+item == app.getSelfPath('navigation.trip.track')){
@@ -143,7 +142,7 @@ try {
 				}
 				else {	// будем искать текущий как незавершённый файл gpx в нашем каталоге
 					let buf = tailCustom(fileDir+'/'+item,5);	// сколько-то последних строк файла. Лучше много, ибо в конце могут быть пустые строки
-					//app.debug(buf);
+					//app.debug('fileListHelper buf:',buf);
 					if(buf != false) {
 						if(!buf.trim().endsWith('</gpx>')){	// незавершённый файл gpx
 							currentTrackName = item;
@@ -165,8 +164,11 @@ catch(error){
 }
 } // end function fileListHelper
 
+if(!options.routeDir) options.routeDir = 'route';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
+if(!options.trackDir) options.trackDir = 'track';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
 if(options.routeDir[0]!='/') options.routeDir = path.resolve(__dirname,'./public',options.routeDir);	// если путь не абсолютный -- сделаем абсолютным
 if(options.trackDir[0]!='/') options.trackDir = path.resolve(__dirname,'./public',options.trackDir);	// если путь не абсолютный -- сделаем абсолютным
+
 // ответчик со списком файлов route
 app.get(`/${plugin.id}/route`, function(request, response){fileListHelper(request, response,options.routeDir,['gpx','kml','csv']);});	// ['gpx','kml','csv','wkt','json']
 // ответчик, отдающий файл из route
@@ -177,7 +179,7 @@ app.get(`/${plugin.id}/route/*`, function(request, response) {
 
 // ответчик со списком файлов track
 app.get(`/${plugin.id}/track`, function(request, response){fileListHelper(request, response,options.trackDir,['gpx'],true);});
-// ответчик, отдающий файл из route
+// ответчик, отдающий файл из track
 app.get(`/${plugin.id}/track/*`, function(request, response) {	
 	//app.debug(options.trackDir+'/'+path.basename(request.url));
 	response.sendFile(options.trackDir+'/'+path.basename(decodeURI(request.url)));
@@ -199,7 +201,6 @@ SESSION_lastTrkPt = `   <trkpt lat="61.050616667" lon="28.195350000">
 */
 app.get(`/${plugin.id}/getlasttrkpt/:currTrackFileName`, function(request, response) {	
 	// :currTrackFileName -- имя файла gpx, без пути и можно без расширения
-	//response.send(request.params);
 	if(!request.params.currTrackFileName.endsWith('.gpx')) request.params.currTrackFileName += '.gpx';
 	request.params.currTrackFileName = options.trackDir+'/'+request.params.currTrackFileName;
 
@@ -211,7 +212,7 @@ app.get(`/${plugin.id}/getlasttrkpt/:currTrackFileName`, function(request, respo
 	// если это независимо вызывается раз в 2 секунды, а приёмник ГПС отдаёт координаты 10 раз в секунду, и все они пишутся...
 	const tailStrings = 2 * 10 * 20;	// это примерно 10КБ. Норм?
 	let lastTrkPts = tailCustom(request.params.currTrackFileName,tailStrings).split("\n").filter(str => str.trim().length);
-	//app.debug(lastTrkPts);
+	//app.debug('lastTrkPts:',lastTrkPts);
 	if( lastTrkPts[lastTrkPts.length-1].trim() != '</gpx>') trackLogging = true; 	// если это завершённый GPX -- укажем, что трек не пишется
 	//app.debug("trackLogging",trackLogging);
 	
@@ -219,7 +220,7 @@ app.get(`/${plugin.id}/getlasttrkpt/:currTrackFileName`, function(request, respo
 	if(trackLogging) { 	// трек пишется - просмотрим трек
 		// Для определения, какая последняя точка была отдана, найдём в ней строку с временем.
 		let sendedTRPTtimeStr = '';
-		//app.debug('SESSION_lastTrkPt',`|${SESSION_lastTrkPt}|`);
+		//app.debug('SESSION_lastTrkPt:',`|${SESSION_lastTrkPt}|`);
 		for(let str of SESSION_lastTrkPt.split("\n")){
 			str = str.trim();
 			if(str.startsWith('<time>')){
@@ -227,7 +228,7 @@ app.get(`/${plugin.id}/getlasttrkpt/:currTrackFileName`, function(request, respo
 				break;
 			}
 		}
-		//app.debug('sendedTRPTtimeStr',sendedTRPTtimeStr);
+		//app.debug('sendedTRPTtimeStr:',sendedTRPTtimeStr);
 		
 		let TRPTstart = lastTrkPts.length;
 		for(let n = 0; n < lastTrkPts.length; n++){	// 
@@ -237,7 +238,7 @@ app.get(`/${plugin.id}/getlasttrkpt/:currTrackFileName`, function(request, respo
 		}
 		// в считанном хвосте файла обнаружена последняя отправленная, или просто последняя точка, или ничего
 		lastTrkPts = lastTrkPts.slice(TRPTstart);	// теперь массив начинается с первой строки последней отправленной точки или первой строки последней точки или пустой.
-		//app.debug(lastTrkPts);
+		//app.debug('lastTrkPts:',lastTrkPts);
 		let TRPTend = -1;
 		for(let n = 0; n < lastTrkPts.length; n++){
 			let str = lastTrkPts[n];
@@ -261,29 +262,36 @@ app.get(`/${plugin.id}/getlasttrkpt/:currTrackFileName`, function(request, respo
 			else if(TRPTfind) TRPTstr += str+"\n";
 		}
 		delete lastTrkPts;
-		//app.debug(lastTrkPtGPX);
+		//app.debug('2 lastTrkPtGPX:',lastTrkPtGPX,lastTrkPtGPX.length);
 
-		// Теперь в $lastTrkPtGPX одна строка с последней ранее переданной точкой, или одна строка с 
+		// Теперь в массиве lastTrkPtGPX одна строка с последней ранее переданной точкой, или одна строка с 
 		// последней точкой в файле, или более строк, или пусто
 		if(lastTrkPtGPX.length==1){
+			//app.debug('Compare last & session:',lastTrkPtGPX[0]==SESSION_lastTrkPt);
 			if(lastTrkPtGPX[0]==SESSION_lastTrkPt) lastTrkPtGPX = [];	// не было новых точек
 			else if(SESSION_lastTrkPt) lastTrkPtGPX = [SESSION_lastTrkPt,lastTrkPtGPX[0]];	// от последней сохранённой к последней в файле
-			else lastTrkPtGPX = [];
+			else {
+				//app.debug('new SESSION_lastTrkPt if last point');
+				SESSION_lastTrkPt = lastTrkPtGPX[0];
+				lastTrkPtGPX = [];
+			}
 		}
+		//app.debug('SESSION_lastTrkPt:',SESSION_lastTrkPt);
 
 		if(lastTrkPtGPX.length>1){
+			//app.debug('new SESSION_lastTrkPt');
 			SESSION_lastTrkPt = lastTrkPtGPX[lastTrkPtGPX.length-1];
 			lastTrkPtGPX = gpx2geoJSONpoint(lastTrkPtGPX); 	// сделаем GeoJSON LineString
 		}
 	}
-	//app.debug(lastTrkPtGPX);
+	//app.debug('1 lastTrkPtGPX:',lastTrkPtGPX);
 	
 	response.json({'logging' : trackLogging,'pt' : lastTrkPtGPX});
 });
 
 // Ответчик, включающий и выключающий запись трека средствами SignalK
 // и возвращающий состояние записи и имя файла записываемого трека.
-// Теоретически, то же самое можно сделать командой PUT с колиента через уже имеющийся вебсокет.
+// Теоретически, то же самое можно сделать командой PUT с клиента через уже имеющийся вебсокет.
 // но чёта с notifications.mob это не прокатило....
 // ... в общем, я ниасилил как изменять значения с клиента. PUT в смысле http оно не понимает также как GET
 // хех, оказывается, надо послать delta в вебсокет для потоков 
@@ -295,7 +303,21 @@ app.get(`/${plugin.id}/logging/:command`, function(request, response) {
 		status = app.getSelfPath('navigation.trip.logging.value');
 		if(app.getSelfPath('navigation.trip.track')) outpuFileName = path.basename(app.getSelfPath('navigation.trip.track'));
 	}
-	else status = null;
+	else {	// В SignalK нет информации о записи трека
+		status = null;
+		// Попробуем найти текущий записываемый трек как первый (или последний) незавершённый
+		for(let item of fs.readdirSync(options.trackDir)) {	
+			if(path.extname(item).toLowerCase() != '.gpx') continue;
+			let buf = tailCustom(options.trackDir+'/'+item,5);	// сколько-то последних строк файла. Лучше много, ибо в конце могут быть пустые строки
+			if(buf != false) {
+				if(!buf.trim().endsWith('</gpx>')){	// незавершённый файл gpx
+					outpuFileName = item;
+					if(options.currTrackFirst) break;	// текущий трек -- первый из незавершённых, иначе -- последний.
+				}
+			}
+		}
+	}
+	if(outpuFileName == currentTrackName) outpuFileName = '';	// типа, мы уже говорили, кто текущий, и там знают
 	switch(request.params.command){
 	case 'startLogging':
 		app.handleMessage(plugin.id, {
@@ -548,6 +570,7 @@ plugin.stop = function () {
 
 function tailCustom(filepath,lines) {
 //
+	//app.debug('[tailCustom] filepath=',filepath);
 	let data = false;
 	try{
 		//app.debug('tail -n '+lines+' "'+filepath+'"');
@@ -587,13 +610,13 @@ for(let gpxPt of gpxPts) {
 	for(let str of gpxPt) {
 		let coord = str.lastIndexOf('lat="'); 
 		let strlen = str.length;
-		//app.debug('coord',coord,'strlen',strlen,str);
+		//app.debug('[gpx2geoJSONpoint]','coord',coord,'strlen',strlen,str);
 		if(coord !== -1) lat = str.substr(coord+5,str.indexOf('"',coord+6)-coord-5);
 		coord = str.lastIndexOf('lon="');
 		if(coord !== -1) lon = str.substr(coord+5,str.indexOf('"',coord+6)-coord-5);
 		if(lat && lon) break;
 	}
-	//app.debug('lat',lat,'lon',lon);
+	//app.debug('[gpx2geoJSONpoint]','lat',lat,'lon',lon);
 	if(lat && lon) {
 		geoJSON['features'][0]['geometry']['coordinates'].push([lon,lat]);
 	}

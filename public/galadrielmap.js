@@ -2,7 +2,8 @@
 /* Функции
 onBodyLoad()
 mapListPopulate()
-trackListPopulate()
+
+listPopulate()
 
 getCookie(name)
 doSavePosition() 	Сохранение положения
@@ -100,6 +101,7 @@ const templateLi = mapList.querySelector('li[class="template"]');	// почем�
 for(let identifier in pluginMapList){
 	//console.log(identifier,pluginMapList[identifier]);
 	let newLI = templateLi.cloneNode(true);
+	newLI.classList.remove("template");
 	newLI.id = identifier;
 	newLI.innerText = pluginMapList[identifier].name;
 	newLI.hidden=false;
@@ -128,6 +130,7 @@ fetch(dirURI)	// запросим список файлов route
 	});
 	data.filelist.forEach(fileName => {
 		let newLI = templateLi.cloneNode(true);
+		newLI.classList.remove("template");
 		newLI.id = fileName;
 		newLI.innerText = fileName;
 		newLI.hidden=false;
@@ -357,7 +360,6 @@ function displayTrack(trackNameNode) {
 /* рисует трек с именем в trackNameNode
 global trackDirURI, window, currentTrackName
 */
-//alert(trackName);
 var trackName = trackNameNode.innerText.trim();
 if( savedLayers[trackName] && (trackName != currentTrackName)) savedLayers[trackName].addTo(map); 	// нарисуем его на карте. Текущий трек всегда перезагружаем в updateCurrTrack
 else {
@@ -370,7 +372,7 @@ else {
 	xhr.onreadystatechange = function() { // trackName - внешняя
 		if (this.readyState != 4) return; 	// запрос ещё не завершился, покинем функцию
 		if (this.status != 200) { 	// запрос завершлся, но неудачно
-			alert('На запрос трека сервер ответил '+this.status);
+			console.log('На запрос трека '+trackDirURI+'/'+trackName+' сервер ответил '+this.status);
 			return; 	// что-то не то с сервером
 		}
 		//console.log('|'+this.responseText.slice(-10)+'|');
@@ -431,7 +433,7 @@ xhr.onreadystatechange = function() { //
 	if (this.readyState != 4) return; 	// запрос ещё не завершился, покинем функцию
 	if (this.status != 200) { 	// запрос завершлся, но неудачно
 		//console.log('Server return '+this.status+'\ncurrentTrackServerURI='+currentTrackServerURI+'\ncurrTrackName='+currentTrackName+'\n\n');
-		console.log('To updateCurrTrack server return '+this.status+' instead '+currentTrackName);
+		console.log('To updateCurrTrack server return '+this.status+' instead '+currentTrackName+' last segment.');
 		return; 	// что-то не то с сервером
 	}
 	//console.log(this.responseText);
@@ -444,12 +446,12 @@ xhr.onreadystatechange = function() { //
 	}
 	//console.log(resp);
 	if(resp.logging){ 	// лог пишется
-		if(typeof loggingIndicator != 'undefined'){ 	// лампочка в интерфейсе
+		if(typeof loggingIndicator != 'undefined'){ 	// лампочка в интерфейсе. Вообще-то, в этом варианте софта эта лампочка всегда есть.
 			loggingIndicator.style.color='green';
 			loggingIndicator.innerText='\u2B24';
 		}
 		if(resp.pt) { 	// есть данные
-			if(savedLayers) {	// может не быть, если, например, показ треков выключили, но выполнение currentTrackUpdate уже запланировано
+			if(savedLayers[currentTrackName]) {	// может не быть, если, например, показ треков выключили, но выполнение currentTrackUpdate уже запланировано
 				if(savedLayers[currentTrackName].getLayers()) { 	// это layerGroup
 					savedLayers[currentTrackName].getLayers()[0].addData(resp.pt); 	// добавим полученное к слою с текущим треком
 					//console.log(savedLayers[currentTrackName].getLayers()[0]);
@@ -461,8 +463,9 @@ xhr.onreadystatechange = function() { //
 	else { 	// лог не пишется
 		if(typeof loggingIndicator != 'undefined'){
 			if(loggingSwitch.checked){ 	// лампочка и переключатель в интерфейсе
-				loggingIndicator.style.color='red';
-				loggingIndicator.innerText='\u2B24';
+				// Лог не пишется, но писать велено.
+				// Может быть, оно там не пишется совсем, а может быть, что пишется другой файл
+				loggingCheck();	// спросим про лог, если там новый файл -- он станет текущим, а лампочки установятся
 			}
 			else {
 				loggingIndicator.style.color='';
@@ -1000,7 +1003,7 @@ loggingCheck(logging);
 } // end function loggingRun
 
 function loggingCheck(logging='logging/status') {
-/* включает и выключает запись трека, а также проверяет, ведётся ли запись 
+/* асинхронно включает и выключает запись трека, а также проверяет, ведётся ли запись 
 путём запроса logging.
 Запрос должен вернуть JSON массив из двух значенией: ведётся ли запись bool и имя пишущегося файла
 */
@@ -1011,29 +1014,10 @@ xhr.onreadystatechange = function() { //
 	if (this.readyState != 4) return; 	// запрос ещё не завершился
 	if (this.status != 200) return; 	// что-то не то с сервером
 	let status = JSON.parse(this.response);
-	//console.log('status',status);
+	//console.log('status',status,'currentTrackName=',currentTrackName);
 	if(status[0]) { 	// состояние gpxlogger после выполнения logging.php, 1 или 0
 		loggingIndicator.style.color='green';
 		loggingIndicator.innerText='\u2B24';
-		// Новый текущий трек
-		const newTrackName = status[1].slice(0,status[1].lastIndexOf('.')); 	// имя нового текущего (пишущийся сейчас) трека -- имя файла без расширения		
-		if(!newTrackName) return; 	// не было возвращено имени, хотя запись трека работает: она работает давно, и этот файл нам известен
-		let newTrackLI = document.getElementById(newTrackName); 	// его всегда нет?
-		//console.log(newTrackLI);
-		if(!newTrackLI) {
-			//console.log(tracks.querySelector('li[title="Current Track"]'));
-			//tracks.querySelector('li[title="Current Track"]').classList.remove("currentTrackName");
-			if(currentTrackName) {
-				doNotCurrentTrackName(currentTrackName);
-			}
-			newTrackLI = trackLiTemplate.cloneNode(true);
-			newTrackLI.id = newTrackName;
-			newTrackLI.innerText = newTrackName;
-			newTrackLI.hidden=false;
-			//console.log(newTrackLI);
-			trackList.append(newTrackLI);
-			doCurrentTrackName(newTrackName);	// обязательно после append, ибо вне дерева элементы не ищутся. JavaScript -- коллекция нелепиц.
-		} 	// иначе он и так текущий
 	}
 	else {
 		if(status[0]===null) {
@@ -1049,8 +1033,30 @@ xhr.onreadystatechange = function() { //
 			}
 		}
 	}
+
+	// Новый текущий трек
+	//const newTrackName = status[1].slice(0,status[1].lastIndexOf('.')); 	// имя нового текущего (пишущийся сейчас) трека -- имя файла без расширения		
+	const newTrackName = status[1]; 	// имя нового текущего (пишущийся сейчас) трека -- имя файла
+	if(newTrackName && (newTrackName != currentTrackName)){	// есть новый текущий трек, и он не тот же, что старый
+		let newTrackLI = document.getElementById(newTrackName); 	// его всегда нет?
+		//console.log('есть новый текущий трек',newTrackLI);
+		if(!newTrackLI) {
+			// Добавим новый li в trackList и сделаем его текущим, в результате чего 
+			// он переместится в trackDisplayed
+			if(currentTrackName) {
+				doNotCurrentTrackName(currentTrackName);
+			}
+			const templateLi = trackList.querySelector('li[class="template"]');
+			newTrackLI = templateLi.cloneNode(true);
+			newTrackLI.id = newTrackName;
+			newTrackLI.innerText = newTrackName;
+			newTrackLI.hidden=false;
+			trackList.append(newTrackLI);
+			doCurrentTrackName(newTrackName);	// обязательно после append, ибо вне дерева элементы не ищутся. JavaScript -- коллекция нелепиц.
+		} 	// иначе он и так текущий ?
+	} 	// иначе -- не было возвращено имени, хотя запись трека работает: она работает давно, и этот файл нам известен
 return;
-}
+} // end xhr.onreadystatechange
 } // end function loggingCheck
 
 function MOBalarm() {
@@ -1202,23 +1208,43 @@ document.cookie = "GaladrielMapMOB="+mobMarkerJSON+"; expires="+expires+"; path=
 } // end function sendMOBtoServer
 
 function restoreDisplayedRoutes(){
-// Восстановим показываемые маршруты
+// Восстановим показываемые маршруты и заодно согласуем списки routeList и routeDisplayed
 if(SelectedRoutesSwitch.checked) {
 	let showRoutes = JSON.parse(getCookie('GaladrielRoutes')); 	// getCookie from galadrielmap.js
 	if(showRoutes) {
 		showRoutes.forEach(
 			function(layerName){ 	// 
-				for (let i = 0; i < routeList.children.length; i++) { 	// для каждого потомка списка routeList маршрутов
-					if (routeList.children[i].innerHTML==layerName) { 	// 
-						selectTrack(routeList.children[i],routeList,routeDisplayed,displayRoute)
-						break;
+				// однако же, возможно повторение id, раз он имя файла? Получение всех li, содержащих строку.
+				//const routeListLi = [... document.querySelectorAll('#routeList > li')].filter(el => el.textContent.includes(layerName));
+				const routeListLi = [... routeList.querySelectorAll('li')].filter(el => el.textContent.includes(layerName));
+				if(routeListLi.length) { 	// объект с этим именем есть в списке routeList
+					const routeDisplayedLi = [... routeDisplayed.querySelectorAll('li')].filter(el => el.textContent.includes(layerName));
+					if(routeDisplayedLi.length) { 	// этот объект уже есть в списке routeDisplayed, т.е., маршрут показывается
+						routeListLi[0].remove();	// удалим его из routeList
+						routeListLi[0] = null;
 					}
-				}
+					else {	// иначе выберем объект, т.е., покажем маршрут
+						selectTrack(routeListLi[0],routeList,routeDisplayed,displayRoute)
+					}
+				}	// 	если нет -- и ладно
 			}
 		);
 	}
 }
 } // end function restoreDisplayedRoutes
+
+function chkDisplayedTracks(){
+// Проверим соответствие списков trackList и trackDisplayed
+trackDisplayed.querySelectorAll('li').forEach(li => {	// 
+	const str = li.innerText.trim();
+	const trackListLi = [... trackList.querySelectorAll('li')].filter(el => el.textContent.includes(str));
+	if(trackListLi.length) { 	// объект с этим именем есть в списке trackList
+		trackListLi[0].remove();
+		trackListLi[0] = null;
+	}
+});
+
+}
 
 
 
@@ -1283,6 +1309,9 @@ if (xhr.status == 200) { 	// Успешно
 return res;
 } // end function getSelfPathC
 
+
+
+
 function realtime(dataUrl,fUpdate,upData) {
 /*
 fUpdate - функция обновления. Все должно делаться в ней. Получает json object
@@ -1322,6 +1351,8 @@ fetch(dataUrl)
 })
 
 } 	// end function realtime
+
+
 
 /* Определения классов */
 // control для копирования в клипбоард

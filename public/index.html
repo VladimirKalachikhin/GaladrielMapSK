@@ -625,8 +625,18 @@ function spatialWebSocketStart(){
 	let checkDataFreshInterval;	// объект периодического запуска проверки свежести данных
 	
 	spatialWebSocket = new WebSocket(`ws://${document.location.host}/signalk/v1/stream?subscribe=none`); 	//  подписываться будем отдельно, по событию websocketOnOpen
+
 	spatialWebSocket.onopen = function(event) {
 		console.log("[spatialWebSocket open] Connection established");
+		
+		// Если сервера не было, то списки могли изменится после его перезапуска
+		// не уверен, что стоит заморачиваться с перегрузкой всех списков, перепоказом маршрутов и вот этим всем...
+		//console.log("[spatialWebSocket open] Track list and route list refreshing");
+		//listPopulate(routeList,routeDirURI,false,restoreDisplayedRoutes);	// список маршрутов, асинхронно
+		//listPopulate(trackList,trackDirURI,true,chkDisplayedTracks);	// список путей, показывать текущий, асинхронно
+		// Однако, проверить, не изменился ли файл лога стоит? Оно асинхронно
+		loggingCheck();	// запрашивает статус записи лога, по результатам зажигает лампочки, изменяет trackList, делает текущий трек, etc.
+		
 		TPVsubscribe.subscribe.forEach(subscribe => subscribe.minPeriod = minWATCHinterval);	//  signalKsubscribe в options.js
 		event.target.send(JSON.stringify(TPVsubscribe));	// подписываемся на получение данных
 		console.log("[spatialWebSocket open] Subscribe sended");
@@ -782,7 +792,7 @@ function spatialWebSocketStart(){
 			//MOBtab.className='disabled'; 	// если нет курсора (координат) -- невозможно включить режим MOB. Это плохая идея.
 			return;
 		}
-		// Свежее ли положение известно
+		// Свежее ли положение известно?
 		//MOBtab.className=''; 	// координаты появились -- можно включить режим MOB
 		cursor.setLatLng(L.latLng(gpsdData.lat,gpsdData.lon));
 		var positionTime = new Date(gpsdData.time);
@@ -928,8 +938,16 @@ function watchAISstart() {
 		if(!data.updates){	// handshaiking
 			return;
 		}
-		if(data.context == `vessels.${vesselSelf}`) return;
-		//console.log(vesselSelf,data);
+		//console.log('data.context:',data.context,vesselSelf,AISdata);
+		// Было бы неправильно показывать AIS только при наличии своих координат
+		// но пока их нет -- нет и vesselSelf, а значит, среди целей AIS может быть и сам я
+		if(data.context == `vessels.${vesselSelf}`) {
+			if(vesselSelf in AISdata){
+				delete AISdata[vesselSelf];
+				realtimeAISupdate(JSON.parse('{"class":"AIS","ais":'+JSON.stringify(AISdata)+'}'));	// 
+			}
+			return;
+		}
 		
 		const vessel = data.context.substring(8);	// vessels.
 		if(!AISdata[vessel]) AISdata[vessel] = {};
@@ -1027,7 +1045,7 @@ function watchAISstart() {
 		}
 		//if(AISdata[vessel].shipname == 'Sample Ship Name') {
 		//	console.log('After',JSON.stringify(AISdata[vessel]));
-		//	console.log();
+			//console.log('aisWebSocket.onmessage AISdata:',AISdata);
 		//}
 		data = null;
 		realtimeAISupdate(JSON.parse('{"class":"AIS","ais":'+JSON.stringify(AISdata)+'}'));	// хрен его знает где и почему портится AISdata, поэтому передаём "по значению".
@@ -1146,6 +1164,7 @@ if(routeDisplayed.innerHTML.trim() == "") { 	// не показывается н
 }
 // в связи с возможностью наличия в trackDisplayed дублирующихся id --
 // может быть, вместо document.getElementById(name) сделать цикл по потомкам routeDisplayed? 
+if(!Array.isArray(changedRouteNames)) return;	// там может быть объект с сообщением об ошибке, например, связи
 let node;
 for(const name of changedRouteNames){
 	node = document.getElementById(name); 	// однако, в trackDisplayed могут быть те же имена. Забить? в querySelector требуется экранирование пробелов и спец-символов. Это секс.
