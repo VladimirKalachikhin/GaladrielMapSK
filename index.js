@@ -211,9 +211,14 @@ app.get(`/${plugin.id}/getlasttrkpt/:currTrackFileName`, function(request, respo
 	// сколько строк включает последние с момента передачи trkpt. Спецификация говорит, что trkpt может иметь 20 строк
 	// если это независимо вызывается раз в 2 секунды, а приёмник ГПС отдаёт координаты 10 раз в секунду, и все они пишутся...
 	const tailStrings = 2 * 10 * 20;	// это примерно 10КБ. Норм?
-	let lastTrkPts = tailCustom(request.params.currTrackFileName,tailStrings).split("\n").filter(str => str.trim().length);
+	let lastTrkPts = tailCustom(request.params.currTrackFileName,tailStrings);
+	if(!lastTrkPts){	// файл, например, грохнули, но клиент-то об этом не знает...	
+		response.json({'logging': false,'pt': []});
+		return;
+	}
+	lastTrkPts = lastTrkPts.split("\n").filter(str => str.trim().length);
 	//app.debug('lastTrkPts:',lastTrkPts);
-	if( lastTrkPts[lastTrkPts.length-1].trim() != '</gpx>') trackLogging = true; 	// если это завершённый GPX -- укажем, что трек не пишется
+	if(lastTrkPts[lastTrkPts.length-1].trim() != '</gpx>') trackLogging = true; 	// если это завершённый GPX -- укажем, что трек не пишется
 	//app.debug("trackLogging",trackLogging);
 	
 	let lastTrkPtGPX = [];
@@ -231,12 +236,15 @@ app.get(`/${plugin.id}/getlasttrkpt/:currTrackFileName`, function(request, respo
 		//app.debug('sendedTRPTtimeStr:',sendedTRPTtimeStr);
 		
 		let TRPTstart = lastTrkPts.length;
+		//app.debug('TRPTstart:',TRPTstart);
 		for(let n = 0; n < lastTrkPts.length; n++){	// 
 			let str = lastTrkPts[n].trim();
+			//app.debug('str=',str);
 			if(str.startsWith('<trkpt')) TRPTstart = n; 	// номер строки начала точки
 			else if(str == sendedTRPTtimeStr) break;	// Строка time последней отданной точки
 		}
-		// в считанном хвосте файла обнаружена последняя отправленная, или просто последняя точка, или ничего
+		//app.debug('TRPTstart:',TRPTstart);
+		// в считанном хвосте файла обнаружена последняя отправленная, или просто последняя точка, или ничего, есди точек в файле нет
 		lastTrkPts = lastTrkPts.slice(TRPTstart);	// теперь массив начинается с первой строки последней отправленной точки или первой строки последней точки или пустой.
 		//app.debug('lastTrkPts:',lastTrkPts);
 		let TRPTend = -1;
@@ -295,13 +303,80 @@ app.get(`/${plugin.id}/getlasttrkpt/:currTrackFileName`, function(request, respo
 // но чёта с notifications.mob это не прокатило....
 // ... в общем, я ниасилил как изменять значения с клиента. PUT в смысле http оно не понимает также как GET
 // хех, оказывается, надо послать delta в вебсокет для потоков 
+// Хотя request.params выглядит странно по сравнению с request.query,
+// с помощью request.params удастся передать только одну команду, когда как в строке request.query
+// -- сколько хочешь. Т.е., если request.params -- не нужно разбираться с косячным запросом
 app.get(`/${plugin.id}/logging/:command`, function(request, response) {	
-	//app.debug(request.params.command);
+//app.get(`/${plugin.id}/logging`, function(request, response) {	
+	// Возвращает текущий статус записи трека, а потом посылает в SignalK команду путём изменения
+	// пути navigation.trip.logging
+	app.debug(request.params.command);
+	//app.debug('logging request',request.query);
 	let status = false;
 	let outpuFileName = '';
-	if(app.getSelfPath('navigation.trip.logging')) {
-		status = app.getSelfPath('navigation.trip.logging.value');
-		if(app.getSelfPath('navigation.trip.track')) outpuFileName = path.basename(app.getSelfPath('navigation.trip.track'));
+	if(app.getSelfPath('navigation.trip.logging')) {	// В SignalK есть что-то, что пишет трек и управляется
+		let logFile;
+		({status, logFile} = app.getSelfPath('navigation.trip.logging.value'));
+		app.debug('logging check if navigation.trip.logging: status=',status,'logFile=',logFile);
+		if(logFile) {
+			outpuFileName = path.basename(logFile);
+			// Сменим каталог для треков на каталог, куда на самом деле пишется трек. А оно надо?
+			// К тому же -- нельзя сохранять options, потому что мы поменяли 
+			// trackProp, speedProp и depthProp на те, которых нет в списке, и после сохранения
+			// SignalK не даст их изменить с сообщением "should be equal to one of the allowed values", 
+			// что шиза -- я же меняю с неправильного значения на правильное!
+			// в общем, менять options нельзя, если хочется сохранять.
+			//options.trackDir = path.dirname(logFile);
+			//app.savePluginOptions(options, () => {app.debug('New trackDir setted:',options.trackDir)});
+		}
+		else status = false;	// костыль на предмет не понятого мной глюка, когда navigation.trip.logging остаётся true, если включить запись трека отсюда, а выключить -- из логгера.
+		//app.debug('logging check if navigation.trip.logging, status=',status,'outpuFileName=',outpuFileName,'options.trackDir',options.trackDir);
+		switch(request.params.command){
+		case 'startLogging':
+			app.debug('Значение navigation.trip.logging изменено на {status: true, logFile:',options.trackDir+'/','}');
+			app.handleMessage(plugin.id, {
+				context: 'vessels.self',
+				updates: [
+					{
+						values: [
+							{
+								path: 'navigation.trip.logging',
+								value: {
+									status: true,
+									//logFile: options.trackDir+'/'
+									//logFile: 'bububu'
+								}
+							}
+						],
+						source: { label: plugin.id },
+						timestamp: new Date().toISOString(),
+					}
+				]
+			});
+			break;
+		case 'stopLogging':
+			app.debug('Значение navigation.trip.logging изменено на false');
+			app.handleMessage(plugin.id, {
+				context: 'vessels.self',
+				updates: [
+					{
+						values: [
+							{
+								path : 'navigation.trip.logging',
+								value: {
+									status: false,
+									logFile: ''
+								}
+							}
+						],
+						source: { label: plugin.id },
+						timestamp: new Date().toISOString(),
+					}
+				]
+			});
+			break;
+		default:
+		}
 	}
 	else {	// В SignalK нет информации о записи трека
 		status = null;
@@ -317,44 +392,11 @@ app.get(`/${plugin.id}/logging/:command`, function(request, response) {
 			}
 		}
 	}
-	if(outpuFileName == currentTrackName) outpuFileName = '';	// типа, мы уже говорили, кто текущий, и там знают
-	switch(request.params.command){
-	case 'startLogging':
-		app.handleMessage(plugin.id, {
-			context: 'vessels.self',
-			updates: [
-				{
-					values: [
-						{
-							path : 'navigation.trip.logging',
-							value : true
-						}
-					],
-					source: { label: plugin.id },
-					timestamp: new Date().toISOString(),
-				}
-			]
-		});
-		break;
-	case 'stopLogging':
-		app.handleMessage(plugin.id, {
-			context: 'vessels.self',
-			updates: [
-				{
-					values: [
-						{
-							path : 'navigation.trip.logging',
-							value : false
-						}
-					],
-					source: { label: plugin.id },
-					timestamp: new Date().toISOString(),
-				}
-			]
-		});
-		break;
-	default:
-	}
+	//app.debug('logging check: status=',status,'outpuFileName=',outpuFileName,'currentTrackName:',currentTrackName);
+	//if(outpuFileName == currentTrackName) outpuFileName = '';	// типа, мы уже говорили, кто текущий, и там знают. На самом деле -- не знают, и клиентов может быть много. Пусть клиент разбирается.
+	if(!currentTrackName) currentTrackName = outpuFileName;
+
+	//app.debug('logging Sending',status,outpuFileName);
 	response.json([status,outpuFileName]);
 });
 

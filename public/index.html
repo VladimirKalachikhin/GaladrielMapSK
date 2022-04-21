@@ -336,8 +336,6 @@ var followPaused; 	// объект таймера, который восстан
 var velocityVectorLengthInMn = 10; 	// длинной в сколько минут пути рисуется линия скорости
 // AIS
 var vehicles = []; 	// list of visible by AIS data vehicle objects 
-// Loader
-var downJob = false; 	// флаг - не создаётся ли задание на скачивание
 // Пути и маршруты
 var currentTrackServerURI = 'getlasttrkpt'; 	// адрес для подключения к сервису, отдающему сегменты текущего трека
 var trackDirURI = 'track'; 	// адрес каталога с треками
@@ -348,6 +346,8 @@ if(getCookie('GaladrielcurrTrackSwitch') == undefined) currTrackSwitch.checked =
 else currTrackSwitch.checked = Boolean(+getCookie('GaladrielcurrTrackSwitch')); 	// getCookie from galadrielmap.js
 if(getCookie('GaladrielSelectedRoutesSwitch') == undefined) SelectedRoutesSwitch.checked = false; 	// показывать выбранные маршруты
 else SelectedRoutesSwitch.checked = Boolean(+getCookie('GaladrielSelectedRoutesSwitch')); 	// getCookie from galadrielmap.js
+//loggingSwitch.checked = Boolean(+getCookie('GaladrielloggingSwitch')); 	// getCookie from galadrielmap.js
+//if(loggingSwitch.checked) loggingRun();	// запустим запись трека, если было указано запустить
 var currentRoute; 	// объект Editable, по которому щёлкнули. Типа, текущий.
 var globalCurrentColor = 0xFFFFFF; 	// цвет линий и  значков кластеров после первого набора
 var currentTrackShowedFlag = false; 	// флаг, не показывается ли текущий путь. Если об этом спрашивать у Leaflet, то пока загружается трек, можно запустить его загрузку ещё раз пять.
@@ -1179,16 +1179,24 @@ for(const name of changedRouteNames){
 // Текущий трек
 // Должен обновляться, даже если обновлялка не описана в конфиге, потому что трек может писать кто-то ещё. 
 // Т.е. в худшем случае -- мы не знаем, обновляется ли currentTrack, или нет
-var currentTrackUpdateProcess = setInterval(currentTrackUpdate,3000);
-//console.log('Запущено слежение за логом, currentTrackUpdateProcess=', currentTrackUpdateProcess);
+var currentTrackUpdateProcess;
+// имеется имя текущего трека, и в интерфейсе указано всегда показывать текущий трек, или текущий трек в списке показываемых
+//console.log('currTrackSwitch.checked:',currTrackSwitch.checked,trackDisplayed.querySelector('li[title="Current track"]'));
+// Не нужно тут запускать, потому что в этот момент всё равно нет currentTrackName,
+// а запускать безусловно -- неправильно, потому что currentTrackName может так и не быть,
+// может быть выключен показ трека юзером и что-нибудь ещё.
+// С другой стороны, если указано "Текущий трек всегда показывается" -- следилка должна быть запущена
+// потому что запись трека может включить кто-то где-то.
+if(currTrackSwitch.checked || trackDisplayed.querySelector('li[title="Current track"]')) { 	// как может оказаться, что в trackDisplayed есть текущий трек, но следилка не запущена -- не знаю.
+	currentTrackUpdateProcess = setInterval(currentTrackUpdate,3000);
+	//console.log('Запущено слежение за логом из index.html, currentTrackUpdateProcess=', currentTrackUpdateProcess);
+}
 function currentTrackUpdate(){
 // Global: map, savedLayers, currentTrackName, currentTrackShowedFlag
 // DOM objects: currTrackSwitch, loggingSwitch, trackDisplayed
-//console.log('currentTrackName='+currentTrackName,'currentTrackShowedFlag=',currentTrackShowedFlag);
-//console.log(trackDisplayed.querySelector('li[title="Current track"]'));
 
-// имеется имя текущего трека, и в интерфейсе указано показывать текущий трек, или текущий трек в списке показываемых
-if((currentTrackName && currTrackSwitch.checked)||trackDisplayed.querySelector('li[title="Current track"]')) { 	
+//console.log('[currentTrackUpdateProcess] currentTrackName='+currentTrackName,'currentTrackShowedFlag=',currentTrackShowedFlag);
+if(currentTrackName) { 
 	if(currentTrackShowedFlag !== false) { 	// Текущий трек некогда был загружен или сейчас загружается
 		if(map.hasLayer(savedLayers[currentTrackName])) { 	// если он реально есть
 			if(typeof loggingSwitch === 'undefined'){ 	// обновлялка не сконфигурирована
@@ -1205,11 +1213,15 @@ if((currentTrackName && currTrackSwitch.checked)||trackDisplayed.querySelector('
 	}
 	else { 	// текущий трек ещё не был загружен
 		//console.log(document.getElementById(currentTrackName));
-		//console.log(tracks.querySelector('li[title="Current Track"]'));
+		//console.log('[currentTrackUpdateProcess] currentTrackName=',currentTrackName,tracks.querySelector('li[class*="currentTrackName"]'));
 		currentTrackShowedFlag = 'loading'; 	// укажем, что трек сейчас загружается
-		selectTrack(document.getElementById(currentTrackName),trackList,trackDisplayed,displayTrack); 	// загрузим трек асинхронно. galadrielmap.js
+		// Опасаемся неуникальных Element Id, ведь Id -- это имя файла
+		selectTrack(tracks.querySelector('li[class*="currentTrackName"]'),trackList,trackDisplayed,displayTrack); 	// загрузим трек асинхронно. galadrielmap.js
+		// однако, поиск по классу ненадёжен и сулит чудеса
+		//selectTrack(document.getElementById(currentTrackName),trackList,trackDisplayed,displayTrack); 	// загрузим трек асинхронно. galadrielmap.js
 	}
 }
+else loggingCheck();
 } // end function currentTrackUpdate
 
 
