@@ -111,7 +111,7 @@ const path = require('path');
 const cp = require('child_process');
 
 app.debug('GaladrielMap started');
-let currentTrackName = '';
+let currentTrackName = '';	// имя текущего файла, без пути, но с расширением
 if(options.trackProp.feature.includes('COG')) options.trackProp.feature = 'navigation.courseOverGroundTrue';
 else if(options.trackProp.feature.includes('HT')) options.trackProp.feature = 'navigation.headingTrue';
 else if(options.trackProp.feature.includes('HM')) options.trackProp.feature = 'navigation.headingMagnetic';
@@ -168,6 +168,7 @@ if(!options.routeDir) options.routeDir = 'route';	// Вообще-то, это �
 if(!options.trackDir) options.trackDir = 'track';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
 if(options.routeDir[0]!='/') options.routeDir = path.resolve(__dirname,'./public',options.routeDir);	// если путь не абсолютный -- сделаем абсолютным
 if(options.trackDir[0]!='/') options.trackDir = path.resolve(__dirname,'./public',options.trackDir);	// если путь не абсолютный -- сделаем абсолютным
+let trackDir = options.trackDir;
 
 // ответчик со списком файлов route
 app.get(`/${plugin.id}/route`, function(request, response){fileListHelper(request, response,options.routeDir,['gpx','kml','csv']);});	// ['gpx','kml','csv','wkt','json']
@@ -178,11 +179,11 @@ app.get(`/${plugin.id}/route/*`, function(request, response) {
 });
 
 // ответчик со списком файлов track
-app.get(`/${plugin.id}/track`, function(request, response){fileListHelper(request, response,options.trackDir,['gpx'],true);});
+app.get(`/${plugin.id}/track`, function(request, response){fileListHelper(request, response,trackDir,['gpx'],true);});
 // ответчик, отдающий файл из track
 app.get(`/${plugin.id}/track/*`, function(request, response) {	
-	//app.debug(options.trackDir+'/'+path.basename(request.url));
-	response.sendFile(options.trackDir+'/'+path.basename(decodeURI(request.url)));
+	//app.debug(trackDir+'/'+path.basename(request.url));
+	response.sendFile(trackDir+'/'+path.basename(decodeURI(request.url)));
 });
 
 // ответчик, возвращающий линию из последних точек пишущегося сейчас пути в GeoJSON
@@ -202,7 +203,7 @@ SESSION_lastTrkPt = `   <trkpt lat="61.050616667" lon="28.195350000">
 app.get(`/${plugin.id}/getlasttrkpt/:currTrackFileName`, function(request, response) {	
 	// :currTrackFileName -- имя файла gpx, без пути и можно без расширения
 	if(!request.params.currTrackFileName.endsWith('.gpx')) request.params.currTrackFileName += '.gpx';
-	request.params.currTrackFileName = options.trackDir+'/'+request.params.currTrackFileName;
+	request.params.currTrackFileName = trackDir+'/'+request.params.currTrackFileName;
 
 	// определим, записывается ли трек
 	// трек _может_ записываться, если он не завершён
@@ -310,30 +311,33 @@ app.get(`/${plugin.id}/logging/:command`, function(request, response) {
 //app.get(`/${plugin.id}/logging`, function(request, response) {	
 	// Возвращает текущий статус записи трека, а потом посылает в SignalK команду путём изменения
 	// пути navigation.trip.logging
-	app.debug(request.params.command);
+	//app.debug('logging check command:',request.params.command);
 	//app.debug('logging request',request.query);
 	let status = false;
-	let outpuFileName = '';
 	if(app.getSelfPath('navigation.trip.logging')) {	// В SignalK есть что-то, что пишет трек и управляется
 		let logFile;
 		({status, logFile} = app.getSelfPath('navigation.trip.logging.value'));
-		app.debug('logging check if navigation.trip.logging: status=',status,'logFile=',logFile);
+		//app.debug('logging check if navigation.trip.logging: status=',status,'logFile=',logFile);
 		if(logFile) {
-			outpuFileName = path.basename(logFile);
+			currentTrackName = path.basename(logFile);
+			trackDir = path.dirname(logFile);
 			// Сменим каталог для треков на каталог, куда на самом деле пишется трек. А оно надо?
 			// К тому же -- нельзя сохранять options, потому что мы поменяли 
 			// trackProp, speedProp и depthProp на те, которых нет в списке, и после сохранения
 			// SignalK не даст их изменить с сообщением "should be equal to one of the allowed values", 
 			// что шиза -- я же меняю с неправильного значения на правильное!
 			// в общем, менять options нельзя, если хочется сохранять.
-			//options.trackDir = path.dirname(logFile);
-			//app.savePluginOptions(options, () => {app.debug('New trackDir setted:',options.trackDir)});
+			//app.savePluginOptions(options, () => {app.debug('New trackDir setted:',trackDir)});
 		}
-		else status = false;	// костыль на предмет не понятого мной глюка, когда navigation.trip.logging остаётся true, если включить запись трека отсюда, а выключить -- из логгера.
-		//app.debug('logging check if navigation.trip.logging, status=',status,'outpuFileName=',outpuFileName,'options.trackDir',options.trackDir);
+		else {
+			status = false;	// костыль на предмет глюка, когда navigation.trip.logging остаётся true, если включить запись трека отсюда, а выключить -- из логгера.
+			currentTrackName = '';
+		}
+		//app.debug('logging check if navigation.trip.logging, status=',status,'currentTrackName=',currentTrackName,'trackDir',trackDir);
 		switch(request.params.command){
 		case 'startLogging':
-			app.debug('Значение navigation.trip.logging изменено на {status: true, logFile:',options.trackDir+'/','}');
+			if(status) break;	// уже включено
+			//app.debug('Значение navigation.trip.logging изменено на {status: true, logFile:',trackDir+'/','}');
 			app.handleMessage(plugin.id, {
 				context: 'vessels.self',
 				updates: [
@@ -343,8 +347,7 @@ app.get(`/${plugin.id}/logging/:command`, function(request, response) {
 								path: 'navigation.trip.logging',
 								value: {
 									status: true,
-									//logFile: options.trackDir+'/'
-									//logFile: 'bububu'
+									logFile: options.trackDir+'/'	// потребуем писать в свой каталог, options.trackDir -- уже полный путь
 								}
 							}
 						],
@@ -355,7 +358,8 @@ app.get(`/${plugin.id}/logging/:command`, function(request, response) {
 			});
 			break;
 		case 'stopLogging':
-			app.debug('Значение navigation.trip.logging изменено на false');
+			if(!status) break;	// уже выключено
+			//app.debug('Значение navigation.trip.logging изменено на false');
 			app.handleMessage(plugin.id, {
 				context: 'vessels.self',
 				updates: [
@@ -365,7 +369,6 @@ app.get(`/${plugin.id}/logging/:command`, function(request, response) {
 								path : 'navigation.trip.logging',
 								value: {
 									status: false,
-									logFile: ''
 								}
 							}
 						],
@@ -381,9 +384,10 @@ app.get(`/${plugin.id}/logging/:command`, function(request, response) {
 	else {	// В SignalK нет информации о записи трека
 		status = null;
 		// Попробуем найти текущий записываемый трек как первый (или последний) незавершённый
-		for(let item of fs.readdirSync(options.trackDir)) {	
+		let outpuFileName;
+		for(let item of fs.readdirSync(trackDir)) {	
 			if(path.extname(item).toLowerCase() != '.gpx') continue;
-			let buf = tailCustom(options.trackDir+'/'+item,5);	// сколько-то последних строк файла. Лучше много, ибо в конце могут быть пустые строки
+			let buf = tailCustom(trackDir+'/'+item,5);	// сколько-то последних строк файла. Лучше много, ибо в конце могут быть пустые строки
 			if(buf != false) {
 				if(!buf.trim().endsWith('</gpx>')){	// незавершённый файл gpx
 					outpuFileName = item;
@@ -391,13 +395,11 @@ app.get(`/${plugin.id}/logging/:command`, function(request, response) {
 				}
 			}
 		}
+		if(outpuFileName) currentTrackName = outpuFileName;
 	}
-	//app.debug('logging check: status=',status,'outpuFileName=',outpuFileName,'currentTrackName:',currentTrackName);
-	//if(outpuFileName == currentTrackName) outpuFileName = '';	// типа, мы уже говорили, кто текущий, и там знают. На самом деле -- не знают, и клиентов может быть много. Пусть клиент разбирается.
-	if(!currentTrackName) currentTrackName = outpuFileName;
 
-	//app.debug('logging Sending',status,outpuFileName);
-	response.json([status,outpuFileName]);
+	//app.debug('logging Sending',status,currentTrackName);
+	response.json([status,currentTrackName,trackDir]);
 });
 
 // Ответчик, сохраняющий файл gpx

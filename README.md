@@ -10,7 +10,6 @@ This software is a edition of the [GaladrielMap](https://vladimirkalachikhin.git
 
 ## Limitations
 * GaladrielMap SignalK edition use [@signalk/charts-plugin](https://www.npmjs.com/package/@signalk/charts-plugin) for charts instead [GaladrielCache](https://github.com/VladimirKalachikhin/Galadriel-cache). So [Weather](http://weather.openportguide.de/index.php/en/) map is not available, such well as some other maps from GaladrielMap. There is also no tile caching.  
-* Because SignalK not have a track logging tool, this possibility is missing. But GaladrielMap has a possibility to show currently being recorded .gpx file. Therefore, if some program in the server writes track log to .gpx, this file can be displayed on the screen dynamically.  
 * Since SignalK has no built-in controls of data actuality such as in [gpsdPROXY](https://github.com/VladimirKalachikhin/gpsdPROXY) on GaladrielMap, basic features added.
 
 ## Install&configure:
@@ -21,6 +20,11 @@ Press Submit to save changes.
 
 ## Usage
 Go to Webapps menu of SignalK web control panel and open **Galadrielmap_sk**; or open _http://your-signalk:3000/galadrielmap_sk/_
+
+### Track logging
+Install [naiveGPXlogger](https://www.npmjs.com/package/naivegpxlogger) to track logging. You can control the log recording in the GaladrielMap interface.
+But GaladrielMap has a possibility to show any currently being recorded .gpx file. Therefore, if some program in the server writes track log to .gpx, this file can be displayed on the screen dynamically.  
+
 
 ## Extension of SignalK protocol
 The `value` of `notifications.mob` path has  the following additional properties except specified in the documentation:  

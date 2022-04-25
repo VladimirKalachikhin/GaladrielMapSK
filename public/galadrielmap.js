@@ -364,16 +364,17 @@ global trackDirURI, window, currentTrackName
 var trackName = trackNameNode.innerText.trim();
 if( savedLayers[trackName] && (trackName != currentTrackName)) savedLayers[trackName].addTo(map); 	// нарисуем его на карте. Текущий трек всегда перезагружаем в updateCurrTrack
 else {
+	// просто спрашиваем у сервера файл, там не ответчик
 	var options = {featureNameNode : trackNameNode};
 	var xhr = new XMLHttpRequest();
-	//console.log(trackDirURI+'/'+trackName);
+	//console.log('[displayTrack]',trackDirURI+'/'+trackName);
 	xhr.open('GET', encodeURI(trackDirURI+'/'+trackName), true); 	// Подготовим асинхронный запрос
 	xhr.overrideMimeType( "text/plain; charset=x-user-defined" ); 	// тупые уроды из Mozilla считают, что если не указан mime type ответа -- то он text/xml. Файлы они, очевидно, не скачивают.
 	xhr.send();
 	xhr.onreadystatechange = function() { // trackName - внешняя
 		if (this.readyState != 4) return; 	// запрос ещё не завершился, покинем функцию
 		if (this.status != 200) { 	// запрос завершлся, но неудачно
-			console.log('На запрос трека '+trackDirURI+'/'+trackName+' сервер ответил '+this.status);
+			console.log('[displayTrack] To request file '+trackDirURI+'/'+trackName+' server return '+this.status);
 			return; 	// что-то не то с сервером
 		}
 		//console.log('|'+this.responseText.slice(-10)+'|');
@@ -1025,7 +1026,7 @@ else {
 	// Вместо этого надо заблокировать кнопку переключателя, чтобы по ней не барабанили.
 	loggingSwitch.disabled = true;
 }
-console.log('[loggingRun] logging=',logging);
+//console.log('[loggingRun] logging=',logging);
 loggingCheck(logging);
 } // end function loggingRun
 
@@ -1048,7 +1049,7 @@ xhr.onreadystatechange = function() { //
 	if(status[0]) { 	
 		loggingIndicator.style.color='green';
 		loggingIndicator.innerText='\u2B24';
-		//if(loggingSwitch) loggingSwitch.checked = true;	// кто-то включил запись лога, но мы не обязаны его показывать
+		//if(loggingSwitch) loggingSwitch.checked = true;	//
 		loggingSwitch.disabled = false;
 	}
 	else {
@@ -1072,7 +1073,7 @@ xhr.onreadystatechange = function() { //
 	const newTrackName = status[1]; 	// имя нового текущего (пишущийся сейчас) трека -- имя файла
 	if(newTrackName && (newTrackName != currentTrackName)){	// есть новый текущий трек, и он не тот же, что старый
 		let newTrackLI = document.getElementById(newTrackName); 	// его всегда нет?
-		//console.log('есть новый текущий трек',newTrackName,newTrackLI,'старый currentTrackName',currentTrackName);
+		console.log('есть новый текущий трек',newTrackName,newTrackLI,'старый currentTrackName',currentTrackName);
 		if(!newTrackLI) {
 			// Добавим новый li в trackList и сделаем его текущим, в результате чего 
 			// он переместится в trackDisplayed, если на то воля юзера
