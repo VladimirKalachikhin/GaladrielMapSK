@@ -130,7 +130,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			<ul id="trackDisplayed" class='commonList'>
 			</ul>
 			<ul id="trackList" class='commonList'>
-				<li hidden class="template" onClick='{selectTrack(event.currentTarget,trackList,trackDisplayed,displayTrack)}' class='currentTrackName' title='Current track'></li>
+				<li hidden class="template" onClick='{selectTrack(event.currentTarget,trackList,trackDisplayed,displayTrack)}' class='currentTrackName' title=''></li>
 			</ul>
 		</div>
 		<!-- Расстояния -->
@@ -262,7 +262,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			</div>
 			<div style="margin: 1rem 1rem;"> <!-- Текущий трек всегда показывается -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
-					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="currTrackSwitch" onChange="" checked>
+					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="currTrackSwitch" onChange="if(this.checked) startCurrentTrackUpdate(); else stopCurrentTrackUpdate();" checked>
 					<label class="onoffswitch-label" for="currTrackSwitch">
 						<span class="onoffswitch-inner"></span>
 						<span class="onoffswitch-switch"></span>
@@ -346,8 +346,8 @@ if(getCookie('GaladrielcurrTrackSwitch') == undefined) currTrackSwitch.checked =
 else currTrackSwitch.checked = Boolean(+getCookie('GaladrielcurrTrackSwitch')); 	// getCookie from galadrielmap.js
 if(getCookie('GaladrielSelectedRoutesSwitch') == undefined) SelectedRoutesSwitch.checked = false; 	// показывать выбранные маршруты
 else SelectedRoutesSwitch.checked = Boolean(+getCookie('GaladrielSelectedRoutesSwitch')); 	// getCookie from galadrielmap.js
-//loggingSwitch.checked = Boolean(+getCookie('GaladrielloggingSwitch')); 	// getCookie from galadrielmap.js
-//if(loggingSwitch.checked) loggingRun();	// запустим запись трека, если было указано запустить
+loggingSwitch.checked = Boolean(+getCookie('GaladrielloggingSwitch')); 	// getCookie from galadrielmap.js
+if(loggingSwitch.checked) loggingRun();	// запустим запись трека, если было указано запустить
 var currentRoute; 	// объект Editable, по которому щёлкнули. Типа, текущий.
 var globalCurrentColor = 0xFFFFFF; 	// цвет линий и  значков кластеров после первого набора
 var currentTrackShowedFlag = false; 	// флаг, не показывается ли текущий путь. Если об этом спрашивать у Leaflet, то пока загружается трек, можно запустить его загрузку ещё раз пять.
@@ -514,6 +514,7 @@ var centerMark = L.marker(map.getBounds().getCenter(), {
 		iconUrl: './img/Crosshair.svg',
 		iconSize:     [markSize, markSize], // size of the icon
 		iconAnchor:   [markSize/2, markSize/2], // point of the icon which will correspond to marker's location
+		className: "centerMarkIcon"	// galadrielmap.css
 	})
 });
 
@@ -1180,49 +1181,13 @@ for(const name of changedRouteNames){
 // Должен обновляться, даже если обновлялка не описана в конфиге, потому что трек может писать кто-то ещё. 
 // Т.е. в худшем случае -- мы не знаем, обновляется ли currentTrack, или нет
 var currentTrackUpdateProcess;
-// имеется имя текущего трека, и в интерфейсе указано всегда показывать текущий трек, или текущий трек в списке показываемых
-//console.log('currTrackSwitch.checked:',currTrackSwitch.checked,trackDisplayed.querySelector('li[title="Current track"]'));
 // Не нужно тут запускать, потому что в этот момент всё равно нет currentTrackName,
 // а запускать безусловно -- неправильно, потому что currentTrackName может так и не быть,
 // может быть выключен показ трека юзером и что-нибудь ещё.
 // С другой стороны, если указано "Текущий трек всегда показывается" -- следилка должна быть запущена
 // потому что запись трека может включить кто-то где-то.
-if(currTrackSwitch.checked || trackDisplayed.querySelector('li[title="Current track"]')) { 	// как может оказаться, что в trackDisplayed есть текущий трек, но следилка не запущена -- не знаю.
-	currentTrackUpdateProcess = setInterval(currentTrackUpdate,3000);
-	//console.log('Запущено слежение за логом из index.html, currentTrackUpdateProcess=', currentTrackUpdateProcess);
-}
-function currentTrackUpdate(){
-// Global: map, savedLayers, currentTrackName, currentTrackShowedFlag
-// DOM objects: currTrackSwitch, loggingSwitch, trackDisplayed
+if(startCurrentTrackUpdate()) console.log('Запущено слежение за логом из index.html, currentTrackUpdateProcess=', currentTrackUpdateProcess);
 
-//console.log('[currentTrackUpdateProcess] currentTrackName='+currentTrackName,'currentTrackShowedFlag=',currentTrackShowedFlag);
-if(currentTrackName) { 
-	if(currentTrackShowedFlag !== false) { 	// Текущий трек некогда был загружен или сейчас загружается
-		if(map.hasLayer(savedLayers[currentTrackName])) { 	// если он реально есть
-			if(typeof loggingSwitch === 'undefined'){ 	// обновлялка не сконфигурирована
-				updateCurrTrack(); 	//  - обновим,  galadrielmap.js
-			}
-			else {
-				if(loggingSwitch) updateCurrTrack(); 	//  - обновим  galadrielmap.js
-			}
-			currentTrackShowedFlag = true;
-		}
-		else { 
-			if(currentTrackShowedFlag != 'loading') currentTrackShowedFlag = false;
-		}
-	}
-	else { 	// текущий трек ещё не был загружен
-		//console.log(document.getElementById(currentTrackName));
-		//console.log('[currentTrackUpdateProcess] currentTrackName=',currentTrackName,tracks.querySelector('li[class*="currentTrackName"]'));
-		currentTrackShowedFlag = 'loading'; 	// укажем, что трек сейчас загружается
-		// Опасаемся неуникальных Element Id, ведь Id -- это имя файла
-		selectTrack(tracks.querySelector('li[class*="currentTrackName"]'),trackList,trackDisplayed,displayTrack); 	// загрузим трек асинхронно. galadrielmap.js
-		// однако, поиск по классу ненадёжен и сулит чудеса
-		//selectTrack(document.getElementById(currentTrackName),trackList,trackDisplayed,displayTrack); 	// загрузим трек асинхронно. galadrielmap.js
-	}
-}
-else loggingCheck();
-} // end function currentTrackUpdate
 
 
 // Сохранение переменных

@@ -319,5 +319,9 @@ ul { /* нужно, чтобы стили работали */
 	filter: grayscale(100%);
 }
 
+.centerMarkIcon {
+	z-index: auto;
+}
+
 .scaledText {
 }

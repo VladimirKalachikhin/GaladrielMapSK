@@ -315,7 +315,8 @@ if(savedLayers[mapname].options.zoom) {
 }
 savedLayers[mapname].remove(); 	// удалим слой с карты
 //savedLayers[mapname] = null; 	// удалим сам слой. Но это не надо, ибо включение/выключение отображения слоёв должно быть быстро, и обычно их не надо повторно получать с сервера
-}
+if(mapname==currentTrackName) stopCurrentTrackUpdate();	// Отключим слежение за логом
+} // end function removeMap
 
 // Функции выбора - удаления треков
 function selectTrack(node,trackList,trackDisplayed,displayTrack) { 	
@@ -346,7 +347,6 @@ for (var i = 0; i < trackList.children.length; i++) { 	// для каждого 
 	li = trackList.children[i]; 	// взять этого потомка
 	var childTitle = li.innerHTML;
 	if (childTitle > node.innerHTML) { 	// если наименование потомка дальше по алфавиту, чем наименование того, на что кликнули
-		//alert(childTitle+" "+node.innerHTML);
 		break;
 	}
 	li = null;
@@ -393,7 +393,8 @@ else {
 			savedLayers[trackName] = omnivore.gpx.parse(this.responseText,options); 	// responseXML иногда почему-то кривой
 		}
 		//console.log(savedLayers[trackName]);
-		savedLayers[trackName].addTo(map); 	// нарисуем его на карте
+		savedLayers[trackName].addTo(map); 	// нарисуем его на карте		
+		startCurrentTrackUpdate();	// запустим слежение за треком
 	}
 }
 } // end function displayTrack
@@ -448,7 +449,7 @@ xhr.onreadystatechange = function() { //
 		if(this.responseText.trim()) console.log('Bad data to update current track:'+this.responseText+';',err.message)
 		loggingIndicator.style.color='red';
 	}
-	//console.log('[updateCurrTrack] resp:',resp);
+	console.log('[updateCurrTrack] resp:',resp);
 	if(resp.logging){ 	// лог пишется
 		if(typeof loggingIndicator != 'undefined'){ 	// лампочка в интерфейсе. Вообще-то, в этом варианте софта эта лампочка всегда есть.
 			loggingIndicator.style.color='green';
@@ -482,13 +483,7 @@ xhr.onreadystatechange = function() { //
 			}
 			loggingSwitch.disabled = false;
 		}
-		// Отключим слежение за логом только если не указано "Текущий трек всегда показывается".
-		// Если указано -- пусть отслеживание висит вечно, на случай, если кто-то где-то включит запись трека
-		if(!currTrackSwitch.checked) {
-			//console.log('[updateCurrTrack] прекратим следить за логом');
-			clearInterval(currentTrackUpdateProcess);	
-			currentTrackUpdateProcess = null;
-		}
+		stopCurrentTrackUpdate(); // Отключим слежение за логом
 	}
 }
 } // end function updateCurrTrack
@@ -987,15 +982,7 @@ liObj.classList.add("currentTrackName");
 liObj.title='Current track';
 currentTrackName = liID;
 currentTrackShowedFlag = false; 	// флаг, что у нас новый текущий трек. Обрабатывается в currentTrackUpdate index.php
-// если "Запись пути" или "Текущий трек всегда показывается" --
-// запустим слежение за треком, он загрузится, станет показываемым и начнёт отрисовываться
-//console.log('[doCurrentTrackName] currTrackSwitch.checked:',currTrackSwitch.checked,'loggingSwitch.checked',loggingSwitch.checked);
-if(loggingSwitch.checked || currTrackSwitch.checked){	
-	if(!currentTrackUpdateProcess) {
-		currentTrackUpdateProcess =  setInterval(currentTrackUpdate,3000);	// запустим слежение за логом, если ещё не
-		//console.log('[doCurrentTrackName] Запущено слежение за логом, currentTrackUpdateProcess=', currentTrackUpdateProcess);
-	}
-}
+startCurrentTrackUpdate();	// запустим слежение за треком
 } // end function doCurrentTrackName
 
 function doNotCurrentTrackName(liID){
@@ -1003,6 +990,7 @@ let liObj = document.getElementById(liID);
 liObj.classList.remove("currentTrackName");
 liObj.title='';
 currentTrackName = '';
+stopCurrentTrackUpdate();	// остановим слежение за логом
 } // end function doNotCurrentTrackName
 
 function loggingRun() {
@@ -1012,11 +1000,7 @@ if(loggingSwitch.checked) {
 	logging += 'startLogging';
 	// Здесь принудительно включим слежение за логом, потому что вызов loggingCheck ниже
 	// заведомо не вернёт новый текущий трек, потому что просто устанавливает navigation.trip.logging
-	// А вот ослеживание дождётся трека и сделает всё. Или не дождётся, тогда убъёт себя.
-	if(!currentTrackUpdateProcess) {
-		currentTrackUpdateProcess =  setInterval(currentTrackUpdate,3000);	// запустим слежение за логом, если ещё не
-		//console.log('[loggingRun] Запущено слежение за логом, currentTrackUpdateProcess=', currentTrackUpdateProcess);
-	}
+	startCurrentTrackUpdate();
 }
 else {
 	logging += 'stopLogging';
@@ -1024,6 +1008,8 @@ else {
 	// -- одному богу известно.Т.е., выключать здесь отслеживание трека нельзя. 
 	// Оно выключится в updateCurrTrack, когда туда придёт, что лог не пишется. 
 	// Вместо этого надо заблокировать кнопку переключателя, чтобы по ней не барабанили.
+	// Однако, updateCurrTrack может быть не запущен, т.к. "Текущий трек всегда показывается"
+	// не установлено, а текущий трек -- не в числе показываемых
 	loggingSwitch.disabled = true;
 }
 //console.log('[loggingRun] logging=',logging);
@@ -1046,6 +1032,7 @@ xhr.onreadystatechange = function() { //
 	let status = JSON.parse(this.response);
 	//console.log('[loggingCheck] status',status,'currentTrackName=',currentTrackName);
 	// Оттого, что ответ вернулся, не значит, что что-то произошло -- оно там, б..., всё асинхронно.
+	// чтобы узнать, произошло или нет, должно быть запущено слежение за логом
 	if(status[0]) { 	
 		loggingIndicator.style.color='green';
 		loggingIndicator.innerText='\u2B24';
@@ -1063,17 +1050,19 @@ xhr.onreadystatechange = function() { //
 			}
 			else {
 				loggingIndicator.innerText='';
+				if(currentTrackName) {
+					doNotCurrentTrackName(currentTrackName);
+				}
 			}
 			loggingSwitch.disabled = false;
 		}
 	}
 
 	// Новый текущий трек
-	//const newTrackName = status[1].slice(0,status[1].lastIndexOf('.')); 	// имя нового текущего (пишущийся сейчас) трека -- имя файла без расширения		
 	const newTrackName = status[1]; 	// имя нового текущего (пишущийся сейчас) трека -- имя файла
 	if(newTrackName && (newTrackName != currentTrackName)){	// есть новый текущий трек, и он не тот же, что старый
 		let newTrackLI = document.getElementById(newTrackName); 	// его всегда нет?
-		console.log('есть новый текущий трек',newTrackName,newTrackLI,'старый currentTrackName',currentTrackName);
+		//console.log('[loggingCheck] есть новый текущий трек',newTrackName,newTrackLI,'старый currentTrackName',currentTrackName);
 		if(!newTrackLI) {
 			// Добавим новый li в trackList и сделаем его текущим, в результате чего 
 			// он переместится в trackDisplayed, если на то воля юзера
@@ -1090,7 +1079,9 @@ xhr.onreadystatechange = function() { //
 		} 	// иначе он и так текущий? -- нет, он уже мог быть в списке показываемых
 		// Сделаем текущим и запустим слежение
 		doCurrentTrackName(newTrackName);	// обязательно после append, ибо вне дерева элементы не ищутся. JavaScript -- коллекция нелепиц.
-	} 	// иначе -- не было возвращено имени, хотя запись трека работает: она работает давно, и этот файл нам известен. Теперь это не так, и отсутствие имени -- ошибка.
+	}
+	else { 	// 
+	}
 return;
 } // end xhr.onreadystatechange
 } // end function loggingCheck
@@ -1280,7 +1271,78 @@ trackDisplayed.querySelectorAll('li').forEach(li => {	//
 	}
 });
 
+} // end function chkDisplayedTracks
+
+function stopCurrentTrackUpdate(){
+// остановим слежение за треком, если не указано "Текущий трек всегда показывается"
+// и если текущего трека нет в числе показываемых
+let ret = false;
+if(!currTrackSwitch.checked && !trackDisplayed.querySelector('li[class*="currentTrackName"]')){
+	console.log('[stopCurrentTrackUpdate] Current track update stopped');
+	clearInterval(currentTrackUpdateProcess);	
+	currentTrackUpdateProcess = null;
+	ret = true;
 }
+return ret;
+} // end function stopCurrentTrackUpdate
+
+function startCurrentTrackUpdate(){
+// загрузим трек и запустим слежение за треком, 
+// если указано "текущий трек всегда показывается" (currTrackSwitch)
+// или текущий трек в числе показываемых
+// или включена запись трека (loggingSwitch)
+let ret = false;
+if(loggingSwitch.checked || currTrackSwitch.checked || trackDisplayed.querySelector('li[class*="currentTrackName"]')) {
+	if(!currentTrackUpdateProcess) {
+		currentTrackUpdateProcess =  setInterval(currentTrackUpdate,3000);	// запустим слежение за логом, если ещё не
+		console.log('[startCurrentTrackUpdate] Current track update started');
+		ret = true;
+	}
+}
+return ret;
+} // end function startCurrentTrackUpdate
+
+function currentTrackUpdate(){
+// загружает трек, делает его показываемым и обновляет по мере записи
+// Global: map, savedLayers, currentTrackName, currentTrackShowedFlag
+// DOM objects: currTrackSwitch, loggingSwitch, trackDisplayed
+
+//console.log('[currentTrackUpdateProcess] currentTrackName='+currentTrackName,'currentTrackShowedFlag=',currentTrackShowedFlag);
+if(currentTrackName) { 
+	if(currTrackSwitch.checked || trackDisplayed.querySelector('li[class*="currentTrackName"]')) {	// трек надо загрузить и показать
+		if(currentTrackShowedFlag !== false) { 	// Текущий трек некогда был загружен или сейчас загружается
+			if(map.hasLayer(savedLayers[currentTrackName])) { 	// если он реально есть
+				if(typeof loggingSwitch === 'undefined'){ 	// обновлялка не сконфигурирована
+					updateCurrTrack(); 	//  - обновим,  galadrielmap.js
+				}
+				else {
+					if(loggingSwitch) updateCurrTrack(); 	//  - обновим  galadrielmap.js
+				}
+				currentTrackShowedFlag = true;
+			}
+			else { 
+				if(currentTrackShowedFlag != 'loading') currentTrackShowedFlag = false;
+			}
+		}
+		else { 	// текущий трек ещё не был загружен
+			//console.log(document.getElementById(currentTrackName));
+			//console.log('[currentTrackUpdateProcess] currentTrackName=',currentTrackName,tracks.querySelector('li[class*="currentTrackName"]'));
+			currentTrackShowedFlag = 'loading'; 	// укажем, что трек сейчас загружается
+			// Опасаемся неуникальных Element Id, ведь Id -- это имя файла
+			selectTrack(tracks.querySelector('li[class*="currentTrackName"]'),trackList,trackDisplayed,displayTrack); 	// загрузим трек асинхронно. galadrielmap.js
+			// однако, поиск по классу ненадёжен и сулит чудеса
+			//selectTrack(document.getElementById(currentTrackName),trackList,trackDisplayed,displayTrack); 	// загрузим трек асинхронно. galadrielmap.js
+		}
+	}
+	else {	// надо только проверить, идёт ли запись
+		loggingCheck();
+	}
+}
+else loggingCheck();
+} // end function currentTrackUpdate
+
+
+
 
 
 
