@@ -5,13 +5,12 @@
 <div style='float:right;'><a href='https://github.com/VladimirKalachikhin/Galadriel-map/discussions'>Форум</a>
 </div>
 
-## v. 0.0 
+## v. 0.1 
 
 Это веб-приложение является модификацией картплотера [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/README.ru-RU) для работы в среде SignalK, и обладает всеми возможностями оригинального приложения, за исключением нижеуказанных. Для ознакомления с возможностями и получения информации обращайтесь к [документации](https://vladimirkalachikhin.github.io/Galadriel-map/README.ru-RU) оригинального приложения.
 
 ## Ограничения
 * GaladrielMap SignalK edition использует [@signalk/charts-plugin](https://www.npmjs.com/package/@signalk/charts-plugin) для предоставления карт вместо [GaladrielCache](https://github.com/VladimirKalachikhin/Galadriel-cache). Поэтому многие карты, имеющиеся в GaladrielMap недоступны, в частности -- [карта погоды](http://weather.openportguide.de/index.php/en/). Отсутствует также кеширование тайлов из сетевых источников.
-* SignalK не имеет средств записи текущего пути, соответственно, возможности управления такой записью недоступны. Однако, как и в оригинальном GaladrielMap имеется возможность показывать записывающийся файл формата .gpx Поэтому если на сервере какая-то программа записывает текущий путь в формате .gpx -- этот файл может динамически отображаться на экране по мере записи.
 * SignalK не имеет штатных средств контроля актуальности данных, наподобие тех, что имеются у [gpsdPROXY](https://github.com/VladimirKalachikhin/gpsdPROXY) в GaladrielMap. Поэтому в GaladrielMap SignalK edition добавлены самые базовые средства такого контроля.
 
 ## Установка и конфигурирование
@@ -23,6 +22,11 @@
 
 ## Использование
 В меню Webapps веб-панели SignalK запустите **Galadrielmap_sk**, или откройте _http://your-signalk:3000/galadrielmap_sk/_ в браузере.
+
+### Запись пути
+Установите [naiveGPXlogger](https://www.npmjs.com/package/naivegpxlogger) для записи текущего пути. naiveGPXlogger управляется из интерфейса GaladrielMap.
+В любом случае имеется возможность показывать любой записывающийся файл формата .gpx Поэтому если на сервере какая-то программа записывает текущий путь в формате .gpx -- этот файл может динамически отображаться на экране по мере записи. Для этого нужно указать в настройках GaladrielMap каталог, куда записывается файл.
+
 
 ## Расширения протокола SignalK
 Объект `value` по пути `notifications.mob` кроме указанных в документации свойств содержит также:  

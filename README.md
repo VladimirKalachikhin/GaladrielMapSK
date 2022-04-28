@@ -4,7 +4,7 @@ This is a [SignalK](https://signalk.org/)-based chart plotter navigation softwar
 <div style='float:right;'><a href='https://github.com/VladimirKalachikhin/Galadriel-map/discussions'>Forum</a>
 </div>
 
-## v. 0.0 
+## v. 0.1 
 
 This software is a edition of the [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/), designed to work as SignalK webapp. Refer to the [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/) documentation for information.
 
@@ -23,7 +23,7 @@ Go to Webapps menu of SignalK web control panel and open **Galadrielmap_sk**; or
 
 ### Track logging
 Install [naiveGPXlogger](https://www.npmjs.com/package/naivegpxlogger) to track logging. You can control the log recording in the GaladrielMap interface.
-But GaladrielMap has a possibility to show any currently being recorded .gpx file. Therefore, if some program in the server writes track log to .gpx, this file can be displayed on the screen dynamically.  
+But GaladrielMap has a possibility to show any currently being recorded .gpx file. Therefore, if some program in the server writes track log to .gpx, this file can be displayed on the screen dynamically. Specify the directory with .gpx file in GaladrielMap settings for this. 
 
 
 ## Extension of SignalK protocol

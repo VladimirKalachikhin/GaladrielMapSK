@@ -449,7 +449,7 @@ xhr.onreadystatechange = function() { //
 		if(this.responseText.trim()) console.log('Bad data to update current track:'+this.responseText+';',err.message)
 		loggingIndicator.style.color='red';
 	}
-	console.log('[updateCurrTrack] resp:',resp);
+	//console.log('[updateCurrTrack] resp:',resp);
 	if(resp.logging){ 	// лог пишется
 		if(typeof loggingIndicator != 'undefined'){ 	// лампочка в интерфейсе. Вообще-то, в этом варианте софта эта лампочка всегда есть.
 			loggingIndicator.style.color='green';
