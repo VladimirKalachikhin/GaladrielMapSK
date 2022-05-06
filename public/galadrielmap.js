@@ -454,8 +454,7 @@ xhr.onreadystatechange = function() { //
 		if(typeof loggingIndicator != 'undefined'){ 	// лампочка в интерфейсе. Вообще-то, в этом варианте софта эта лампочка всегда есть.
 			loggingIndicator.style.color='green';
 			loggingIndicator.innerText='\u2B24';
-			//loggingSwitch.checked = true;
-			loggingSwitch.disabled = false;
+			if(!loggingSwitch.disabled) loggingSwitch.checked = true;	// если есть переключатель -- значит, можно управлять
 		}
 		if(resp.pt) { 	// есть данные
 			if(savedLayers[currentTrackName]) {	// может не быть, если, например, показ треков выключили, но выполнение currentTrackUpdate уже запланировано
@@ -481,7 +480,6 @@ xhr.onreadystatechange = function() { //
 					doNotCurrentTrackName(currentTrackName);
 				}				
 			}
-			loggingSwitch.disabled = false;
 		}
 		stopCurrentTrackUpdate(); // Отключим слежение за логом
 	}
@@ -1036,11 +1034,12 @@ xhr.onreadystatechange = function() { //
 	if(status[0]) { 	
 		loggingIndicator.style.color='green';
 		loggingIndicator.innerText='\u2B24';
-		//if(loggingSwitch) loggingSwitch.checked = true;	//
+		//loggingSwitch.checked = true;	//
 		loggingSwitch.disabled = false;
 	}
 	else {
-		if(status[0]===null) {
+		if(status[0]===null) {	// нет возможности управлять записью трека
+			loggingSwitch.checked = false;	// 
 			loggingSwitch.disabled = true;
 		}
 		else {
@@ -1062,7 +1061,7 @@ xhr.onreadystatechange = function() { //
 	const newTrackName = status[1]; 	// имя нового текущего (пишущийся сейчас) трека -- имя файла
 	if(newTrackName && (newTrackName != currentTrackName)){	// есть новый текущий трек, и он не тот же, что старый
 		let newTrackLI = document.getElementById(newTrackName); 	// его всегда нет?
-		//console.log('[loggingCheck] есть новый текущий трек',newTrackName,newTrackLI,'старый currentTrackName',currentTrackName);
+		console.log('[newTrack] есть новый текущий трек',newTrackName,'старый currentTrackName',currentTrackName);
 		if(!newTrackLI) {
 			// Добавим новый li в trackList и сделаем его текущим, в результате чего 
 			// он переместится в trackDisplayed, если на то воля юзера
@@ -1079,8 +1078,6 @@ xhr.onreadystatechange = function() { //
 		} 	// иначе он и так текущий? -- нет, он уже мог быть в списке показываемых
 		// Сделаем текущим и запустим слежение
 		doCurrentTrackName(newTrackName);	// обязательно после append, ибо вне дерева элементы не ищутся. JavaScript -- коллекция нелепиц.
-	}
-	else { 	// 
 	}
 return;
 } // end xhr.onreadystatechange

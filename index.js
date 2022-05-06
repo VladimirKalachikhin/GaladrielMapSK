@@ -189,6 +189,7 @@ app.get(`/${plugin.id}/track/*`, function(request, response) {
 // ответчик, возвращающий линию из последних точек пишущегося сейчас пути в GeoJSON
 var SESSION_lastTrkPt='';	// строка формата TRPT, последняя отданная
 var SESSION_shangedRoutes = {};	// список имён изменившихся за недавно маршрутов, для динамического обновления
+var SESSION_currTrackFileName = '';	// текущее имя текущего файла, для отличия от переданного имени текущего файла
 /*
 SESSION_lastTrkPt = `   <trkpt lat="61.050616667" lon="28.195350000">
     <ele>67.7900</ele>
@@ -204,6 +205,10 @@ app.get(`/${plugin.id}/getlasttrkpt/:currTrackFileName`, function(request, respo
 	// :currTrackFileName -- имя файла gpx, без пути и можно без расширения
 	if(!request.params.currTrackFileName.endsWith('.gpx')) request.params.currTrackFileName += '.gpx';
 	request.params.currTrackFileName = trackDir+'/'+request.params.currTrackFileName;
+	if(request.params.currTrackFileName != SESSION_currTrackFileName){	// новый трек
+		SESSION_currTrackFileName = request.params.currTrackFileName;
+		SESSION_lastTrkPt = '';
+	}
 
 	// определим, записывается ли трек
 	// трек _может_ записываться, если он не завершён

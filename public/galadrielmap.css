@@ -2,9 +2,9 @@
 /* leaflet */
 .leaflet-touch .leaflet-bar a {
 	background-color: rgba(255,255,255,0.66);
-    width: 40px;
-    height: 40px;
-    line-height: 40px;
+    width: 1.65rem;
+    height: 1.65rem;
+    line-height: 1.65rem;
 }
 .leaflet-top .leaflet-control {
     margin-top: 40px;
@@ -185,6 +185,15 @@
 	vertical-align: middle;
 }
 
+div.leaflet-control-zoom {
+	padding: 5%;
+}
+.leaflet-control-zoom-in {
+	margin-bottom: 2rem;
+}
+.leaflet-control-zoom-out {
+	margin-top: 2rem;
+}
 
 
 /* Свои стили */
@@ -207,7 +216,7 @@ ul { /* нужно, чтобы стили работали */
 	white-space: nowrap;
 }
 .currentTrackName {
-	background-color:  rgba(227, 231, 251, 0.5); /* бледно-голубой */
+	background-color:  rgba(227, 231, 251, 0.5); /* бледно-голубой полупрозрачный */
 }
 .big_symbol {
 	height:90%;
