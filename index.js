@@ -9,7 +9,7 @@ plugin.description = "a server-based chart plotter navigation software for pleas
 plugin.schema = {
 	title: plugin.name,
 	type: 'object',
-	required: ['PosFreshBefore','routeDir'],
+	required: ['PosFreshBefore','routeDir','trackDir'],
 	properties: {
 		trackProp:{
 			title: '',
@@ -124,6 +124,49 @@ if(options.depthProp.feature.includes('DBS')) options.depthProp.feature = 'envir
 else if(options.depthProp.feature.includes('DBK')) options.depthProp.feature = 'environment.depth.belowKeel';
 else if(options.depthProp.feature.includes('DBT')) options.depthProp.feature = 'environment.depth.belowTransducer';
 
+if(!options.routeDir) options.routeDir = 'route';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
+if(options.routeDir[0]!='/') options.routeDir = path.resolve(__dirname,'./public',options.routeDir);	// если путь не абсолютный -- сделаем абсолютным
+try{
+	fs.mkdirSync(options.routeDir,{recursive:true});
+}
+catch(error){
+	switch(error.code){
+	case 'EACCES':	// Permission denied
+	case 'EPERM':	// Operation not permitted
+		app.debug(`False to create ${options.routeDir} by Permission denied`);
+		app.setPluginError(`False to create ${options.routeDir} by Permission denied`);
+		break;
+	case 'ETIMEDOUT':	// Operation timed out
+		app.debug(`False to create ${options.routeDir} by Operation timed out`);
+		app.setPluginError(`False to create ${options.routeDir} by Operation timed out`);
+		break;
+	}
+}
+
+if(!options.trackDir) options.trackDir = 'track';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
+if(options.trackDir[0]!='/') options.trackDir = path.resolve(__dirname,'./public',options.trackDir);	// если путь не абсолютный -- сделаем абсолютным
+try{
+	fs.mkdirSync(options.trackDir,{recursive:true});
+}
+catch(error){
+	switch(error.code){
+	case 'EACCES':	// Permission denied
+	case 'EPERM':	// Operation not permitted
+		app.debug(`False to create ${options.trackDir} by Permission denied`);
+		app.setPluginError(`False to create ${options.trackDir} by Permission denied`);
+		break;
+	case 'ETIMEDOUT':	// Operation timed out
+		app.debug(`False to create ${options.trackDir} by Operation timed out`);
+		app.setPluginError(`False to create ${options.trackDir} by Operation timed out`);
+		break;
+	}
+}
+
+
+
+
+let trackDir = options.trackDir;
+
 function fileListHelper(request,response,fileDir,fileTypes,chkCurrent=false){
 // chkCurrent -- do check is gpx file the current writed gpx 
 try {
@@ -163,12 +206,6 @@ catch(error){
 	response.end();	// просто завершим запрос, без ответа
 }
 } // end function fileListHelper
-
-if(!options.routeDir) options.routeDir = 'route';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
-if(!options.trackDir) options.trackDir = 'track';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
-if(options.routeDir[0]!='/') options.routeDir = path.resolve(__dirname,'./public',options.routeDir);	// если путь не абсолютный -- сделаем абсолютным
-if(options.trackDir[0]!='/') options.trackDir = path.resolve(__dirname,'./public',options.trackDir);	// если путь не абсолютный -- сделаем абсолютным
-let trackDir = options.trackDir;
 
 // ответчик со списком файлов route
 app.get(`/${plugin.id}/route`, function(request, response){fileListHelper(request, response,options.routeDir,['gpx','kml','csv']);});	// ['gpx','kml','csv','wkt','json']
