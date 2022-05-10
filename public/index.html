@@ -915,10 +915,11 @@ function watchAISstart() {
 		event.target.send(JSON.stringify(AISsubscribe));	// подписываемся на получение данных
 		console.log("[aisWebSocket open] Subscribe sended");
 		// Хоть какая-то проверка актуальности целей AIS -- за отсутствием чего-то такого в SignalK
+		//console.log('PosFreshBefore=',PosFreshBefore);
 		checkDataFreshInterval = setInterval(function (){
 			for(const vehicle in vehicles){
 				if((!vehicles[vehicle].options.timestamp) || ((Date.now()-vehicles[vehicle].options.timestamp*1000)<aisFreshBefore)) continue;
-				//console.log(vehicle,'протух в vehicles',Date.now()-vehicles[vehicle].options.timestamp*1000,aisFreshBefore);
+				//console.log(vehicle,'протух в vehicles',(Date.now()-vehicles[vehicle].options.timestamp*1000)/1000,aisFreshBefore/1000);
 				vehicles[vehicle].remove();
 				vehicles[vehicle] = null;
 				delete vehicles[vehicle];
@@ -958,6 +959,7 @@ function watchAISstart() {
 			for(let value of update.values){
 				//console.log(data.context,value.path,value.value);
 				//console.log(data.context,value);
+				//if(data.context == 'vessels.urn:mrn:imo:mmsi:357535405') console.log(data.context,value.value);
 				switch(value.path){
 				case '':	// похоже, правильный путь - "", а не name, но тогда нет места для mmsi, ибо оно тоже по пути "". 
 							// Но, видимо, по одному пути может быть много объектов?
@@ -965,7 +967,6 @@ function watchAISstart() {
 							// При этом в подписку по "" попадают и communication и registrations
 							// Это тоже объекты в ""?
 					//console.log(data.context,value.value);
-					//if(data.context == 'vessels.urn:mrn:imo:mmsi:201246757') console.log(data.context,value.value);
 					for(const key in value.value){
 						switch(key){
 						case 'name':
@@ -1040,12 +1041,14 @@ function watchAISstart() {
 					break;
 				case 'navigation.datetime':
 					AISdata[vessel].timestamp = Math.round(Date.parse(value.value)/1000);
+					//console.log(vessel,'navigation.datetime=',value.value,AISdata[vessel].timestamp);
 					break;
 				}
 			}
 		}
 		//if(AISdata[vessel].shipname == 'Sample Ship Name') {
-		//	console.log('After',JSON.stringify(AISdata[vessel]));
+			//console.log('After',JSON.stringify(AISdata[vessel]));
+			//console.log('After',AISdata[vessel]);
 			//console.log('aisWebSocket.onmessage AISdata:',AISdata);
 		//}
 		data = null;
@@ -1057,7 +1060,7 @@ function watchAISstart() {
 		console.log(`aisWebSocket closed: connection broken with code ${event.code} by reason ${event.reason}`);
 		if(DisplayAISswitch.checked ) window.setTimeout(watchAISstart, 3000); 	// перезапустим сокет через  секунд, если в интерфейсе указано
 		for(const vehicle in vehicles){
-			vehicles[vehicle].remove();
+			vehicles[vehicle].remove();	// удалить из DOM
 			vehicles[vehicle] = null;
 			delete vehicles[vehicle];
 		}
@@ -1083,9 +1086,9 @@ function watchAISstart() {
 	for(const vehicle in aisData){
 		//console.log(vehicle,aisData[vehicle]);
 		if(vehicle.toLowerCase() == 'error') break;
-		//console.log(aisData[vehicle].lat,aisData[vehicle].lon);
 		if((aisData[vehicle].lat === null) || (aisData[vehicle].lon === null) || (aisData[vehicle].lat === undefined) || (aisData[vehicle].lon === undefined)) continue;	// не показываем цели без координат
-		//console.log(vehicles);
+		//console.log(vehicle,'протух на',(Date.now()-aisData[vehicle].timestamp*1000)/1000,aisFreshBefore/1000);
+		if((Date.now()-aisData[vehicle].timestamp*1000)>aisFreshBefore) continue;	// не показываем протухшие цели
 		if(!vehicles[vehicle]) { 	// global var, массив layers с целями
 			//console.log('Create layers',vehicle,aisData[vehicle]);
 			vehicles[vehicle] = L.trackSymbol(L.latLng(0,0),{
