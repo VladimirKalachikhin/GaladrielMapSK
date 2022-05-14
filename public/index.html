@@ -333,7 +333,7 @@ var CurrnoFollowToCursor = 1; 	// глобальная переменная дл
 var followPause = 10 * 1000; 	// пауза следования карты за курсором, когда карту подвинули руками, микросекунд
 var savePositionEvery = 15 * 1000; 	// будем сохранять положение каждые микросекунд локально в куку
 var followPaused; 	// объект таймера, который восстанавливает следование курсору
-var velocityVectorLengthInMn = 10; 	// длинной в сколько минут пути рисуется линия скорости
+if(!velocityVectorLengthInMn) velocityVectorLengthInMn = 10; 	// длинной в сколько минут пути рисуется линия скорости
 // AIS
 var vehicles = []; 	// list of visible by AIS data vehicle objects 
 // Пути и маршруты

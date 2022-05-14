@@ -8,75 +8,93 @@ plugin.description = "a server-based chart plotter navigation software for pleas
 
 plugin.schema = {
 	title: plugin.name,
+	description: 'Reload chartplotter after changing all of this.',
 	type: 'object',
 	required: ['PosFreshBefore','routeDir','trackDir'],
 	properties: {
-		trackProp:{
-			title: '',
-			description: 'Reload chartplotter after changing all of this.',
+		options:{
 			type: 'object',
+			title: 'Options',
 			properties: {
-				feature:{
-					type: 'string',
-					title: 'Will be displayed as Course:',
-					enum: [
-						'Course over ground (COG)',
-						'Heading true (HT)',
-						'Heading magnetic (HM)',
-						'Heading compass (HC)',
-					],
-					default: 'Course over ground (COG)'
+				trackProp:{
+					title: '',
+					type: 'object',
+					properties: {
+						feature:{
+							type: 'string',
+							title: 'Will be displayed as Course:',
+							enum: [
+								'Course over ground (COG)',
+								'Heading true (HT)',
+								'Heading magnetic (HM)',
+								'Heading compass (HC)',
+							],
+							default: 'Course over ground (COG)'
+						},
+					},
 				},
-			},
-		},
-		speedProp:{
-			title: '',
-			type: 'object',
-			properties: {
-				feature:{
-					type: 'string',
-					title: 'Will be displayed as Speed:',
-					enum: [
-						'Speed ower ground (SOG)',
-						'Speed through water (STW)',
-					],
-					default: 'Speed ower ground (SOG)'
+				speedProp:{
+					title: '',
+					type: 'object',
+					properties: {
+						feature:{
+							type: 'string',
+							title: 'Will be displayed as Speed:',
+							enum: [
+								'Speed ower ground (SOG)',
+								'Speed through water (STW)',
+							],
+							default: 'Speed ower ground (SOG)'
+						},
+					},
 				},
-			},
-		},
-		depthProp:{
-			title: '',
-			type: 'object',
-			properties: {
-				feature:{
-					type: 'string',
-					title: 'Will be displayed as Depth:',
-					enum: [
-						'Depth below surface (DBS)',
-						'Depth below keel (DBK)',
-						'Depth below transducer (DBT)',
-					],
-					default: 'Depth below surface (DBS)'
+				depthProp:{
+					title: '',
+					type: 'object',
+					properties: {
+						feature:{
+							type: 'string',
+							title: 'Will be displayed as Depth:',
+							enum: [
+								'Depth below surface (DBS)',
+								'Depth below keel (DBK)',
+								'Depth below transducer (DBT)',
+							],
+							default: 'Depth below surface (DBS)'
+						}
+					}
+				},
+				velocityVectorLengthInMn:{
+					type: 'number',
+					title: 'Velocity vector length.',
+					description: 'Own and AIS targets, minutes of movement.',
+					default: 10
 				}
 			}
 		},
-		routeDir:{
-			type: 'string',
-			title: 'Directory with POI and routes',
-			description:'Path in server filesystem, absolute or from plugin public directory',
-			default: 'route'
-		},
-		trackDir:{
-			type: 'string',
-			title: 'Directory with tracks',
-			description:'Path in server filesystem, absolute or from plugin public directory',
-			default: 'track'
-		},
-		currTrackFirst:{
-			type: 'boolean',
-			title: 'Is the current (being recorded now) track first in track list, or last',
-			description:'It depends of format of track file name, how it is created by tracking app.',
-			default: false
+		directory:{
+			type: 'object',
+			title: 'Data directories',
+			properties: {
+				routeDir:{
+					type: 'string',
+					title: 'Directory with POI and routes',
+					description:'Path in server filesystem, absolute or from plugin public directory',
+					default: 'route'
+				},
+				trackDir:{
+					type: 'string',
+					title: 'Directory with tracks',
+					description:'Path in server filesystem, absolute or from plugin public directory',
+					default: 'track'
+				},
+				currTrackFirst:{
+					type: 'boolean',
+					title: 'Is the current (being recorded now) track first in track list, or last',
+					description:'It depends of format of track file name, how it is created by tracking app.',
+					default: false
+				}
+			}
 		},
 		timeouts:{
 			type: 'object',
@@ -112,52 +130,52 @@ const cp = require('child_process');
 
 app.debug('GaladrielMap started');
 let currentTrackName = '';	// имя текущего файла, без пути, но с расширением
-if(options.trackProp.feature.includes('COG')) options.trackProp.feature = 'navigation.courseOverGroundTrue';
-else if(options.trackProp.feature.includes('HT')) options.trackProp.feature = 'navigation.headingTrue';
-else if(options.trackProp.feature.includes('HM')) options.trackProp.feature = 'navigation.headingMagnetic';
-else if(options.trackProp.feature.includes('HC')) options.trackProp.feature = 'navigation.headingCompass';
+if(options.options.trackProp.feature.includes('COG')) options.options.trackProp.feature = 'navigation.courseOverGroundTrue';
+else if(options.options.trackProp.feature.includes('HT')) options.options.trackProp.feature = 'navigation.headingTrue';
+else if(options.options.trackProp.feature.includes('HM')) options.options.trackProp.feature = 'navigation.headingMagnetic';
+else if(options.options.trackProp.feature.includes('HC')) options.options.trackProp.feature = 'navigation.headingCompass';
 
-if(options.speedProp.feature.includes('SOG')) options.speedProp.feature = 'navigation.speedOverGround';
-else if(options.speedProp.feature.includes('STW')) options.speedProp.feature = 'navigation.speedThroughWater';
+if(options.options.speedProp.feature.includes('SOG')) options.options.speedProp.feature = 'navigation.speedOverGround';
+else if(options.options.speedProp.feature.includes('STW')) options.options.speedProp.feature = 'navigation.speedThroughWater';
 
-if(options.depthProp.feature.includes('DBS')) options.depthProp.feature = 'environment.depth.belowSurface';
-else if(options.depthProp.feature.includes('DBK')) options.depthProp.feature = 'environment.depth.belowKeel';
-else if(options.depthProp.feature.includes('DBT')) options.depthProp.feature = 'environment.depth.belowTransducer';
+if(options.options.depthProp.feature.includes('DBS')) options.options.depthProp.feature = 'environment.depth.belowSurface';
+else if(options.options.depthProp.feature.includes('DBK')) options.options.depthProp.feature = 'environment.depth.belowKeel';
+else if(options.options.depthProp.feature.includes('DBT')) options.options.depthProp.feature = 'environment.depth.belowTransducer';
 
-if(!options.routeDir) options.routeDir = 'route';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
-if(options.routeDir[0]!='/') options.routeDir = path.resolve(__dirname,'./public',options.routeDir);	// если путь не абсолютный -- сделаем абсолютным
+if(!options.directory.routeDir) options.directory.routeDir = 'route';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
+if(options.directory.routeDir[0]!='/') options.directory.routeDir = path.resolve(__dirname,'./public',options.directory.routeDir);	// если путь не абсолютный -- сделаем абсолютным
 try{
-	fs.mkdirSync(options.routeDir,{recursive:true});
+	fs.mkdirSync(options.directory.routeDir,{recursive:true});
 }
 catch(error){
 	switch(error.code){
 	case 'EACCES':	// Permission denied
 	case 'EPERM':	// Operation not permitted
-		app.debug(`False to create ${options.routeDir} by Permission denied`);
-		app.setPluginError(`False to create ${options.routeDir} by Permission denied`);
+		app.debug(`False to create ${options.directory.routeDir} by Permission denied`);
+		app.setPluginError(`False to create ${options.directory.routeDir} by Permission denied`);
 		break;
 	case 'ETIMEDOUT':	// Operation timed out
-		app.debug(`False to create ${options.routeDir} by Operation timed out`);
-		app.setPluginError(`False to create ${options.routeDir} by Operation timed out`);
+		app.debug(`False to create ${options.directory.routeDir} by Operation timed out`);
+		app.setPluginError(`False to create ${options.directory.routeDir} by Operation timed out`);
 		break;
 	}
 }
 
-if(!options.trackDir) options.trackDir = 'track';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
-if(options.trackDir[0]!='/') options.trackDir = path.resolve(__dirname,'./public',options.trackDir);	// если путь не абсолютный -- сделаем абсолютным
+if(!options.directory.trackDir) options.directory.trackDir = 'track';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
+if(options.directory.trackDir[0]!='/') options.directory.trackDir = path.resolve(__dirname,'./public',options.directory.trackDir);	// если путь не абсолютный -- сделаем абсолютным
 try{
-	fs.mkdirSync(options.trackDir,{recursive:true});
+	fs.mkdirSync(options.directory.trackDir,{recursive:true});
 }
 catch(error){
 	switch(error.code){
 	case 'EACCES':	// Permission denied
 	case 'EPERM':	// Operation not permitted
-		app.debug(`False to create ${options.trackDir} by Permission denied`);
-		app.setPluginError(`False to create ${options.trackDir} by Permission denied`);
+		app.debug(`False to create ${options.directory.trackDir} by Permission denied`);
+		app.setPluginError(`False to create ${options.directory.trackDir} by Permission denied`);
 		break;
 	case 'ETIMEDOUT':	// Operation timed out
-		app.debug(`False to create ${options.trackDir} by Operation timed out`);
-		app.setPluginError(`False to create ${options.trackDir} by Operation timed out`);
+		app.debug(`False to create ${options.directory.trackDir} by Operation timed out`);
+		app.setPluginError(`False to create ${options.directory.trackDir} by Operation timed out`);
 		break;
 	}
 }
@@ -165,7 +183,7 @@ catch(error){
 
 
 
-let trackDir = options.trackDir;
+let trackDir = options.directory.trackDir;
 
 function fileListHelper(request,response,fileDir,fileTypes,chkCurrent=false){
 // chkCurrent -- do check is gpx file the current writed gpx 
@@ -189,7 +207,7 @@ try {
 					if(buf != false) {
 						if(!buf.trim().endsWith('</gpx>')){	// незавершённый файл gpx
 							currentTrackName = item;
-							if(options.currTrackFirst) chkCurrent = false;	// текущий трек -- первый из незавершённых, иначе -- последний.
+							if(options.directory.currTrackFirst) chkCurrent = false;	// текущий трек -- первый из незавершённых, иначе -- последний.
 						}
 					}
 				}
@@ -202,17 +220,17 @@ try {
 	response.json({filelist:filesList,currentTrackName:currentTrackName});
 }
 catch(error){
-	app.setPluginError('Failed to get file list from '+options.routeDir,error.message);
+	app.setPluginError('Failed to get file list from '+options.directory.routeDir,error.message);
 	response.end();	// просто завершим запрос, без ответа
 }
 } // end function fileListHelper
 
 // ответчик со списком файлов route
-app.get(`/${plugin.id}/route`, function(request, response){fileListHelper(request, response,options.routeDir,['gpx','kml','csv']);});	// ['gpx','kml','csv','wkt','json']
+app.get(`/${plugin.id}/route`, function(request, response){fileListHelper(request, response,options.directory.routeDir,['gpx','kml','csv']);});	// ['gpx','kml','csv','wkt','json']
 // ответчик, отдающий файл из route
 app.get(`/${plugin.id}/route/*`, function(request, response) {	
-	//app.debug(options.routeDir+'/'+path.basename(request.url));
-	response.sendFile(options.routeDir+'/'+path.basename(decodeURI(request.url)));
+	//app.debug(options.directory.routeDir+'/'+path.basename(request.url));
+	response.sendFile(options.directory.routeDir+'/'+path.basename(decodeURI(request.url)));
 });
 
 // ответчик со списком файлов track
@@ -389,7 +407,7 @@ app.get(`/${plugin.id}/logging/:command`, function(request, response) {
 								path: 'navigation.trip.logging',
 								value: {
 									status: true,
-									logFile: options.trackDir+'/'	// потребуем писать в свой каталог, options.trackDir -- уже полный путь
+									logFile: options.directory.trackDir+'/'	// потребуем писать в свой каталог, options.directory.trackDir -- уже полный путь
 								}
 							}
 						],
@@ -433,7 +451,7 @@ app.get(`/${plugin.id}/logging/:command`, function(request, response) {
 			if(buf != false) {
 				if(!buf.trim().endsWith('</gpx>')){	// незавершённый файл gpx
 					outpuFileName = item;
-					if(options.currTrackFirst) break;	// текущий трек -- первый из незавершённых, иначе -- последний.
+					if(options.directory.currTrackFirst) break;	// текущий трек -- первый из незавершённых, иначе -- последний.
 				}
 			}
 		}
@@ -452,9 +470,9 @@ app.get(`/${plugin.id}/saveGPX/:name/:gpx`, function(request, response) {
 	if(!name) name = Date().toISOString()+'.gpx';
 	if(!name.endsWith('.gpx')) name += '.gpx';
 	let res;
-	app.debug(options.routeDir+'/'+name);
+	app.debug(options.directory.routeDir+'/'+name);
 	try {
-		fs.writeFileSync(options.routeDir+'/'+name, decodeURIComponent(request.params.gpx));
+		fs.writeFileSync(options.directory.routeDir+'/'+name, decodeURIComponent(request.params.gpx));
 		res = [0,request.params.name+' saved'];
 	} catch (err) {
 		res = [1,'Error save '+request.params.name+': '+err.message];
@@ -467,12 +485,12 @@ app.get(`/${plugin.id}/saveGPX/:name/:gpx`, function(request, response) {
 app.get(`/${plugin.id}/checkRoutes`, function(request, response) {	
 	const fresh = 60*60*24*1000; 	//msec. The file was modified not later than this ago
 	let shanged = [];
-	let filesList = fs.readdirSync(options.routeDir);	// 
+	let filesList = fs.readdirSync(options.directory.routeDir);	// 
 	filesList = filesList.filter(item => item.endsWith('.gpx'));
 	//app.debug(filesList);
 	for(const fileName of filesList){
-		const mTime = fs.statSync(options.routeDir+'/'+fileName).mtimeMs;
-		//app.debug(fileName,fs.statSync(options.routeDir+'/'+fileName).mtime);
+		const mTime = fs.statSync(options.directory.routeDir+'/'+fileName).mtimeMs;
+		//app.debug(fileName,fs.statSync(options.directory.routeDir+'/'+fileName).mtime);
 		if(Date.now()-mTime > fresh) continue; 	// изменён давно
 		if(!SESSION_shangedRoutes[fileName]) {
 			SESSION_shangedRoutes[fileName] = {};
@@ -490,6 +508,7 @@ const mob_markerImg = "data:image/png;base64,"+fs.readFileSync(path.resolve(__di
 
 // Запишем файл для передачи клиенту
 const optionsjs = `// This file created automatically. Don't edit it!
+const velocityVectorLengthInMn = ${options.options.velocityVectorLengthInMn};
 const mob_markerImg = '${mob_markerImg}';
 let PosFreshBefore = ${options.timeouts.PosFreshBefore * 1000}; 	// время в милисекундах, через которое положение считается протухшим
 let aisFreshBefore = ${options.timeouts.aisFreshBefore * 1000}; 	// время в милисекундах, через которое цели AIS считаются протухшими
@@ -504,19 +523,19 @@ const TPVsubscribe = {
 			"minPeriod": 0
 		},
 		{
-			"path": "${options.trackProp.feature}",
+			"path": "${options.options.trackProp.feature}",
 			"format": "delta",
 			"policy": "instant",
 			"minPeriod": 0
 		},
 		{
-			"path": "${options.speedProp.feature}",
+			"path": "${options.options.speedProp.feature}",
 			"format": "delta",
 			"policy": "instant",
 			"minPeriod": 0
 		},
 		{
-			"path": "${options.depthProp.feature}",
+			"path": "${options.options.depthProp.feature}",
 			"format": "delta",
 			"policy": "instant",
 			"minPeriod": 0
