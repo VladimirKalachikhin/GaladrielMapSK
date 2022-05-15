@@ -1018,7 +1018,11 @@ function watchAISstart() {
 				case 'navigation.position':
 					AISdata[vessel].lon = value.value.longitude;
 					AISdata[vessel].lat = value.value.latitude;
-					if(!AISdata[vessel].timestamp) AISdata[vessel].timestamp = Math.round(Date.parse(update.timestamp)/1000);	// преимущество у navigation.datetime
+					//if(!AISdata[vessel].timestamp) AISdata[vessel].timestamp = Math.round(Date.parse(update.timestamp)/1000);	// преимущество у navigation.datetime
+					// Костыль к какому-то косяку SignalK, когда navigation.datetime не посылается
+					const ts = Math.round(Date.parse(update.timestamp)/1000);
+					//console.log(vessel,'navigation.position datetime=',ts-AISdata[vessel].timestamp,AISdata[vessel].timestamp);
+					if(!AISdata[vessel].timestamp || (ts>AISdata[vessel].timestamp)) AISdata[vessel].timestamp = ts;
 					break;
 				case 'navigation.state':
 					if(isNaN(value.value)) AISdata[vessel].status_text = value.value;
