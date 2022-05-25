@@ -539,12 +539,6 @@ const TPVsubscribe = {
 			"format": "delta",
 			"policy": "instant",
 			"minPeriod": 0
-		},
-		{
-			"path": "notifications.mob",
-			"format": "delta",
-			"policy": "instant",
-			"minPeriod": 0
 		}
 	]
 };
@@ -655,6 +649,23 @@ const AISsubscribe = {
 		},
 		{
 			"path": "navigation.datetime",
+			"format": "delta",
+			"policy": "instant",
+			"minPeriod": 0
+		}
+	]
+};
+const notificationaSubscribe = {
+	"context": "vessels.*",
+	"subscribe": [
+		{
+			"path": "notifications.mob",
+			"format": "delta",
+			"policy": "instant",
+			"minPeriod": 0
+		},
+		{
+			"path": "notifications.collision",
 			"format": "delta",
 			"policy": "instant",
 			"minPeriod": 0
