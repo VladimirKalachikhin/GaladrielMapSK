@@ -666,7 +666,7 @@ fs.writeFileSync(__dirname+'/public/options.js',optionsjs);
 
 plugin.stop = function () {
 // Here we put logic we need when the plugin stops
-//app.debug('Plugin stopped');
+app.debug('Plugin stopped');
 };
 
 
