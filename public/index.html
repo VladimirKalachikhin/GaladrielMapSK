@@ -551,12 +551,6 @@ var cursor = L.marker(startCenter, {
 	rotationAngle: heading, // начальный угол поворота маркера
 	rotationOrigin: "50% 50%", 	// вертим маркер вокруг центра
 });
-// Для визуализации collisionDetector
-var collisionIcon = L.icon({
-	iconUrl: './img/redbulletdot.svg',
-	iconSize:     [120, 120],
-	iconAnchor:   [60, 60]
-});
 // указатель скорости
 var velocityVector = L.marker(cursor.getLatLng(), {
 	'icon': velocityCursor,
@@ -572,11 +566,22 @@ var GNSScircle = L.circle(cursor.getLatLng(), {
 	'opacity':0.1,
 	'fillOpacity':0.1
 });
-//var positionCursor = L.layerGroup([GNSScircle,velocityVector,cursor,collisionAreaMarker]); 	// collisionDetector
 var positionCursor = L.layerGroup([GNSScircle,velocityVector,cursor]);
 
-var collisisonAreas = L.layerGroup(); 	// collisionDetector
-var collisisonDetected = L.layerGroup(); 	// collisionDetector
+// Для визуализации collisionDetector
+var collisionIcon = L.icon({
+	iconUrl: './img/redbulletdot.svg',
+	iconSize:     [60, 60],
+	iconAnchor:   [30, 30]
+});
+var collisionDirectionIcon = L.icon({
+	iconUrl: './img/redArrow.svg',
+	iconSize:     [20,24],
+	iconAnchor:   [10,30]
+});
+var collisisonDetected = L.layerGroup(); 	// слой, на котором рисуются значки возможных столкновений collisionDetector
+var collisionDirectionsCursor = L.layerGroup().addTo(positionCursor);	// слой с указателями направлений на опасности столкновений
+var collisisonAreas = L.layerGroup(); 	// для тестовых целей collisionDetector
 
 // MOB marker
 var mobIcon = L.icon({ 	// 
@@ -759,9 +764,10 @@ function spatialWebSocketStart(){
 			//MOBtab.className='disabled'; 	// если нет курсора (координат) -- невозможно включить режим MOB. Это плохая идея.
 			return;
 		}
-		// Свежее ли положение известно?
+		// Свежее ли положение известно? -- установим курсор в положение
 		//MOBtab.className=''; 	// координаты появились -- можно включить режим MOB
-		cursor.setLatLng(L.latLng(gpsdData.lat,gpsdData.lon));
+		positionCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // установим координаты всех маркеров
+		collisionDirectionsCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // но оно не рекурсивно, увы
 		var positionTime = new Date(gpsdData.time);
 		var now = new Date();
 		//console.log('gpsdData.time:',gpsdData.time,'now',now,'now-positionTime',now-positionTime);
@@ -801,16 +807,13 @@ function spatialWebSocketStart(){
 		
 		// Направление с попыткой его запомнить при прекращении движения
 		//console.log('Index gpsdData',gpsdData.track);
-		velocityVector.setLatLng( cursor.getLatLng() );// положение указателя скорости
 		if(gpsdData.track == null || gpsdData.track == undefined) {
 			headingDisplay.innerHTML = '&nbsp;';
-			cursor.setRotationAngle(0); // повернём маркер
-			velocityVector.setRotationAngle(0); // повернём указатель скорости
+			positionCursor.invoke('setRotationAngle',0); // повернём все маркеры
 		}
 		else {
 			heading = gpsdData.track; // если положение изменилось - возьмём новое направление, иначе - будет старое.
-			cursor.setRotationAngle(heading); // повернём маркер
-			velocityVector.setRotationAngle(heading); // повернём указатель скорости
+			positionCursor.invoke('setRotationAngle',heading); // повернём все маркеры
 			headingDisplay.innerHTML = Math.round(heading); // покажем направление на приборной панели
 		}
 		/*
@@ -832,7 +835,6 @@ function spatialWebSocketStart(){
 		if(!errGNSS) errGNSS = 10; // метров
 		if(errGNSS/metresPerPixel > 15) GNSScircle.setRadius(errGNSS); 	// кружок точности больше кружка курсора
 		else GNSScircle.setRadius(0);
-		GNSScircle.setLatLng(cursor.getLatLng());
 
 		// Карту в положение
 		//console.log("followToCursor", followToCursor);
@@ -1220,27 +1222,41 @@ function alarmWebSocketStart(){
 					//console.log(mobMarker);
 					break;
 				case 'notifications.collision':
-					//console.log('recieved collision data',value.value.collisionSegments);
+					//console.log('recieved collision data',value.value);
 					//console.log('collision data',value.value ? value.value.vessels.length : 'null');
 					//console.log('collision data',value.value ? value.value.collisionSegments : 'null');
 					collisisonDetected.clearLayers();	// очистим слой 
+					collisionDirectionsCursor.clearLayers();
 					if((value.value === null)||(!DisplayAISswitch.checked)){	// переключатель "Показывать AIS" выключен
 						collisisonDetected.remove();
+						collisionDirectionsCursor.remove();
 						break;	// switch
 					}
 					value.value.vessels.forEach(vessel => {
-						if(AISdata[vessel]){
+						if(AISdata[vessel] && AISdata[vessel].lat && AISdata[vessel].lon){
 							//console.log('Collision',vessel);
+							// Значки опасностей
 							collisisonDetected.addLayer( L.marker([AISdata[vessel].lat,AISdata[vessel].lon], {
 								icon: collisionIcon,
 								opacity: 0.5,
 								zIndexOffset: -1000
 							}));
+							// Указатели вокруг курсора
+							const selflatLng = cursor.getLatLng();
+							if(selflatLng){
+								//console.log('Опасность с',bearing(selflatLng, {lat: AISdata[vessel].lat, lng: AISdata[vessel].lon}));
+								collisionDirectionsCursor.addLayer( L.marker(selflatLng, {
+									icon: collisionDirectionIcon,
+									opacity: 0.75,
+									rotationAngle: bearing(selflatLng, {lat: AISdata[vessel].lat, lng: AISdata[vessel].lon})
+								}));
+							}
 						};
 					});
 					/*
 					for(let vesselID in value.value.collisionSegments){
 						//console.log(value.value.collisionSegments[vesselID]);
+						
 						// Общий объемлющий прямоугольник
 						if(value.value.collisionSegments[vesselID].unitedSquareAreas){
 							value.value.collisionSegments[vesselID].unitedSquareAreas.forEach(area => {
@@ -1255,6 +1271,7 @@ function alarmWebSocketStart(){
 								collisisonDetected.addLayer(L.polyline(polyline,{color: 'green',weight: 2,}));
 							});
 						}
+						
 						// Пересекающиеся отрезки
 						if(value.value.collisionSegments[vesselID].segments){
 							value.value.collisionSegments[vesselID].segments.forEach(segment => {
@@ -1273,8 +1290,8 @@ function alarmWebSocketStart(){
 						}
 					};
 					*/
-					//collisisonDetected.setZIndex(-1000);
 					collisisonDetected.addTo(map);
+					collisionDirectionsCursor.addTo(map);
 					break;
 				};
 			};
@@ -1284,6 +1301,8 @@ function alarmWebSocketStart(){
 	alarmWebSocket.onclose = function(event) {
 		console.log(`alarmWebSocket closed: connection broken with code ${event.code} by reason ${event.reason}`);
 		window.setTimeout(alarmWebSocketStart, 3000); 	// перезапустим сокет через  секунд. В каком контексте здесь вызывается callback -- мне осталось непонятным, поэтому сокет ваще глобален
+		collisisonDetected.remove();
+		collisionDirectionsCursor.remove();
 	}; // end alarmWebSocket.onclose
 
 	alarmWebSocket.onerror = function(error) {
