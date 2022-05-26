@@ -1457,61 +1457,6 @@ L.Control.CopyToClipboard = L.Control.extend({
 		}
 });
 
-// Функции для отладки предупреждения о столкновениях
-function displayCollisionAreas(){
-//
-const uri = '/collision-detector/allvessels';
-fetch(uri)
-.then((response) => {
-	//console.log(response.text());
-    return response.json();
-})
-.then(data => {
-	//console.log('[displayCollisionAreas] data:',data);
-	//collisisonAreas.remove();	// так гораздо медленней
-	collisisonAreas.clearLayers();	// очистим слой 
-	//collisionVessels = {};
-	for(let vessel in data){
-		//console.log(vessel,data[vessel]);
-		if(!data[vessel].collisionArea) continue;	// 
-		let polyline = [];
-		data[vessel].collisionArea.forEach(point => {polyline.push([point.latitude,point.longitude]);});
-		polyline.push([data[vessel].collisionArea[0].latitude,data[vessel].collisionArea[0].longitude]);
-		//console.log('vessel',vessel,'course=',data[vessel].course,'polyline:',polyline.length);
-		collisisonAreas.addLayer(L.polyline(polyline,{color: 'red',weight: 2,}));
-		collisionVessels[vessel] = data[vessel];
-	};
-	collisisonAreas.addTo(map);
-});
-} // end function displayCollisionAreas
-
-function displayCollisionDetections(){
-//
-const uri = '/collision-detector/collisions';
-fetch(uri)
-.then((response) => {
-	//console.log(response.text());
-    return response.json();
-})
-.then(data => {
-	//console.log('collisions:',data.length);
-	collisisonDetected.clearLayers();	// очистим слой 
-	data.forEach(vessel => {
-		if(collisionVessels[vessel]){
-			let polyline = [
-				[collisionVessels[vessel].squareArea.topLeft.latitude,collisionVessels[vessel].squareArea.topLeft.longitude],
-				[collisionVessels[vessel].squareArea.bottomRight.latitude,collisionVessels[vessel].squareArea.topLeft.longitude],
-				[collisionVessels[vessel].squareArea.bottomRight.latitude,collisionVessels[vessel].squareArea.bottomRight.longitude],
-				[collisionVessels[vessel].squareArea.topLeft.latitude,collisionVessels[vessel].squareArea.bottomRight.longitude],
-				[collisionVessels[vessel].squareArea.topLeft.latitude,collisionVessels[vessel].squareArea.topLeft.longitude],
-			];
-			collisisonDetected.addLayer(L.polyline(polyline,{color: 'green',weight: 1,}));
-		}
-	});
-	//collisisonDetected.addTo(map);
-});
-
-} // end function displayCollisionDetections
 
 
 

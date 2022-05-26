@@ -725,9 +725,6 @@ function spatialWebSocketStart(){
 		}
 		data = null;
 		realtimeTPVupdate(TPVdata);	// показываем новое каждый тик
-		
-		//displayCollisionAreas();	// показываем отладочную информацию предупреждения о столкновениях
-		
 	}; // end spatialWebSocket.onmessage
 
 	spatialWebSocket.onclose = function(event) {
@@ -816,18 +813,6 @@ function spatialWebSocketStart(){
 			positionCursor.invoke('setRotationAngle',heading); // повернём все маркеры
 			headingDisplay.innerHTML = Math.round(heading); // покажем направление на приборной панели
 		}
-		/*
-		// Визуализация collisionDetector
-		// оказывается, размеры ниже устанавливаются не в смысле значка, а как прямоугольник
-		// на экране, параллельный осям. Поэтому перед изменением размеров надо
-		// повернуть значёк в исходное положение
-		collisionAreaMarker.setRotationAngle(0); 
-		collisionAreaIcon.options.iconSize=[velocityCursorLength/10,velocityCursorLength];
-		collisionAreaIcon.options.iconAnchor=[velocityCursorLength/20,velocityCursorLength];
-		collisionAreaMarker.setIcon(collisionAreaIcon);
-		collisionAreaMarker.setLatLng(cursor.getLatLng() );// положение
-		collisionAreaMarker.setRotationAngle(heading); // повернём маркер
-		*/
 		positionCursor.addTo(map); 	// добавить курсор на карту
 
 		// Окружность точност ГПС
@@ -1048,9 +1033,6 @@ function watchAISstart() {
 		data = null;
 		realtimeAISupdate(JSON.parse('{"class":"AIS","ais":'+JSON.stringify(AISdata)+'}'));	// хрен его знает где и почему портится AISdata, поэтому передаём "по значению".
 		//realtimeAISupdate({"class":"AIS","ais":AISdata});	// 
-		
-		//displayCollisionAreas();	// показываем отладочную информацию предупреждения о столкновениях
-		
 	}; // end aisWebSocket.onmessage
 
 	aisWebSocket.onclose = function(event) {
@@ -1253,43 +1235,6 @@ function alarmWebSocketStart(){
 							}
 						};
 					});
-					/*
-					for(let vesselID in value.value.collisionSegments){
-						//console.log(value.value.collisionSegments[vesselID]);
-						
-						// Общий объемлющий прямоугольник
-						if(value.value.collisionSegments[vesselID].unitedSquareAreas){
-							value.value.collisionSegments[vesselID].unitedSquareAreas.forEach(area => {
-								//console.log('unitedSquareArea:',area);
-								let polyline = [
-									[area.topLeft.latitude,area.topLeft.longitude],
-									[area.bottomRight.latitude,area.topLeft.longitude],
-									[area.bottomRight.latitude,area.bottomRight.longitude],
-									[area.topLeft.latitude,area.bottomRight.longitude],
-									[area.topLeft.latitude,area.topLeft.longitude]
-								];
-								collisisonDetected.addLayer(L.polyline(polyline,{color: 'green',weight: 2,}));
-							});
-						}
-						
-						// Пересекающиеся отрезки
-						if(value.value.collisionSegments[vesselID].segments){
-							value.value.collisionSegments[vesselID].segments.forEach(segment => {
-								//console.log('collisionSegment:\n',segment);
-								let polyline = [
-									[segment[0][0].latitude,segment[0][0].longitude],
-									[segment[0][1].latitude,segment[0][1].longitude]
-								];
-								collisisonDetected.addLayer(L.polyline(polyline,{color: 'yellow',weight: 6,}));
-								polyline = [
-									[segment[1][0].latitude,segment[1][0].longitude],
-									[segment[1][1].latitude,segment[1][1].longitude]
-								];
-								collisisonDetected.addLayer(L.polyline(polyline,{color: 'yellow',weight: 6,}));
-							});
-						}
-					};
-					*/
 					collisisonDetected.addTo(map);
 					collisionDirectionsCursor.addTo(map);
 					break;

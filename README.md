@@ -4,13 +4,17 @@ This is a [SignalK](https://signalk.org/)-based chart plotter navigation softwar
 <div style='float:right;'><a href='https://github.com/VladimirKalachikhin/Galadriel-map/discussions'>Forum</a>
 </div>
 
-## v. 0.1 
+## v. 0.2 
 
 This software is a edition of the [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/), designed to work as SignalK webapp. Refer to the [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/) documentation for information.
 
 ## Limitations
 * GaladrielMap SignalK edition use [@signalk/charts-plugin](https://www.npmjs.com/package/@signalk/charts-plugin) for charts instead [GaladrielCache](https://github.com/VladimirKalachikhin/Galadriel-cache). So [Weather](http://weather.openportguide.de/index.php/en/) map is not available, such well as some other maps from GaladrielMap. There is also no tile caching.  
 * Since SignalK has no built-in controls of data actuality such as in [gpsdPROXY](https://github.com/VladimirKalachikhin/gpsdPROXY) on GaladrielMap, basic features added.
+
+## Features
+GaladrielMap SignalK edition handle SignalK notification system.     
+If the [collision-detector](https://www.npmjs.com/package/collision-detector) is installed, the GaladrielMap SignalK edition highlights dangerous vessels on the map and indicates the direction to them on self cursor. 
 
 ## Install&configure:
 Install this software from SignalK Appstore as **galadrielmap_sk**.  

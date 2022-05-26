@@ -5,7 +5,7 @@
 <div style='float:right;'><a href='https://github.com/VladimirKalachikhin/Galadriel-map/discussions'>Форум</a>
 </div>
 
-## v. 0.1 
+## v. 0.2 
 
 Это веб-приложение является модификацией картплотера [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/README.ru-RU) для работы в среде SignalK, и обладает всеми возможностями оригинального приложения, за исключением нижеуказанных. Для ознакомления с возможностями и получения информации обращайтесь к [документации](https://vladimirkalachikhin.github.io/Galadriel-map/README.ru-RU) оригинального приложения.
 
@@ -13,9 +13,12 @@
 * GaladrielMap SignalK edition использует [@signalk/charts-plugin](https://www.npmjs.com/package/@signalk/charts-plugin) для предоставления карт вместо [GaladrielCache](https://github.com/VladimirKalachikhin/Galadriel-cache). Поэтому многие карты, имеющиеся в GaladrielMap недоступны, в частности -- [карта погоды](http://weather.openportguide.de/index.php/en/). Отсутствует также кеширование тайлов из сетевых источников.
 * SignalK не имеет штатных средств контроля актуальности данных, наподобие тех, что имеются у [gpsdPROXY](https://github.com/VladimirKalachikhin/gpsdPROXY) в GaladrielMap. Поэтому в GaladrielMap SignalK edition добавлены самые базовые средства такого контроля.
 
+## Возможности
+GaladrielMap SignalK edition поддерживает систему оповещений SignalK, поэтому, если установлен плагин [collision-detector](https://www.npmjs.com/package/collision-detector), GaladrielMap SignalK edition  обозначает потенциально опасные суда значком на карте, и одновременно рисует стрелку в направлении опасности внутри значка, указывающего собственное положение.  
+
 ## Установка и конфигурирование
 
-Установите веб-приложение в веб-панели SignalK  из Appstore обычным образом как **galadrielmap_sk**.  
+Установите веб-приложение с помощью веб-панели SignalK из Appstore обычным образом как **galadrielmap_sk**.  
 Перезапустите сервер SignalK.  
 В меню Server -> Plugin Config настройте запуск приложения и необходимые параметры.  
 Нажмите Submit для сохранения изменений.
