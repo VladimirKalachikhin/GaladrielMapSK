@@ -665,7 +665,7 @@ const notificationaSubscribe = {
 			"minPeriod": 0
 		},
 		{
-			"path": "notifications.collision",
+			"path": "notifications.danger.collision",
 			"format": "delta",
 			"policy": "instant",
 			"minPeriod": 0
