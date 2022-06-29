@@ -46,13 +46,6 @@ html, body, #mapid {
    </style>
 </head>
 <body>
-<!--
-<div id='infoBox' style='font-size: 200%; position: absolute; z-index: 1000;'>
-</div>
-<script>
-infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
-</script>
--->
 <div id="sidebar" class="leaflet-sidebar collapsed">
 	<!-- Nav tabs -->
 	<div class="leaflet-sidebar-tabs">
@@ -70,6 +63,13 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 	</div>
 	<!-- Tab panes -->
 	<div class="leaflet-sidebar-content" id='tabPanes'>
+<!--
+<div id='infoBox' style='font-size: 90%; position: absolute;'>
+</div>
+<script>
+infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
+</script>
+-->
 		<!-- Карты -->
 		<div class="leaflet-sidebar-pane" id="home">
 			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="homeHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
@@ -140,7 +140,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			<div id='routeControls' class="routeControls" style="padding:1rem 0 2rem; text-align: center;">
 				<input type="radio" name="routeControl" class='L' id="routeCreateButton"
 					onChange="
-						if(L.Browser.mobile && L.Browser.touch) var weight = 10; 	// мобильный браузер
+						if(L.Browser.mobile && L.Browser.touch) var weight = 15; 	// мобильный браузер
 						else var weight = 7; 	// стационарный браузер
 						//window.LAYER = map.editTools.startPolyline(false,{showMeasurements: true,color: '#ccff00',weight: weight,opacity: 0.7});
 						window.LAYER = map.editTools.startPolyline(false,{showMeasurements: true,color: '#FDFF00',weight: weight,opacity: 0.5});
@@ -368,7 +368,7 @@ if(!instanceSelf) {
 	expires.setTime(expires.getTime() + (60*24*60*60*1000)); 	// протухнет через два месяца
 	document.cookie = "GaladrielMapInstance="+instanceSelf+"; expires="+expires+"; path=/; samesite=Lax";
 }
-var collisionVessels = {};
+var collisionVessels = {};	///////// for collision test purpose /////////
 
 
 // подготовка интерфейса, списков карт и треков, etc.
@@ -580,8 +580,11 @@ var collisionDirectionIcon = L.icon({
 	iconAnchor:   [10,30]
 });
 var collisisonDetected = L.layerGroup(); 	// слой, на котором рисуются значки возможных столкновений collisionDetector
-var collisionDirectionsCursor = L.layerGroup().addTo(positionCursor);	// слой с указателями направлений на опасности столкновений
-var collisisonAreas = L.layerGroup(); 	// для тестовых целей collisionDetector
+var collisionDirectionsCursor = L.layerGroup();	// слой с указателями направлений на опасности столкновений
+
+/////////////////////////// collisionDetector test ///////////////////////////////
+//var collisisonAreas = L.layerGroup(); 	// для тестовых целей collisionDetector
+/////////////////////////// end collisionDetector test ///////////////////////////////
 
 // MOB marker
 var mobIcon = L.icon({ 	// 
@@ -634,7 +637,7 @@ else mobMarker = L.layerGroup().addLayer(toMOBline);
 // Realtime периодическое обновление
 var spatialWebSocket; // 
 var TPVdata = {};	// буфер с данными позиционирования, скорости и направления
-let lastDataUpdate;	// момент последнего обновления координат
+var lastDataUpdate;	// момент последнего обновления координат
 
 function spatialWebSocketStart(){
 //
@@ -725,6 +728,11 @@ function spatialWebSocketStart(){
 		}
 		data = null;
 		realtimeTPVupdate(TPVdata);	// показываем новое каждый тик
+		
+		/////////////////////////// collisionDetector test ///////////////////////////////
+		//displayCollisionAreas();	// показываем отладочную информацию предупреждения о столкновениях
+		/////////////////////////// end collisionDetector test ///////////////////////////////
+		
 	}; // end spatialWebSocket.onmessage
 
 	spatialWebSocket.onclose = function(event) {
@@ -764,7 +772,6 @@ function spatialWebSocketStart(){
 		// Свежее ли положение известно? -- установим курсор в положение
 		//MOBtab.className=''; 	// координаты появились -- можно включить режим MOB
 		positionCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // установим координаты всех маркеров
-		collisionDirectionsCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // но оно не рекурсивно, увы
 		var positionTime = new Date(gpsdData.time);
 		var now = new Date();
 		//console.log('gpsdData.time:',gpsdData.time,'now',now,'now-positionTime',now-positionTime);
@@ -813,6 +820,18 @@ function spatialWebSocketStart(){
 			positionCursor.invoke('setRotationAngle',heading); // повернём все маркеры
 			headingDisplay.innerHTML = Math.round(heading); // покажем направление на приборной панели
 		}
+		/*
+		// Визуализация collisionDetector
+		// оказывается, размеры ниже устанавливаются не в смысле значка, а как прямоугольник
+		// на экране, параллельный осям. Поэтому перед изменением размеров надо
+		// повернуть значёк в исходное положение
+		collisionAreaMarker.setRotationAngle(0); 
+		collisionAreaIcon.options.iconSize=[velocityCursorLength/10,velocityCursorLength];
+		collisionAreaIcon.options.iconAnchor=[velocityCursorLength/20,velocityCursorLength];
+		collisionAreaMarker.setIcon(collisionAreaIcon);
+		collisionAreaMarker.setLatLng(cursor.getLatLng() );// положение
+		collisionAreaMarker.setRotationAngle(heading); // повернём маркер
+		*/
 		positionCursor.addTo(map); 	// добавить курсор на карту
 
 		// Окружность точност ГПС
@@ -1033,6 +1052,11 @@ function watchAISstart() {
 		data = null;
 		realtimeAISupdate(JSON.parse('{"class":"AIS","ais":'+JSON.stringify(AISdata)+'}'));	// хрен его знает где и почему портится AISdata, поэтому передаём "по значению".
 		//realtimeAISupdate({"class":"AIS","ais":AISdata});	// 
+		
+		/////////////////////////// collisionDetector test ///////////////////////////////
+		//displayCollisionAreas();	// показываем отладочную информацию предупреждения о столкновениях
+		/////////////////////////// end collisionDetector test ///////////////////////////////
+		
 	}; // end aisWebSocket.onmessage
 
 	aisWebSocket.onclose = function(event) {
@@ -1134,6 +1158,7 @@ function alarmWebSocketStart(){
 		if(map.hasLayer(mobMarker)){ 	// если показывается мультислой с маркерами MOB
 			sendMOBtoServer(); 	// отдадим данные MOB для передачи на сервер, на всякий случай -- вдруг там не знают
 		}
+		collisionDirectionsCursor.addTo(positionCursor);	// слой с указателями направлений на опасности столкновений
 		console.log("[alarmWebSocket open] Subscribe sended");
 	}; // end alarmWebSocket.onopen
 
@@ -1210,33 +1235,66 @@ function alarmWebSocketStart(){
 					collisisonDetected.clearLayers();	// очистим слой 
 					collisionDirectionsCursor.clearLayers();
 					if((value.value === null)||(!DisplayAISswitch.checked)){	// переключатель "Показывать AIS" выключен
-						collisisonDetected.remove();
-						collisionDirectionsCursor.remove();
+						collisisonDetected.remove();	// удалить -- откуда? Мы-то знаем, что с map...
 						break;	// switch
 					}
-					value.value.vessels.forEach(vessel => {
-						if(AISdata[vessel] && AISdata[vessel].lat && AISdata[vessel].lon){
-							//console.log('Collision',vessel);
-							// Значки опасностей
-							collisisonDetected.addLayer( L.marker([AISdata[vessel].lat,AISdata[vessel].lon], {
-								icon: collisionIcon,
-								opacity: 0.5,
-								zIndexOffset: -1000
+					for(const vesselID in value.value.vessels){
+						//console.log('Collision',value.value.vessels[vesselID]);
+						// Значки опасностей
+						collisisonDetected.addLayer( L.marker(value.value.vessels[vesselID], {
+							icon: collisionIcon,
+							opacity: 0.5,
+							zIndexOffset: -1000
+						}));
+						// Указатели вокруг курсора
+						const selflatLng = cursor.getLatLng();
+						if(selflatLng){
+							//console.log('Опасность с',bearing(selflatLng, value.value.vessels[vesselID]));
+							collisionDirectionsCursor.addLayer( L.marker(selflatLng, {
+								icon: collisionDirectionIcon,
+								opacity: 0.75,
+								rotationAngle: bearing(selflatLng, value.value.vessels[vesselID])
 							}));
-							// Указатели вокруг курсора
-							const selflatLng = cursor.getLatLng();
-							if(selflatLng){
-								//console.log('Опасность с',bearing(selflatLng, {lat: AISdata[vessel].lat, lng: AISdata[vessel].lon}));
-								collisionDirectionsCursor.addLayer( L.marker(selflatLng, {
-									icon: collisionDirectionIcon,
-									opacity: 0.75,
-									rotationAngle: bearing(selflatLng, {lat: AISdata[vessel].lat, lng: AISdata[vessel].lon})
-								}));
-							}
-						};
-					});
-					collisisonDetected.addTo(map);
-					collisionDirectionsCursor.addTo(map);
+						}
+					};
+					/*////////////////////////// collisionDetector test ///////////////////////////////
+					for(let vesselID in value.value.collisionSegments){
+						//console.log(value.value.collisionSegments[vesselID]);
+						
+						// Общий объемлющий прямоугольник
+						if(value.value.collisionSegments[vesselID].unitedSquareAreas){
+							value.value.collisionSegments[vesselID].unitedSquareAreas.forEach(area => {
+								//console.log('unitedSquareArea:',area);
+								let polyline = [
+									[area.topLeft.latitude,area.topLeft.longitude],
+									[area.bottomRight.latitude,area.topLeft.longitude],
+									[area.bottomRight.latitude,area.bottomRight.longitude],
+									[area.topLeft.latitude,area.bottomRight.longitude],
+									[area.topLeft.latitude,area.topLeft.longitude]
+								];
+								collisisonDetected.addLayer(L.polyline(polyline,{color: 'green',weight: 2,}));
+							});
+						}
+						
+						// Пересекающиеся отрезки
+						if(value.value.collisionSegments[vesselID].segments){
+							value.value.collisionSegments[vesselID].segments.forEach(segment => {
+								//console.log('collisionSegment:\n',segment);
+								let polyline = [
+									[segment[0][0].latitude,segment[0][0].longitude],
+									[segment[0][1].latitude,segment[0][1].longitude]
+								];
+								collisisonDetected.addLayer(L.polyline(polyline,{color: 'yellow',weight: 6,}));
+								polyline = [
+									[segment[1][0].latitude,segment[1][0].longitude],
+									[segment[1][1].latitude,segment[1][1].longitude]
+								];
+								collisisonDetected.addLayer(L.polyline(polyline,{color: 'yellow',weight: 6,}));
+							});
+						}
+					};
+					/*////////////////////////// end collisionDetector test ///////////////////////////////
+					collisisonDetected.addTo(map);	// а collisionDirectionsCursor часть positionCursor, и оно и так addTo(map)
 					break;
 				};
 			};
@@ -1246,6 +1304,8 @@ function alarmWebSocketStart(){
 	alarmWebSocket.onclose = function(event) {
 		console.log(`alarmWebSocket closed: connection broken with code ${event.code} by reason ${event.reason}`);
 		window.setTimeout(alarmWebSocketStart, 3000); 	// перезапустим сокет через  секунд. В каком контексте здесь вызывается callback -- мне осталось непонятным, поэтому сокет ваще глобален
+		collisisonDetected.clearLayers();	// очистим слой 
+		collisionDirectionsCursor.clearLayers();
 		collisisonDetected.remove();
 		collisionDirectionsCursor.remove();
 	}; // end alarmWebSocket.onclose

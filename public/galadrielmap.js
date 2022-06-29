@@ -1340,13 +1340,20 @@ else loggingCheck();
 
 
 function bearing(latlng1, latlng2) {
-/* азимут направления между двумя точками */
+/**/
 //console.log(latlng1,latlng2)
 const rad = Math.PI/180;
-let lat1 = latlng1.lat * rad,
-lat2 = latlng2.lat * rad,
-lon1 = latlng1.lng * rad,
-lon2 = latlng2.lng * rad;
+let lat1,lat2,lon1,lon2;
+if(latlng1.lat) lat1 = latlng1.lat * rad;
+else lat1 = latlng1.latitude * rad;
+if(latlng2.lat) lat2 = latlng2.lat * rad;
+else lat2 = latlng2.latitude * rad;
+if(latlng1.lng) lon1 = latlng1.lng * rad;
+else if(latlng1.lon) lon1 = latlng1.lon * rad;
+else lon1 = latlng1.longitude * rad;
+if(latlng2.lng) lon2 = latlng2.lng * rad;
+else if(latlng2.lon) lon2 = latlng2.lon * rad;
+else lon2 = latlng2.longitude * rad;
 //console.log('lat1=',lat1,'lat2=',lat2,'lon1=',lon1,'lon2=',lon2)
 
 let y = Math.sin(lon2 - lon1) * Math.cos(lat2);
@@ -1457,6 +1464,63 @@ L.Control.CopyToClipboard = L.Control.extend({
 		}
 });
 
+/*////////////////////////// collisionDetector test ///////////////////////////////
+// Функции для отладки предупреждения о столкновениях
+function displayCollisionAreas(){
+//
+const uri = '/collision-detector/allvessels';
+fetch(uri)
+.then((response) => {
+	//console.log(response.text());
+    return response.json();
+})
+.then(data => {
+	//console.log('[displayCollisionAreas] data:',data);
+	//collisisonAreas.remove();	// так гораздо медленней
+	collisisonAreas.clearLayers();	// очистим слой 
+	//collisionVessels = {};
+	for(let vessel in data){
+		//console.log(vessel,data[vessel]);
+		if(!data[vessel].collisionArea) continue;	// 
+		let polyline = [];
+		data[vessel].collisionArea.forEach(point => {polyline.push([point.latitude,point.longitude]);});
+		polyline.push([data[vessel].collisionArea[0].latitude,data[vessel].collisionArea[0].longitude]);
+		//console.log('vessel',vessel,'course=',data[vessel].course,'polyline:',polyline.length);
+		collisisonAreas.addLayer(L.polyline(polyline,{color: 'red',weight: 2,}));
+		collisionVessels[vessel] = data[vessel];
+	};
+	collisisonAreas.addTo(map);
+});
+} // end function displayCollisionAreas
+
+function displayCollisionDetections(){
+//
+const uri = '/collision-detector/collisions';
+fetch(uri)
+.then((response) => {
+	//console.log(response.text());
+    return response.json();
+})
+.then(data => {
+	//console.log('collisions:',data.length);
+	collisisonDetected.clearLayers();	// очистим слой 
+	data.forEach(vessel => {
+		if(collisionVessels[vessel]){
+			let polyline = [
+				[collisionVessels[vessel].squareArea.topLeft.latitude,collisionVessels[vessel].squareArea.topLeft.longitude],
+				[collisionVessels[vessel].squareArea.bottomRight.latitude,collisionVessels[vessel].squareArea.topLeft.longitude],
+				[collisionVessels[vessel].squareArea.bottomRight.latitude,collisionVessels[vessel].squareArea.bottomRight.longitude],
+				[collisionVessels[vessel].squareArea.topLeft.latitude,collisionVessels[vessel].squareArea.bottomRight.longitude],
+				[collisionVessels[vessel].squareArea.topLeft.latitude,collisionVessels[vessel].squareArea.topLeft.longitude],
+			];
+			collisisonDetected.addLayer(L.polyline(polyline,{color: 'green',weight: 1,}));
+		}
+	});
+	//collisisonDetected.addTo(map);
+});
+
+} // end function displayCollisionDetections
+/*////////////////////////// end collisionDetector test ///////////////////////////////
 
 
 
