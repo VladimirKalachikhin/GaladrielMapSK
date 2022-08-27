@@ -1,14 +1,16 @@
 {
   "name": "galadrielmap_sk",
-  "version": "0.2.3",
-  "description": "a server-based chart plotter navigation software for pleasure crafts, motorhomes, and off-road cars. It's can be used on tablets and smartphones without install any app. Only browser need.",
+  "version": "0.3.0",
+  "description": "a server-based chartplotter navigation software for pleasure crafts, motorhomes, and off-road cars. It's can be used on tablets and smartphones without install any app. Only browser need.",
   "main": "index.js",
   "author": "Vladimir Kalachikhin",
   "license": "CC-BY-SA-4.0",
   "keywords": [
     "signalk-node-server-plugin",
     "signalk-webapp",
-    "signalk-category-chart-plotters"
+    "signalk-category-chart-plotters",
+    "chart-plotter",
+    "chartplotter"
   ],
   "homepage": "https://github.com/VladimirKalachikhin/GaladrielMapSK#readme",
   "bugs": {

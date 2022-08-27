@@ -12,6 +12,7 @@
 ## Ограничения
 * GaladrielMap SignalK edition использует [@signalk/charts-plugin](https://www.npmjs.com/package/@signalk/charts-plugin) для предоставления карт вместо [GaladrielCache](https://github.com/VladimirKalachikhin/Galadriel-cache). Поэтому многие карты, имеющиеся в GaladrielMap недоступны, в частности -- [карта погоды](http://weather.openportguide.de/index.php/en/). Отсутствует также кеширование тайлов из сетевых источников.
 * SignalK не имеет штатных средств контроля актуальности данных, наподобие тех, что имеются у [gpsdPROXY](https://github.com/VladimirKalachikhin/gpsdPROXY) в GaladrielMap. Поэтому в GaladrielMap SignalK edition добавлены самые базовые средства такого контроля.
+* Из-за особенностей организации SignalK в редакторе маршрутов нельзя сохранить на сервере файл .gpx размером больше 4Кб.
 
 ## Возможности
 GaladrielMap SignalK edition поддерживает систему оповещений SignalK, поэтому, если установлен плагин [collision-detector](https://www.npmjs.com/package/collision-detector), GaladrielMap SignalK edition  обозначает потенциально опасные суда значком на карте, и одновременно рисует стрелку в направлении опасности внутри значка, указывающего собственное положение.  

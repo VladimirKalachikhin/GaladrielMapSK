@@ -53,14 +53,18 @@ fetch('internationalisation/'+i18nFileName).then(response => response.json()).th
 	const inputPlaceholders = {
 	 	routeSaveName : i18n.routeSaveTXT,
 	 	goToPositionField : i18n.goToPositionTXT,
-	 	routeSaveDescr : i18n.routeSaveDescrTXT
+	 	routeSaveDescr : i18n.routeSaveDescrTXT,
+	 	editableObjectName : i18n.routeSaveTXT,
+	 	editableObjectDescr : i18n.editableObjectDescrTXT
 	}
 	 	
 	const inputTitle = {
 	 	routeSaveName : i18n.routeSaveTXT,
 	 	goToPositionField : i18n.goToPositionTXT,
 	 	routeSaveDescr : i18n.routeSaveDescrTXT,
-	 	minWATCHintervalInput : i18n.realTXT
+	 	minWATCHintervalInput : i18n.realTXT,
+	 	editableObjectName : i18n.routeSaveTXT,
+	 	editableObjectDescr : i18n.editableObjectDescrTXT
 	}
 	
 	for(let DOMid in i18n.stringsandliterals){

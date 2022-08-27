@@ -463,14 +463,31 @@ app.get(`/${plugin.id}/logging/:command`, function(request, response) {
 });
 
 // Ответчик, сохраняющий файл gpx
+/*
+app.post(`/${plugin.id}/saveGPX`, function(request, response) {	
+	// А как сделать декодирование request.body? express и/или body-parser недоступны...
+	app.debug('[Ответчик, сохраняющий файл gpx]',request.body);
+});
+*/
+/**
+Эти казлы так и ниасилили юникод в JavaScript. Багу более 15 лет.
+ * ASCII to Unicode (decode Base64 to original data)
+ * @param {string} b64
+ * @return {string}
+function atou(b64) {
+  return decodeURIComponent(escape(atob(b64)));
+}
+ */
+
 app.get(`/${plugin.id}/saveGPX/:name/:gpx`, function(request, response) {	
 	//app.debug(decodeURIComponent(request.params.name));
-	//app.debug(decodeURIComponent(request.params.gpx));
+	//app.debug('[Ответчик, сохраняющий файл gpx]',request.params);
+	// request _должен быть_ encodeURIComponent, на закодированное другим способом Express отвечает 404. Козлы.
 	let name = decodeURIComponent(request.params.name);
 	if(!name) name = Date().toISOString()+'.gpx';
 	if(!name.endsWith('.gpx')) name += '.gpx';
 	let res;
-	app.debug(options.directory.routeDir+'/'+name);
+	//app.debug(options.directory.routeDir+'/'+name);
 	try {
 		fs.writeFileSync(options.directory.routeDir+'/'+name, decodeURIComponent(request.params.gpx));
 		res = [0,request.params.name+' saved'];

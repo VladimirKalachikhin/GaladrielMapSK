@@ -32,8 +32,9 @@
 		
 	"routeSaveTXT" : "Название",
 	"goToPositionTXT" : "Переместить карту в",
-	"routeSaveDescrTXT" : "Описание маршрута",
+	"routeSaveDescrTXT" : "Описание файла",
 	"realTXT" : "Дробное число",
+	"editableObjectDescrTXT" : "Описание объекта",
 
 	"stringsandliterals" : {
 	 	"homeHeaderTXT" : "Карты",

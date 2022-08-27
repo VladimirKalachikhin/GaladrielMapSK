@@ -32,8 +32,9 @@
 		
 	"routeSaveTXT" : "Label",
 	"goToPositionTXT" : "Flay map to",
-	"routeSaveDescrTXT" : "Description to route",
+	"routeSaveDescrTXT" : "Description to file",
 	"realTXT" : "real number",
+	"editableObjectDescrTXT" : "Description to object",
 
 	"stringsandliterals" : {
 	 	"homeHeaderTXT" : "Maps",
