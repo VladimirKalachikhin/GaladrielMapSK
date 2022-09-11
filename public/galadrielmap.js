@@ -331,6 +331,7 @@ savedLayers[mapname].addTo(map);
 function removeMap(mapname) {
 // Для SignalK mapname -- это identifier в смысле chart-plugin.
 mapname=mapname.trim();
+if(!savedLayers[mapname]) return;	// например, в списке есть трек, но gpx был кривой, и слой не был создан
 if(savedLayers[mapname].options.javascriptClose) eval(savedLayers[mapname].options.javascriptClose);
 if(savedLayers[mapname].options.zoom) { 
 	map.setZoom(savedLayers[mapname].options.zoom); 	// вернём масштаб как было
@@ -403,6 +404,7 @@ else {
 		//console.log('|'+this.responseText.slice(-10)+'|');
 		let str = this.responseText.trim().slice(-12);
 		//console.log('|'+str+'|');
+		if(!str) return;
 		if(str.indexOf('</gpx>') == -1) {
 			// может получиться кривой gpx -- по разным причинам
 			if(str.indexOf('</trkpt>')==-1) { 	// на самом деле, здесь </metadata>, т.е., gpxlogger запустился, но ничего не пишет: нет gpsd, нет спутников, нет связи...
@@ -477,7 +479,7 @@ xhr.onreadystatechange = function() { //
 		if(typeof loggingIndicator != 'undefined'){ 	// лампочка в интерфейсе. Вообще-то, в этом варианте софта эта лампочка всегда есть.
 			loggingIndicator.style.color='green';
 			loggingIndicator.innerText='\u2B24';
-			if(!loggingSwitch.disabled) loggingSwitch.checked = true;	// если есть переключатель -- значит, можно управлять
+			//if(!loggingSwitch.disabled) loggingSwitch.checked = true;	// если есть переключатель -- значит, можно управлять
 		}
 		if(resp.pt) { 	// есть данные
 			if(savedLayers[currentTrackName]) {	// может не быть, если, например, показ треков выключили, но выполнение currentTrackUpdate уже запланировано
@@ -1406,7 +1408,11 @@ function MOBalarm() {
 // Global: map, cursor, currentMOBmarker
 let latlng;
 if(map.hasLayer(cursor)) latlng = cursor.getLatLng(); 	// координаты известны и показываются, хотя, возможно, устаревшие
-else return false;
+else {
+	// если даже нет координат -- дадим возможность ставить маркер в центре карты
+	centerMarkOn(); 	// включить крестик в середине
+	latlng = centerMark.getLatLng();
+}
 
 currentMOBmarker = L.marker(latlng, { 	// маркер для этой точки
 	icon: mobIcon,
@@ -1540,8 +1546,9 @@ else {
 	};
 }
 
-spatialWebSocket.send(JSON.stringify(delta)); 	// отдадим данные MOB для передачи на сервер через глобальный сокет для передачи координат. Он есть, иначе -- нет координат и нет проблем.
-
+if(spatialWebSocket.readyState == 1) {
+	spatialWebSocket.send(JSON.stringify(delta)); 	// отдадим данные MOB для передачи на сервер через глобальный сокет для передачи координат. Он есть, иначе -- нет координат и нет проблем.
+}
 //console.log('[sendMOBtoServer] Посадим куку MOB');
 mobMarkerJSON = JSON.stringify(mobMarkerJSON);
 const expires =  new Date();

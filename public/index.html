@@ -245,18 +245,18 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			</div>
 			<div class="big_symbol" style="line-height: normal;align-items: center;height:70%;" onClick="map.setView(currentMOBmarker.getLatLng());"> <!--  передвинуть карту на место текущего маркера MOB -->
 				<div style=''><!-- объемлющий div необходим -->
-						<div style="font-size:40%;">
+						<div style="font-size:50%;">
 							<span style="font-size:50%;display:block;" id="bearingTXT"></span>
 							<span style="font-size:40%;display:block;" id="altBearingTXT"></span>
 							<span style="margin:0.5rem;display:block;" id='azimuthMOBdisplay'> </span>
 						</div>
-						<div style="font-size:65%;margin:1rem 0;">
+						<div style="font-size:75%;margin:1rem 0;">
 							<span style="font-size:40%;display:block;"><span id="distanceTXT"></span>, <span id="dashboardMeterMesTXT"></span></span>
 							<span style="font-size:30%;display:block;" id="altDistanceTXT"></span>
 							<span style="margin:0.5rem;display:block;" id='distanceMOBdisplay'> </span>
 							<span style="font-size:75%;margin:0.5rem;display:block;" id='directionMOBdisplay'></span>
 						</div>
-						<div style="font-size:40%;" onClick="doCopyToClipboard(Math.round(currentMOBmarker.getLatLng().lat*10000)/10000+' '+Math.round(currentMOBmarker.getLatLng().lng*10000)/10000);" >
+						<div style="font-size:50%;" onClick="doCopyToClipboard(Math.round(currentMOBmarker.getLatLng().lat*10000)/10000+' '+Math.round(currentMOBmarker.getLatLng().lng*10000)/10000);" >
 							<span style="font-size:50%;display:block;" id="dashboardPosTXT"></span>
 							<span style="font-size:40%;display:block;" id="dashboardPosAltTXT"></span>
 							<span style="margin:0.3rem;display:block;" id='locationMOBdisplay'></span>
@@ -477,6 +477,7 @@ sidebar.on("content", function(event){ 	// Событие открытия? па
 		break;
 	case 'MOB': 	// человек за бортом
 		if(!map.hasLayer(mobMarker)) MOBalarm();
+		else if(!map.hasLayer(cursor)) centerMarkOn(); 	// включить крестик в середине
 		break;
 	}
 });
@@ -597,7 +598,8 @@ let markSize = Math.round(window.innerWidth/5);
 //console.log(markSize);
 var centerMark = L.marker(map.getBounds().getCenter(), {
 	'icon': new L.icon({
-		iconUrl: './img/Crosshair.svg',
+		//iconUrl: './img/Crosshair.svg',
+		iconUrl: centerMark_markerImg,
 		iconSize:     [markSize, markSize], // size of the icon
 		iconAnchor:   [markSize/2, markSize/2], // point of the icon which will correspond to marker's location
 		className: "centerMarkIcon"	// galadrielmap.css
@@ -1226,18 +1228,38 @@ watchAISstart(); 	// запускам периодическую функцию 
 DisplayAISswitch.checked = true;
 
 function watchAISstop(message=''){
-console.log('AIS switched OFF');
-aisWebSocket.close(1000,message);
-for(const vehicle in vehicles){
+let res = false;
+try {
+	aisWebSocket.close(1000,message);
+	console.log('AIS switched OFF');
+	res = true;
+}
+catch(err) {};
+// даже если неуспешно, всё равно
+for(const vehicle in vehicles){	// уберём цели AIS с карты
 	vehicles[vehicle].remove();
 	vehicles[vehicle] = null;
 	delete vehicles[vehicle];
-}
+};
+collisionDirectionsCursor.clearLayers();	// очистим слой указателей направлений на опасности столкновений на курсоре
+collisionDirectionsCursor.remove();
+collisisonDetected.clearLayers();	// очистим слой 
+collisisonDetected.remove();
+return res;
 } // end function watchAISstop
 
 function watchAISswitching(){
-if(DisplayAISswitch.checked) watchAISstart();
-else watchAISstop('Dispalying AIS stopped');
+let res;
+if(DisplayAISswitch.checked) {
+	res = watchAISstart();
+	//console.log('[watchAISswitching] START res=',res,'DisplayAISswitch.checked=',DisplayAISswitch.checked,);
+	if(!res) DisplayAISswitch.checked = false;
+}
+else {
+	res = watchAISstop('Dispalying AIS stopped');
+	//console.log('[watchAISswitching] STOP res=',res,'DisplayAISswitch.checked=',DisplayAISswitch.checked,);
+	if(!res) DisplayAISswitch.checked = true;
+}
 }; // end function watchAISswitching
 
 // Уведомления
@@ -1325,6 +1347,7 @@ function alarmWebSocketStart(){
 					//console.log('recieved collision data',value.value);
 					//console.log('collision data',value.value ? value.value.vessels.length : 'null');
 					//console.log('collision data',value.value ? value.value.collisionSegments : 'null');
+					if(!DisplayAISswitch.checked) break;	// если в параметрах не указано показывать AIS
 					collisisonDetected.clearLayers();	// очистим слой 
 					collisionDirectionsCursor.clearLayers();
 					if((value.value === null)||(!DisplayAISswitch.checked)){	// переключатель "Показывать AIS" выключен
