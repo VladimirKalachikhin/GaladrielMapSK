@@ -73,6 +73,7 @@ bearing(latlng1, latlng2)
 atou(b64)		ASCII to Unicode (decode Base64 to original data)
 utoa(data)		Unicode to ASCII (encode data to Base64)
 generateUUID()
+arrayHasOnly
 getSelfPathC			Получает с сервера path, синхронно
 
 realtime(dataUrl,fUpdate)
@@ -385,6 +386,7 @@ function displayTrack(trackNameNode) {
 /* рисует трек с именем в trackNameNode
 global trackDirURI, window, currentTrackName
 */
+//console.log('[displayTrack] trackNameNode:',trackNameNode);
 var trackName = trackNameNode.innerText.trim();
 if( savedLayers[trackName] && (trackName != currentTrackName)) savedLayers[trackName].addTo(map); 	// нарисуем его на карте. Текущий трек всегда перезагружаем в updateCurrTrack
 else {
@@ -417,7 +419,7 @@ else {
 		else {
 			savedLayers[trackName] = omnivore.gpx.parse(this.responseText,options); 	// responseXML иногда почему-то кривой
 		}
-		//console.log(savedLayers[trackName]);
+		//console.log('[displayTrack] trackName=',trackName,'savedLayers[trackName]:',savedLayers[trackName]);
 		savedLayers[trackName].addTo(map); 	// нарисуем его на карте		
 		startCurrentTrackUpdate();	// запустим слежение за треком
 	}
@@ -483,7 +485,8 @@ xhr.onreadystatechange = function() { //
 		}
 		if(resp.pt) { 	// есть данные
 			if(savedLayers[currentTrackName]) {	// может не быть, если, например, показ треков выключили, но выполнение currentTrackUpdate уже запланировано
-				if(savedLayers[currentTrackName].getLayers()) { 	// это layerGroup
+				//if(savedLayers[currentTrackName].getLayers()) { 	// это LayerGroup
+				if(savedLayers[currentTrackName] instanceof L.LayerGroup) { 	// это LayerGroup
 					savedLayers[currentTrackName].getLayers()[0].addData(resp.pt); 	// добавим полученное к слою с текущим треком
 					//console.log(savedLayers[currentTrackName].getLayers()[0]);
 				}
@@ -1736,6 +1739,20 @@ function generateUUID() {
         return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
 }
+
+//////////// Эта функция используются в leflet-omnivore.js, но как её туда запихать правильным образом --
+// я не понимаю. arrayHasOnly нужна в двух местах, для которых, вроде, нет другого общего пространства имён,
+// кроме как это.
+function arrayHasOnly(array,value=null){
+/* содержит массив только value, или нет 
+*/
+	if(!Array.isArray(array)) return false;
+	if(array.length == 0) return false;	// every возвращает true для пустого массива, хотя обоснование этого абсолютно нематематично.
+	value = JSON.stringify(value);
+	return array.every(element => JSON.stringify(element) === value);
+}
+
+/////////////////////////////////////////
 
 function getSelfPathC(path=''){
 // Получает с сервера path, синхронно

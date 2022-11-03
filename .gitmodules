@@ -1,0 +1,3 @@
+[submodule "public/value2color"]
+	path = public/value2color
+	url = https://github.com/VladimirKalachikhin/value2color.git

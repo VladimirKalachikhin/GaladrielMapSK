@@ -60,7 +60,7 @@ plugin.schema = {
 								'Depth below keel (DBK)',
 								'Depth below transducer (DBT)',
 							],
-							default: 'Depth below surface (DBS)'
+							default: 'Depth below transducer (DBT)'
 						}
 					}
 				},
@@ -68,6 +68,31 @@ plugin.schema = {
 					type: 'number',
 					title: 'Velocity vector length.',
 					description: 'Own and AIS targets, minutes of movement.',
+					default: 10
+				}
+			}
+		},
+		depthInData:{
+			title: 'Display color-coded depth in external data',
+			description: 'Color coding of depth along, for example, gpx tracks.',
+			type: 'object',
+			properties: {
+				display:{
+					type: 'boolean',
+					title: 'Enable',
+					description: '',
+					default: true
+				},
+				minvalue:{
+					type: 'number',
+					title: 'Allowed minimum depth, meters',
+					description: 'Depth that encoded in red. The depth less than this is shown in dark red.',
+					default: 0
+				},
+				maxvalue:{
+					type: 'number',
+					title: 'Allowed maximum depth, meters',
+					description: 'Depth that encoded in green. The depth more than this is shown in light blue.',
 					default: 10
 				}
 			}
@@ -524,6 +549,7 @@ app.get(`/${plugin.id}/checkRoutes`, function(request, response) {
 const mob_markerImg = "data:image/png;base64,"+fs.readFileSync(path.resolve(__dirname,'./public','img/mob_marker.png'), 'base64');
 const centerMark_markerImg = "data:image/svg+xml;base64,"+fs.readFileSync(path.resolve(__dirname,'./public','img/Crosshair.svg'), 'base64');
 
+//app.debug(options);
 // Запишем файл для передачи клиенту
 const optionsjs = `// This file created automatically. Don't edit it!
 const velocityVectorLengthInMn = ${options.options.velocityVectorLengthInMn};
@@ -532,6 +558,7 @@ const centerMark_markerImg = '${centerMark_markerImg}';
 let PosFreshBefore = ${options.timeouts.PosFreshBefore * 1000}; 	// время в милисекундах, через которое положение считается протухшим
 let aisFreshBefore = ${options.timeouts.aisFreshBefore * 1000}; 	// время в милисекундах, через которое цели AIS считаются протухшими
 let useSystemTimeouts = ${options.timeouts.useSystem};	// пытаться использовать время жизни от SignalK
+const depthInData = ${JSON.stringify(options.depthInData)};	// параметры того, как показывать глубину в gpx
 const TPVsubscribe = {
 	"context": "vessels.self",
 	"subscribe": [

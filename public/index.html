@@ -14,6 +14,9 @@
     <link rel="stylesheet" href="leaflet-sidebar-v2/css/leaflet-sidebar.min.css" />
 	<script src="leaflet-sidebar-v2/js/leaflet-sidebar.min.js"></script>
 
+	<script src="polycolor/polycolorRenderer.js"></script>
+	<script src="value2color/value2color.js"></script>
+
 	<link rel="stylesheet" href="leaflet-omnivorePATCHED/leaflet-omnivore.css" />
 	<script src="leaflet-omnivorePATCHED/leaflet-omnivore.js"></script>
 	<script src="Leaflet.Editable/src/Leaflet.Editable.js"></script>
@@ -764,6 +767,7 @@ function spatialWebSocketStart(){
 			if(timeout) PosFreshBefore = timeout*1000;
 		}
 		checkDataFreshInterval = setInterval(function (){
+			//console.log('[checkDataFreshInterval] PosFreshBefore=',PosFreshBefore,'lastDataUpdate=',Date.now()-lastDataUpdate);
 			if((Date.now()-lastDataUpdate)>PosFreshBefore){
 				console.log('The latest TPV data was received too long ago, trying to reconnect for checking.');
 				spatialWebSocket.close(1000,'The latest data was received too long ago');
@@ -794,7 +798,7 @@ function spatialWebSocketStart(){
 			//console.log('update:',update);
 			if(!update.values) continue;	// непонятно, почему может не быть values, но иногда их нет
 			for(let value of update.values){	// какое-то обновление данных пришло.
-				//console.log('recieved data',data);
+				//console.log('[spatialWebSocket.onmessage] recieved data:',data);
 				lastDataUpdate = Date.now();
 				switch(value.path){
 				case 'navigation.position':
@@ -851,7 +855,7 @@ function spatialWebSocketStart(){
 	}; // end spatialWebSocket.onerror
 
 	function realtimeTPVupdate(gpsdData) {
-		//console.log('Index gpsdData',gpsdData);
+		//console.log('[realtimeTPVupdate] Index gpsdData',gpsdData);
 		//console.log('Index gpsdData.MOB',gpsdData.MOB);
 		// Положение неизвестно
 		if(gpsdData.error || (gpsdData.lon == null)||(gpsdData.lat == null) || (gpsdData.lon == undefined)||(gpsdData.lat == undefined)) { 	// 
@@ -935,25 +939,23 @@ function spatialWebSocketStart(){
 		if(errGNSS/metresPerPixel > 15) GNSScircle.setRadius(errGNSS); 	// кружок точности больше кружка курсора
 		else GNSScircle.setRadius(0);
 
-		// Карту в положение
-		//console.log("followToCursor", followToCursor);
-		if(followToCursor && (! noFollowToCursor)) { 	// если сказано следовать курсору, и это разрешено глобально
+		// Карту в положение курсора
+		//console.log("[spatialWebSocket.onmessage] followToCursor=", followToCursor);
+		if(followToCursor && !noFollowToCursor) { 	// если сказано следовать курсору, и это разрешено глобально
 			userMoveMap = false;
-			//map.fitBounds(realtime.getBounds(), {maxZoom: map.getZoom()});
-			map.setView(cursor.getLatLng()); // подвинем карту на позицию маркера
+			map.setView(cursor.getLatLng()); // подвинем карту на позицию маркера. Почему-то этот процесс вызывает перерисовывание (всех?) видимых полилиний. Видимо, это нормально?
 			userMoveMap = true;
 		}
 
 		// координаты курсора с точностью знаков
 		lat = Math.round(cursor.getLatLng().lat*10000)/10000; 	 	// широта
 		lng = Math.round(cursor.getLatLng().lng*10000)/10000; 	 	// долгота
-		//alert(cursor.getLatLng()+'\n'+lat+' '+lng);
 		locationDisplay.innerHTML = latTXT+' '+lat+'<br>'+longTXT+' '+lng;	
 		followSwitch.checked = !noFollowToCursor; 	// выставим переключатель на панели Настроек в текущее положение	
 		
 		// MOB
 		if(map.hasLayer(mobMarker)){ 	// если показывается мультислой с маркерами MOB 
-			//console.log(mobMarker.getLayers());
+			//console.log('[spatialWebSocket.onmessage] mobMarker.getLayers():',mobMarker.getLayers());
 			let latlng1 = cursor.getLatLng();
 			let latlng2 = currentMOBmarker.getLatLng();
 			toMOBline.setLatLngs([latlng1,latlng2]); 	// обновим линию к текущему маркеру MOB

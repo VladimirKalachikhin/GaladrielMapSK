@@ -15,7 +15,8 @@ The chartplotter is a edition of the [GaladrielMap](https://vladimirkalachikhin.
 
 ## Features
 GaladrielMap SignalK edition handle SignalK notification system.     
-If the [collision-detector](https://www.npmjs.com/package/collision-detector) is installed, the GaladrielMap SignalK edition highlights dangerous vessels on the map and indicates the direction to them on self cursor. 
+If the [collision-detector](https://www.npmjs.com/package/collision-detector) is installed, the GaladrielMap SignalK edition highlights dangerous vessels on the map and indicates the direction to them on self cursor.  
+If [naivegpxlogger](https://www.npmjs.com/package/naivegpxlogger) is installed,  it becomes convenient to record the path in gpx format.
 
 ## Install&configure:
 Install chartplotter from SignalK Appstore as **galadrielmap_sk**.  
@@ -41,6 +42,6 @@ The `value` of `notifications.mob` path has  the following additional properties
 ## Support
 [Discussions](https://github.com/VladimirKalachikhin/Galadriel-map/discussions)
 
-The forum will be more lively if you make a donation [via PayPal](https://paypal.me/VladimirKalachikhin)  at [galadrielmap@gmail.com](mailto:galadrielmap@gmail.com) or at [ЮMoney](https://yasobe.ru/na/galadrielmap)
+The forum will be more lively if you make a donation at [ЮMoney](https://sobe.ru/na/galadrielmap)
 
 [Paid personal consulting](https://kwork.ru/it-support/20093939/galadrielmap-installation-configuration-and-usage-consulting)  
