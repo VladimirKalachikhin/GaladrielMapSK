@@ -71,7 +71,7 @@ _updatePoly: function(layer) {
 							//console.log('polycolorRenderer.js [polycolorRenderer] i,j:',i,j,'optColors[i][j]=',optColors[i][j],'optColors[i][j+1]=',optColors[i][j+1],'prevPoint:',prevPoint,'Point:',Point);
 							ctx.strokeStyle = this._getStrokeGradient(ctx, prevPoint, Point, optColors[i][j], optColors[i][j+1]);
 						}
-						else ctx.strokeStyle = layer.options.color;	// не рисуем градиент к умолчальному значению
+						else ctx.strokeStyle = optColors[i][j] || layer.options.color;	// не рисуем градиент к умолчальному значению, но рисуем цвет, если есть
 					}
 					else ctx.strokeStyle = optColors[i][j] || layer.options.color;
 				}
