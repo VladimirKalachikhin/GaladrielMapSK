@@ -16,23 +16,6 @@ plugin.schema = {
 			type: 'object',
 			title: 'Options',
 			properties: {
-				trackProp:{
-					title: '',
-					type: 'object',
-					properties: {
-						feature:{
-							type: 'string',
-							title: 'Will be displayed as Course:',
-							enum: [
-								'Course over ground (COG)',
-								'Heading true (HT)',
-								'Heading magnetic (HM)',
-								'Heading compass (HC)',
-							],
-							default: 'Course over ground (COG)'
-						},
-					},
-				},
 				speedProp:{
 					title: '',
 					type: 'object',
@@ -155,10 +138,6 @@ const cp = require('child_process');
 
 app.debug('GaladrielMap started');
 let currentTrackName = '';	// имя текущего файла, без пути, но с расширением
-if(options.options.trackProp.feature.includes('COG')) options.options.trackProp.feature = 'navigation.courseOverGroundTrue';
-else if(options.options.trackProp.feature.includes('HT')) options.options.trackProp.feature = 'navigation.headingTrue';
-else if(options.options.trackProp.feature.includes('HM')) options.options.trackProp.feature = 'navigation.headingMagnetic';
-else if(options.options.trackProp.feature.includes('HC')) options.options.trackProp.feature = 'navigation.headingCompass';
 
 if(options.options.speedProp.feature.includes('SOG')) options.options.speedProp.feature = 'navigation.speedOverGround';
 else if(options.options.speedProp.feature.includes('STW')) options.options.speedProp.feature = 'navigation.speedThroughWater';
@@ -408,7 +387,7 @@ app.get(`/${plugin.id}/logging/:command`, function(request, response) {
 			trackDir = path.dirname(logFile);
 			// Сменим каталог для треков на каталог, куда на самом деле пишется трек. А оно надо?
 			// К тому же -- нельзя сохранять options, потому что мы поменяли 
-			// trackProp, speedProp и depthProp на те, которых нет в списке, и после сохранения
+			// speedProp и depthProp на те, которых нет в списке, и после сохранения
 			// SignalK не даст их изменить с сообщением "should be equal to one of the allowed values", 
 			// что шиза -- я же меняю с неправильного значения на правильное!
 			// в общем, менять options нельзя, если хочется сохранять.
@@ -569,7 +548,37 @@ const TPVsubscribe = {
 			"minPeriod": 0
 		},
 		{
-			"path": "${options.options.trackProp.feature}",
+			"path": "navigation.courseOverGroundTrue",
+			"format": "delta",
+			"policy": "instant",
+			"minPeriod": 0
+		},
+		{
+			"path": "navigation.headingTrue",
+			"format": "delta",
+			"policy": "instant",
+			"minPeriod": 0
+		},
+		{
+			"path": "navigation.headingMagnetic",
+			"format": "delta",
+			"policy": "instant",
+			"minPeriod": 0
+		},
+		{
+			"path": "navigation.headingCompass",
+			"format": "delta",
+			"policy": "instant",
+			"minPeriod": 0
+		},
+		{
+			"path": "navigation.magneticVariation",
+			"format": "delta",
+			"policy": "instant",
+			"minPeriod": 0
+		},
+		{
+			"path": "navigation.magneticDeviation",
 			"format": "delta",
 			"policy": "instant",
 			"minPeriod": 0

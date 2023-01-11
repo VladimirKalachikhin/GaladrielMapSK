@@ -96,11 +96,11 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 					<div id='depthDial' style="line-height:0.4;" onClick="map.setView(cursor.getLatLng());">				
 					</div>
 					<div style="line-height:0.6;" onClick="map.setView(cursor.getLatLng());">
-						<br><span style="font-size:50%;"><span id="dashboardHeadingTXT"></span></span>
-						<span style="font-size:30%; "><br><span id="dashboardHeadingAltTXT"></span></span>
+						<br><span style="font-size:50%;"><span id="dashboardCourseTXT"></span></span>
+						<span style="font-size:30%; "><br><span id="dashboardCourseAltTXT"></span></span>
 					</div>
 					<div style="">
-						<span id='headingDisplay'></span>
+						<span id='courseDisplay'></span>
 					</div>
 					<div style="font-size:50%;line-height:0.6;" onClick="doCopyToClipboard(lat+' '+lng);" >
 						<br><span style="font-size:50%;" id="mobPosTXT"></span><br>
@@ -356,7 +356,6 @@ var minWATCHinterval=JSON.parse(getCookie('GaladrielminWATCHinterval'));	// Ми
 if(!minWATCHinterval) minWATCHinterval = 0;
 minWATCHintervalInput.value = minWATCHinterval;
 if(PosFreshBefore < (2*minWATCHinterval*1000+1000)) PosFreshBefore = 2*minWATCHinterval*1000+1000;	// PosFreshBefore в options.js
-var heading = 0; 	// начальное направление
 var followToCursor = true; 	// карта следует за курсором Обеспечивает только паузу следования при перемещениях и масштабировании карты руками
 var noFollowToCursor = false; 	// карта никогда не следует за курсором Глобальное отключение следования. Само не восстанавливается.
 var CurrnoFollowToCursor = 1; 	// глобальная переменная для сохранения состояния
@@ -640,7 +639,7 @@ var NoCursor = L.icon({
 });
 var cursor = L.marker(startCenter, {
 	icon: GpsCursor,
-	rotationAngle: heading, // начальный угол поворота маркера
+	rotationAngle: 0, // начальный угол поворота маркера
 	rotationOrigin: "50% 50%", 	// вертим маркер вокруг центра
 	pane: 'overlayPane',	// расположим маркер над тайлами, но ниже всего остального
 	zIndexOffset: -500
@@ -648,7 +647,7 @@ var cursor = L.marker(startCenter, {
 // указатель скорости
 var velocityVector = L.marker(cursor.getLatLng(), {
 	'icon': velocityCursor,
-	rotationAngle: heading, // начальный угол поворота маркера
+	rotationAngle: 0, // начальный угол поворота маркера
 	opacity: 0.1,
 	pane: 'overlayPane',	// расположим маркер над тайлами, но ниже всего остального
 	zIndexOffset: -501
@@ -794,6 +793,7 @@ function spatialWebSocketStart(){
 			}
 			return;
 		}
+		let heading, track;
 		for(let update of data.updates){
 			//console.log('update:',update);
 			if(!update.values) continue;	// непонятно, почему может не быть values, но иногда их нет
@@ -808,24 +808,53 @@ function spatialWebSocketStart(){
 					TPVdata.time = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
 					break;
 				case 'navigation.courseOverGroundTrue':
-				case 'navigation.headingTrue':
-				case 'navigation.headingMagnetic':
-				case 'navigation.headingCompass':
-					TPVdata.track = value.value*180/Math.PI;
+					track = value.value*180/Math.PI;
 					break;
-				case 'navigation.speedOverGround':
+				case 'navigation.headingTrue':
+					heading = value.value*180/Math.PI;
+					break;
+				// в принципе, может быть и navigation.headingMagnetic и navigation.headingCompass
+				// причём разные (с учётом navigation.magneticDeviation)
+				// Кто им доктор?
+				case 'navigation.headingMagnetic':
+					TPVdata.mheading = value.value*180/Math.PI;
+				case 'navigation.headingCompass':
+					TPVdata.mheading = value.value*180/Math.PI;
+					if(TPVdata.magvar !== undefined) TPVdata.mheading += TPVdata.magvar;
+					break;
+				case 'navigation.speedOverGround':	// что именно -- устанавливается в конфигурации плагина
 				case 'navigation.speedThroughWater':
 					TPVdata.speed = value.value;
 					break;
-				case 'environment.depth.belowSurface':
+				case 'environment.depth.belowSurface':	// что именно -- устанавливается в конфигурации плагина
 				case 'environment.depth.belowKeel':
 				case 'environment.depth.belowTransducer':
 					TPVdata.depth = value.value;
 					break;
+				case 'navigation.magneticVariation':	// The magnetic variation (declination) at the current position that must be added to the magnetic heading to derive the true heading. Easterly variations are positive and Westerly variations are negative (in Radians). магнитное склонение
+					TPVdata.magvar = value.value*180/Math.PI;
+					break;
+				case 'navigation.magneticDeviation':	// Magnetic deviation of the compass at the current headingCompass погрешность компаса, магнитная девиация
+					TPVdata.magdev = value.value*180/Math.PI;
+					break;
 				}
 			}
 		}
-		data = null;
+		data = null;	// хотя это, по-видимому, не освободит память.
+		//console.log('[spatialWebSocket.onmessage] track=',track,'heading=',heading)
+		if(track !== undefined) TPVdata.track = track;
+		else if(heading !== undefined) TPVdata.track = heading;
+		else if(TPVdata.mheading !== undefined){
+			if(TPVdata.magvar !== undefined) TPVdata.track = TPVdata.mheading + TPVdata.magvar;
+			else TPVdata.track = TPVdata.mheading;
+		}
+		if(heading !== undefined) TPVdata.heading = heading;
+		else if(track !== undefined) TPVdata.heading = track;
+		else if(TPVdata.mheading !== undefined){
+			if(TPVdata.magvar !== undefined) TPVdata.heading = TPVdata.mheading + TPVdata.magvar;
+			else TPVdata.heading = TPVdata.mheading;
+		}
+		// таким образом, всегда есть и track, и heading, либо ни того, ни другого
 		realtimeTPVupdate(TPVdata);	// показываем новое каждый тик
 		
 		/////////////////////////// collisionDetector test ///////////////////////////////
@@ -840,7 +869,7 @@ function spatialWebSocketStart(){
 		if((Date.now()-lastDataUpdate)>PosFreshBefore*30) {
 			positionCursor.remove(); 	// уберём курсор (layerGroup) с карты
 			velocityDial.innerHTML = '&nbsp;'; 	// обнулим панель приборов
-			headingDisplay.innerHTML = '&nbsp;';
+			courseDisplay.innerHTML = '&nbsp;';
 			locationDisplay.innerHTML = '&nbsp;';
 			depthDial.innerHTML = '';
 		}
@@ -855,14 +884,13 @@ function spatialWebSocketStart(){
 	}; // end spatialWebSocket.onerror
 
 	function realtimeTPVupdate(gpsdData) {
-		//console.log('[realtimeTPVupdate] Index gpsdData',gpsdData);
-		//console.log('Index gpsdData.MOB',gpsdData.MOB);
+		//console.log('index.html [realtimeTPVupdate] gpsdData',gpsdData);
 		// Положение неизвестно
 		if(gpsdData.error || (gpsdData.lon == null)||(gpsdData.lat == null) || (gpsdData.lon == undefined)||(gpsdData.lat == undefined)) { 	// 
 			console.log('No spatial info in GPSD data',gpsdData);
 			positionCursor.remove(); 	// уберём курсор с карты
 			velocityDial.innerHTML = '&nbsp;'; 	// обнулим панель приборов
-			headingDisplay.innerHTML = '&nbsp;';
+			courseDisplay.innerHTML = '&nbsp;';
 			locationDisplay.innerHTML = '&nbsp;';
 			depthDial.innerHTML = '';
 			//MOBtab.className='disabled'; 	// если нет курсора (координат) -- невозможно включить режим MOB. Это плохая идея.
@@ -908,16 +936,17 @@ function spatialWebSocketStart(){
 			depthDial.innerHTML = '';
 		}
 		
-		// Направление с попыткой его запомнить при прекращении движения
+		// Направление
 		//console.log('Index gpsdData',gpsdData.track);
 		if(gpsdData.track == null || gpsdData.track == undefined) {
-			headingDisplay.innerHTML = '&nbsp;';
+			courseDisplay.innerHTML = '&nbsp;';
 			positionCursor.invoke('setRotationAngle',0); // повернём все маркеры
 		}
 		else {
-			heading = gpsdData.track; // если положение изменилось - возьмём новое направление, иначе - будет старое.
-			positionCursor.invoke('setRotationAngle',heading); // повернём все маркеры
-			headingDisplay.innerHTML = Math.round(heading); // покажем направление на приборной панели
+			velocityVector.setRotationAngle(gpsdData.track);
+			cursor.setRotationAngle(gpsdData.heading);
+			//positionCursor.invoke('setRotationAngle',gpsdData.track); // повернём все маркеры
+			courseDisplay.innerHTML = Math.round(gpsdData.track); // покажем направление на приборной панели
 		}
 		/*
 		// Визуализация collisionDetector
@@ -929,7 +958,7 @@ function spatialWebSocketStart(){
 		collisionAreaIcon.options.iconAnchor=[velocityCursorLength/20,velocityCursorLength];
 		collisionAreaMarker.setIcon(collisionAreaIcon);
 		collisionAreaMarker.setLatLng(cursor.getLatLng() );// положение
-		collisionAreaMarker.setRotationAngle(heading); // повернём маркер
+		collisionAreaMarker.setRotationAngle(gpsdData.heading); // повернём маркер
 		*/
 		positionCursor.addTo(map); 	// добавить курсор на карту
 
@@ -965,8 +994,8 @@ function spatialWebSocketStart(){
 			azimuthMOBdisplay.innerHTML = Math.round(azimuth);
 			distanceMOBdisplay.innerHTML = Math.round(latlng1.distanceTo(latlng2));
 			locationMOBdisplay.innerHTML = latTXT+' '+Math.round(currentMOBmarker.getLatLng().lat*10000)/10000+' '+longTXT+' '+Math.round(currentMOBmarker.getLatLng().lng*10000)/10000;	
-			if(gpsdData.track !== null) { 	// если доступен истинный курс, heading есть всегда
-				let relBearing = azimuth-heading+22.5;	// половина от 45 против часовой стрелки
+			if(gpsdData.track !== null) { 	// если доступен истинный курс, gpsdData.heading есть всегда
+				let relBearing = azimuth-gpsdData.heading+22.5;	// половина от 45 против часовой стрелки
 				if(relBearing<0) relBearing = 360+relBearing;
 				relBearing = Math.floor(relBearing/45); 	// курсовой угол (relative bearing) / 45 градусов -- номер сектора, против часовой стрелки
 				if(relBearing>7) relBearing = 0;
