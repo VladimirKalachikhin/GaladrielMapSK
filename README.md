@@ -4,7 +4,7 @@ This is a [SignalK](https://signalk.org/)-based chart plotter navigation softwar
 <div style='float:right;'><a href='https://github.com/VladimirKalachikhin/Galadriel-map/discussions'>Forum</a>
 </div>
 
-## v. 0.3 
+## v. 0.5 
 
 The chartplotter is a edition of the [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/), designed to work as SignalK webapp. Refer to the [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/) documentation for information.
 

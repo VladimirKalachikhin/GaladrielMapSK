@@ -931,9 +931,9 @@ function spatialWebSocketStart(){
 				dashboardCourseTXT.innerHTML = i18n.stringsandliterals.dashboardHeadingTXT
 				dashboardCourseAltTXT.innerHTML = i18n.stringsandliterals.dashboardHeadingAltTXT
 			}
-			else if(TPVdata.mheading !== undefined){	// или магнитный курс
-				if(TPVdata.magvar !== undefined) {		// если есть склонение -- он истинный курс
-					let heading = TPVdata.mheading + TPVdata.magvar;
+			else if(gpsdData.mheading !== undefined){	// или магнитный курс
+				if(gpsdData.magvar !== undefined) {		// если есть склонение -- он истинный курс
+					let heading = gpsdData.mheading + gpsdData.magvar;
 					positionCursor.invoke('setRotationAngle',heading); // повернём все маркеры
 					courseDisplay.innerHTML = Math.round(heading); // покажем направление на приборной панели
 					// Заменим подписи
@@ -955,9 +955,13 @@ function spatialWebSocketStart(){
 		}
 		else {
 			velocityVector.setRotationAngle(gpsdData.track);
-			cursor.setRotationAngle(gpsdData.heading);
-			//positionCursor.invoke('setRotationAngle',gpsdData.track); // повернём все маркеры
+			if(gpsdData.heading !== undefined) cursor.setRotationAngle(gpsdData.heading);
+			else if((gpsdData.mheading !== undefined) && (gpsdData.magvar !== undefined)) cursor.setRotationAngle(gpsdData.mheading + gpsdData.magvar);
+			else cursor.setRotationAngle(gpsdData.track);
 			courseDisplay.innerHTML = Math.round(gpsdData.track); // покажем направление на приборной панели
+			// Заменим подписи, вдруг до этого не было курсового угла
+			dashboardCourseTXT.innerHTML = i18n.stringsandliterals.dashboardCourseTXT
+			dashboardCourseAltTXT.innerHTML = i18n.stringsandliterals.dashboardCourseAltTXT
 		}
 		/*
 		// Визуализация collisionDetector
