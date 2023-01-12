@@ -7,6 +7,7 @@ copyToClipboardMessageBadTXT,
 AISstatusTXT = {},
 relBearingTXT,
 versionTXT;
+var i18n;
 
 function internalisationApply() {
 //
@@ -38,7 +39,7 @@ fetch('/plugins/galadrielmap_sk/').then(response => response.json()).then(data =
 fetch('internationalisation/'+i18nFileName).then(response => response.json()).then(data => {
 	// Глобальные подписи, которые где-то используются. Неизвестно уже, где
 	//console.log(data);
-	let i18n = data;
+	i18n = data;
 	({	dashboardDepthMesTXT, 
 		dashboardMeterMesTXT, 
 		latTXT, 
@@ -73,7 +74,8 @@ fetch('internationalisation/'+i18nFileName).then(response => response.json()).th
 			document.getElementById(DOMid).innerHTML = i18n.stringsandliterals[DOMid];
 		}
 		catch(error){
-			console.log('WARNING: No such element: '+DOMid+'\t', error);
+			// там теперь есть дополнительые строки, для которых нет соответствующих объектов
+			//console.log('WARNING: No such element: '+DOMid+'\t', error);
 		}
 	}
 	for(let DOMid in inputPlaceholders){

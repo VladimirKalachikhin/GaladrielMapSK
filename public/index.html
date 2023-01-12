@@ -793,7 +793,6 @@ function spatialWebSocketStart(){
 			}
 			return;
 		}
-		let heading, track;
 		for(let update of data.updates){
 			//console.log('update:',update);
 			if(!update.values) continue;	// непонятно, почему может не быть values, но иногда их нет
@@ -808,10 +807,10 @@ function spatialWebSocketStart(){
 					TPVdata.time = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
 					break;
 				case 'navigation.courseOverGroundTrue':
-					track = value.value*180/Math.PI;
+					TPVdata.track = value.value*180/Math.PI;
 					break;
 				case 'navigation.headingTrue':
-					heading = value.value*180/Math.PI;
+					TPVdata.heading = value.value*180/Math.PI;
 					break;
 				// в принципе, может быть и navigation.headingMagnetic и navigation.headingCompass
 				// причём разные (с учётом navigation.magneticDeviation)
@@ -841,20 +840,6 @@ function spatialWebSocketStart(){
 			}
 		}
 		data = null;	// хотя это, по-видимому, не освободит память.
-		//console.log('[spatialWebSocket.onmessage] track=',track,'heading=',heading)
-		if(track !== undefined) TPVdata.track = track;
-		else if(heading !== undefined) TPVdata.track = heading;
-		else if(TPVdata.mheading !== undefined){
-			if(TPVdata.magvar !== undefined) TPVdata.track = TPVdata.mheading + TPVdata.magvar;
-			else TPVdata.track = TPVdata.mheading;
-		}
-		if(heading !== undefined) TPVdata.heading = heading;
-		else if(track !== undefined) TPVdata.heading = track;
-		else if(TPVdata.mheading !== undefined){
-			if(TPVdata.magvar !== undefined) TPVdata.heading = TPVdata.mheading + TPVdata.magvar;
-			else TPVdata.heading = TPVdata.mheading;
-		}
-		// таким образом, всегда есть и track, и heading, либо ни того, ни другого
 		realtimeTPVupdate(TPVdata);	// показываем новое каждый тик
 		
 		/////////////////////////// collisionDetector test ///////////////////////////////
@@ -938,9 +923,35 @@ function spatialWebSocketStart(){
 		
 		// Направление
 		//console.log('Index gpsdData',gpsdData.track);
-		if(gpsdData.track == null || gpsdData.track == undefined) {
-			courseDisplay.innerHTML = '&nbsp;';
-			positionCursor.invoke('setRotationAngle',0); // повернём все маркеры
+		if(gpsdData.track == null || gpsdData.track == undefined) {	// нет курсового угла
+			if(gpsdData.heading !== undefined) {	// зато есть курс
+				positionCursor.invoke('setRotationAngle',gpsdData.heading); // повернём все маркеры
+				courseDisplay.innerHTML = Math.round(gpsdData.heading); // покажем направление на приборной панели
+				// Заменим подписи
+				dashboardCourseTXT.innerHTML = i18n.stringsandliterals.dashboardHeadingTXT
+				dashboardCourseAltTXT.innerHTML = i18n.stringsandliterals.dashboardHeadingAltTXT
+			}
+			else if(TPVdata.mheading !== undefined){	// или магнитный курс
+				if(TPVdata.magvar !== undefined) {		// если есть склонение -- он истинный курс
+					let heading = TPVdata.mheading + TPVdata.magvar;
+					positionCursor.invoke('setRotationAngle',heading); // повернём все маркеры
+					courseDisplay.innerHTML = Math.round(heading); // покажем направление на приборной панели
+					// Заменим подписи
+					dashboardCourseTXT.innerHTML = i18n.stringsandliterals.dashboardHeadingTXT
+					dashboardCourseAltTXT.innerHTML = i18n.stringsandliterals.dashboardHeadingAltTXT
+				}
+				else {
+					positionCursor.invoke('setRotationAngle',gpsdData.mheading); // повернём все маркеры
+					courseDisplay.innerHTML = Math.round(gpsdData.mheading); // покажем направление на приборной панели
+					// Заменим подписи
+					dashboardCourseTXT.innerHTML = i18n.stringsandliterals.dashboardMHeadingTXT
+					dashboardCourseAltTXT.innerHTML = i18n.stringsandliterals.dashboardMHeadingAltTXT
+				}
+			}
+			else {	// нет никакой информации о направлении
+				courseDisplay.innerHTML = '&nbsp;';
+				positionCursor.invoke('setRotationAngle',0); // повернём все маркеры
+			}
 		}
 		else {
 			velocityVector.setRotationAngle(gpsdData.track);
