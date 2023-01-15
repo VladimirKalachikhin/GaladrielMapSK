@@ -819,7 +819,7 @@ function spatialWebSocketStart(){
 					TPVdata.mheading = value.value*180/Math.PI;
 				case 'navigation.headingCompass':
 					TPVdata.mheading = value.value*180/Math.PI;
-					if(TPVdata.magvar !== undefined) TPVdata.mheading += TPVdata.magvar;
+					if(TPVdata.magdev !== undefined) TPVdata.mheading += TPVdata.magdev;
 					break;
 				case 'navigation.speedOverGround':	// что именно -- устанавливается в конфигурации плагина
 				case 'navigation.speedThroughWater':
