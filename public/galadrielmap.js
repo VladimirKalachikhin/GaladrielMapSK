@@ -404,12 +404,12 @@ else {
 			return; 	// что-то не то с сервером
 		}
 		//console.log('|'+this.responseText.slice(-10)+'|');
-		let str = this.responseText.trim().slice(-12);
+		let str = this.responseText.trim().slice(-24);	// символов
 		//console.log('|'+str+'|');
 		if(!str) return;
 		if(str.indexOf('</gpx>') == -1) {
 			// может получиться кривой gpx -- по разным причинам
-			if(str.indexOf('</trkpt>')==-1) { 	// на самом деле, здесь </metadata>, т.е., gpxlogger запустился, но ничего не пишет: нет gpsd, нет спутников, нет связи...
+			if((str.indexOf('</trkpt>')==-1) && (str.indexOf('<trkseg>')==-1)) { 	// на самом деле, здесь </metadata>, т.е., gpxlogger запустился, но ничего не пишет: нет gpsd, нет спутников, нет связи..., но может быть просто начало файла, например, с trkseg
 				savedLayers[trackName] = omnivore.gpx.parse(this.responseText.trim()+'\n</gpx>',options); // 
 			}
 			else {
@@ -1384,7 +1384,7 @@ xhr.onreadystatechange = function() { //
 	const newTrackName = status[1]; 	// имя нового текущего (пишущийся сейчас) трека -- имя файла
 	if(newTrackName && (newTrackName != currentTrackName)){	// есть новый текущий трек, и он не тот же, что старый
 		let newTrackLI = document.getElementById(newTrackName); 	// его всегда нет?
-		console.log('[newTrack] есть новый текущий трек',newTrackName,'старый currentTrackName',currentTrackName);
+		//console.log('[newTrack] есть новый текущий трек',newTrackName,'старый currentTrackName',currentTrackName);
 		if(!newTrackLI) {
 			// Добавим новый li в trackList и сделаем его текущим, в результате чего 
 			// он переместится в trackDisplayed, если на то воля юзера
@@ -1557,7 +1557,7 @@ if(spatialWebSocket.readyState == 1) {
 mobMarkerJSON = JSON.stringify(mobMarkerJSON);
 const expires =  new Date();
 expires.setTime(expires.getTime() + (30*24*60*60*1000)); 	// протухнет через месяц
-document.cookie = "GaladrielMapMOB="+mobMarkerJSON+"; expires="+expires+"; path=/;"; 	// 
+document.cookie = "GaladrielMapMOB="+mobMarkerJSON+"; expires="+expires+"; path=/; SameSite=Lax"; 	// 
 } // end function sendMOBtoServer
 
 function restoreDisplayedRoutes(){

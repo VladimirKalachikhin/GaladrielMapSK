@@ -41,7 +41,7 @@
 	 	"dashboardHeaderTXT" : "Скорость и направление",
 	 	"dashboardSpeedTXT" : "Скорость",
 	 	"dashboardSpeedMesTXT" : "км/ч", 	
-	 	"dashboardCourseTXT" : "Курсовой угол",
+	 	"dashboardCourseTXT" : "Путевой угол",
 	 	"dashboardCourseAltTXT" : "Course",
 	 	"dashboardHeadingTXT" : "Курс",
 	 	"dashboardHeadingAltTXT" : "Heading",

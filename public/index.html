@@ -923,7 +923,7 @@ function spatialWebSocketStart(){
 		
 		// Направление
 		//console.log('Index gpsdData',gpsdData.track);
-		if(gpsdData.track == null || gpsdData.track == undefined) {	// нет курсового угла
+		if(gpsdData.track == null || gpsdData.track == undefined) {	// нет путевого угла
 			if(gpsdData.heading !== undefined) {	// зато есть курс
 				positionCursor.invoke('setRotationAngle',gpsdData.heading); // повернём все маркеры
 				courseDisplay.innerHTML = Math.round(gpsdData.heading); // покажем направление на приборной панели
@@ -959,7 +959,7 @@ function spatialWebSocketStart(){
 			else if((gpsdData.mheading !== undefined) && (gpsdData.magvar !== undefined)) cursor.setRotationAngle(gpsdData.mheading + gpsdData.magvar);
 			else cursor.setRotationAngle(gpsdData.track);
 			courseDisplay.innerHTML = Math.round(gpsdData.track); // покажем направление на приборной панели
-			// Заменим подписи, вдруг до этого не было курсового угла
+			// Заменим подписи, вдруг до этого не было путевого угла
 			dashboardCourseTXT.innerHTML = i18n.stringsandliterals.dashboardCourseTXT
 			dashboardCourseAltTXT.innerHTML = i18n.stringsandliterals.dashboardCourseAltTXT
 		}
@@ -1009,8 +1009,9 @@ function spatialWebSocketStart(){
 			azimuthMOBdisplay.innerHTML = Math.round(azimuth);
 			distanceMOBdisplay.innerHTML = Math.round(latlng1.distanceTo(latlng2));
 			locationMOBdisplay.innerHTML = latTXT+' '+Math.round(currentMOBmarker.getLatLng().lat*10000)/10000+' '+longTXT+' '+Math.round(currentMOBmarker.getLatLng().lng*10000)/10000;	
-			if(gpsdData.track !== null) { 	// если доступен истинный курс, gpsdData.heading есть всегда
-				let relBearing = azimuth-gpsdData.heading+22.5;	// половина от 45 против часовой стрелки
+			let heading = gpsdData.track || gpsdData.heading || gpsdData.mheading;
+			if(heading) {
+				let relBearing = azimuth-heading+22.5;	// половина от 45 против часовой стрелке
 				if(relBearing<0) relBearing = 360+relBearing;
 				relBearing = Math.floor(relBearing/45); 	// курсовой угол (relative bearing) / 45 градусов -- номер сектора, против часовой стрелки
 				if(relBearing>7) relBearing = 0;

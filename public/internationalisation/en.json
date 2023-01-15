@@ -42,7 +42,7 @@
 	 	"dashboardSpeedTXT" : "Speed",
 	 	"dashboardSpeedMesTXT" : "km/h", 	
 	 	"dashboardCourseTXT" : "Course",
-	 	"dashboardCourseAltTXT" : "Курсовой угол",
+	 	"dashboardCourseAltTXT" : "Путевой угол",
 	 	"dashboardHeadingTXT" : "Heading",
 	 	"dashboardHeadingAltTXT" : "Курс",
 	 	"dashboardMHeadingTXT" : "Magnetic heading",
