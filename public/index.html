@@ -111,6 +111,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 					</div>
 				</div>
 			</div>
+			<div id="positionTimeDisplay" style="float:left;position:relative;bottom:90%;left:-1rem;"></div>
 			<div class="scaledText" style="text-align:center; position: absolute; bottom: 0;">
 				<span id="dashboardSpeedZoomTXT"></span> <span id='velocityVectorLengthInMnDisplay'></span> <span id="dashboardSpeedZoomMesTXT"></span>.
 			</div>
@@ -356,6 +357,7 @@ var minWATCHinterval=JSON.parse(getCookie('GaladrielminWATCHinterval'));	// Ми
 if(!minWATCHinterval) minWATCHinterval = 0;
 minWATCHintervalInput.value = minWATCHinterval;
 if(PosFreshBefore < (2*minWATCHinterval*1000+1000)) PosFreshBefore = 2*minWATCHinterval*1000+1000;	// PosFreshBefore в options.js
+if(DepthFreshBefore < (2*minWATCHinterval*1000)) DepthFreshBefore = 2*minWATCHinterval*1000;	// DepthFreshBefore в options.js
 var followToCursor = true; 	// карта следует за курсором Обеспечивает только паузу следования при перемещениях и масштабировании карты руками
 var noFollowToCursor = false; 	// карта никогда не следует за курсором Глобальное отключение следования. Само не восстанавливается.
 var CurrnoFollowToCursor = 1; 	// глобальная переменная для сохранения состояния
@@ -762,9 +764,12 @@ function spatialWebSocketStart(){
 			// Во-первых, meta.timeout реально вообще нигде нет. По идее, его должен указывать производитель данных, но нет.
 			// Во-вторых, к этому моменту может вообще не быть navigation, а по подписке не присылается meta
 			// В-третьих, в доке указано, что должен быть meta.timeout, но если смотреть по аналогии с units, скажем, то оно meta.properties.longitude.timeout Как оно правильно -- неизвестно
-			const timeout = getSelfPathC('navigation.position.meta.timeout');
+			let timeout = getSelfPathC('navigation.position.meta.timeout');
 			if(timeout) PosFreshBefore = timeout*1000;
+			timeout = getSelfPathC(ConfigDepthProp+'.meta.timeout');
+			if(timeout) DepthFreshBefore = timeout*1000;
 		}
+		// Попытка переподключения к серверу, если позиция давно не обновлялась
 		checkDataFreshInterval = setInterval(function (){
 			//console.log('[checkDataFreshInterval] PosFreshBefore=',PosFreshBefore,'lastDataUpdate=',Date.now()-lastDataUpdate);
 			if((Date.now()-lastDataUpdate)>PosFreshBefore){
@@ -884,13 +889,15 @@ function spatialWebSocketStart(){
 		// Свежее ли положение известно? -- установим курсор в положение
 		//MOBtab.className=''; 	// координаты появились -- можно включить режим MOB
 		positionCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // установим координаты всех маркеров
-		var positionTime = new Date(gpsdData.time);
-		var now = new Date();
-		//console.log('gpsdData.time:',gpsdData.time,'now',now,'now-positionTime',now-positionTime);
+		let positionTime = new Date(gpsdData.time);
+		let now = new Date();
+		//console.log('gpsdData.time:',gpsdData.time,'now',now,'now-positionTime',(now-positionTime)/1000);
 		if((now-positionTime) > PosFreshBefore) {
 			cursor.setIcon(NoGpsCursor); 	// свежее положение было определено раньше, чем PosFreshBefore милисекунд назад
 		}
 		else cursor.setIcon(GpsCursor);
+		// Информация о свежести данных на приборной панели
+		positionTimeDisplay.innerHTML = (Math.round((now-positionTime)/100)/10).toFixed(1);
 		
 		// Показ скорости и прочего
 		//console.log('Index gpsdData',gpsdData.speed);
@@ -914,8 +921,13 @@ function spatialWebSocketStart(){
 			velocityVector.setIcon(velocityCursor); 	// изменить иконку у маркера
 		}
 		if(gpsdData.depth) {
-			//console.log('Index gpsdData',gpsdData.depth);
-			depthDial.innerHTML = '<br><br><div style="font-size:50%;">'+dashboardDepthMesTXT+'</div><br><div>'+(Math.round(gpsdData.depth*100)/100)+'</div><br><div style="font-size:50%;">'+dashboardMeterMesTXT+'</div>';
+			//console.log('gpsdData.depth:',gpsdData.depth);
+			depthDial.innerHTML = '<br><br><div style="font-size:50%;">'+dashboardDepthMesTXT+'</div><br>';
+			if((now-positionTime) > DepthFreshBefore) {	// тайм-штамп в SignalK один на посылку данных
+				depthDial.innerHTML += '<div style="color:silver;">'+(Math.round(gpsdData.depth*100)/100)+'</div>';
+			}
+			else depthDial.innerHTML += '<div>'+(Math.round(gpsdData.depth*100)/100)+'</div>';
+			depthDial.innerHTML += '<br><div style="font-size:50%;">'+dashboardMeterMesTXT+'</div>';
 		}
 		else {
 			depthDial.innerHTML = '';

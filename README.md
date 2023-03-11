@@ -10,7 +10,7 @@ The chartplotter is a edition of the [GaladrielMap](https://vladimirkalachikhin.
 
 ## Limitations
 * GaladrielMap SignalK edition use [@signalk/charts-plugin](https://www.npmjs.com/package/@signalk/charts-plugin) for charts instead [GaladrielCache](https://github.com/VladimirKalachikhin/Galadriel-cache). So [Weather](http://weather.openportguide.de/index.php/en/) map is not available, such well as some other maps from GaladrielMap. There is also no tile caching.  
-* Since SignalK has no built-in controls of data actuality such as in [gpsdPROXY](https://github.com/VladimirKalachikhin/gpsdPROXY) on GaladrielMap, basic features added.
+* Since SignalK has no built-in controls of data actuality such as in [gpsdPROXY](https://github.com/VladimirKalachikhin/gpsdPROXY) on GaladrielMap, basic features added. The current age of the data is displayed in the upper left corner of the "Speed&heading" tab.  
 * Die to limitations of the SignalK architecture  there is no way to save to a server the .gpx file larger than 4Kb in GPX Editor.
 
 ## Features

@@ -10,7 +10,7 @@ plugin.schema = {
 	title: plugin.name,
 	description: 'Reload chartplotter after changing all of this.',
 	type: 'object',
-	required: ['PosFreshBefore','routeDir','trackDir'],
+	required: ['PosFreshBefore','DepthFreshBefore','routeDir','trackDir'],
 	properties: {
 		options:{
 			type: 'object',
@@ -118,6 +118,12 @@ plugin.schema = {
 					title: 'The position is considered correct no longer than this time. If the position older - cursor is grey, seconds.',
 					description: `All devices on your network must have the same time (with differents less than 1 sec.) -- check this and you can be sure that you see actual data.`,
 					default: 5
+				},
+				DepthFreshBefore:{
+					type: 'number',
+					title: 'The depth is considered correct no longer than this time, seconds.',
+					description: `All devices on your network must have the same time (with differents less than 1 sec.) -- check this and you can be sure that you see actual data.`,
+					default: 2
 				},
 				aisFreshBefore:{
 					type: 'number',
@@ -535,8 +541,11 @@ const velocityVectorLengthInMn = ${options.options.velocityVectorLengthInMn};
 const mob_markerImg = '${mob_markerImg}';
 const centerMark_markerImg = '${centerMark_markerImg}';
 let PosFreshBefore = ${options.timeouts.PosFreshBefore * 1000}; 	// время в милисекундах, через которое положение считается протухшим
+let DepthFreshBefore = ${options.timeouts.DepthFreshBefore * 1000}; 	// время в милисекундах, через которое глубина считается протухшей
 let aisFreshBefore = ${options.timeouts.aisFreshBefore * 1000}; 	// время в милисекундах, через которое цели AIS считаются протухшими
-let useSystemTimeouts = ${options.timeouts.useSystem};	// пытаться использовать время жизни от SignalK
+const ConfigSpeedProp = '${options.options.speedProp.feature}';	// что именно используется как скорость
+const ConfigDepthProp = '${options.options.depthProp.feature}';	// что именно используется как глубина
+const useSystemTimeouts = ${options.timeouts.useSystem};	// пытаться использовать время жизни от SignalK
 const depthInData = ${JSON.stringify(options.depthInData)};	// параметры того, как показывать глубину в gpx
 const TPVsubscribe = {
 	"context": "vessels.self",
