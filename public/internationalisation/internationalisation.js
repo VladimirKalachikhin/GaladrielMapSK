@@ -1,5 +1,6 @@
 var dashboardDepthMesTXT, 
 dashboardMeterMesTXT, 
+dashboardKiloMeterMesTXT,
 latTXT, 
 longTXT, 
 copyToClipboardMessageOkTXT, 
@@ -42,6 +43,7 @@ fetch('internationalisation/'+i18nFileName).then(response => response.json()).th
 	i18n = data;
 	({	dashboardDepthMesTXT, 
 		dashboardMeterMesTXT, 
+		dashboardKiloMeterMesTXT,
 		latTXT, 
 		longTXT, 
 		copyToClipboardMessageOkTXT, 

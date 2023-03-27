@@ -1674,6 +1674,99 @@ if(currentTrackName) {
 else loggingCheck();
 } // end function currentTrackUpdate
 
+// Круги дистанции
+function distCirclesUpdate(){
+/* Устанавливает диаметр и подписи кругов дистанции 
+в зависимости от координат и масштаба.
+Соответственно, координаты должны быть.
+*/
+const zoom = Math.round(map.getZoom());	// масштаб может быть дробным во время собственно масштабирования
+const metresPerPixel = (40075016.686 * Math.abs(Math.cos(cursor.getLatLng().lat*(Math.PI/180))))/Math.pow(2, map.getZoom()+8); 	// in WGS84
+switch(zoom){
+case 0:
+case 1:
+case 2:
+case 3:
+case 4:
+	distCirclesRadius = [200000,500000,1000000,2000000];
+	break
+case 5:
+case 6:
+	distCirclesRadius = [50000,100000,150000,300000];
+	break
+case 7:
+case 8:
+	distCirclesRadius = [10000,20000,50000,100000];
+	break
+case 9:
+case 10:
+	distCirclesRadius = [5000,10000,20000,30000];
+	break
+case 11:
+case 12:
+	distCirclesRadius = [1000,2000,5000,10000];
+	break
+case 13:
+case 14:
+	distCirclesRadius = [200,500,1000,2000];
+	break
+case 15:
+	distCirclesRadius = [100,200,300,500];
+	break
+case 16:
+default:
+	distCirclesRadius = [50,100,200,300];
+}
+let label;
+for (let i=0; i<4; i++)	{
+	distCircles[i].setRadius(distCirclesRadius[i]);
+	distCircles[i].unbindTooltip();
+	if(distCirclesRadius[0]>=1000) label = (distCirclesRadius[i]/1000).toString()+' '+dashboardKiloMeterMesTXT
+	else label = distCirclesRadius[i].toString();
+	distCircles[i].bindTooltip(label,{permanent:true,direction:'center',className:'distCirclesRadiusTooltip',offset:[0,-distCirclesRadius[i]/metresPerPixel]});	
+}	
+} // end function distCirclesUpdate
+
+function distCirclesToggler() {
+/* включает/выключает показ окружностей дистанции по переключателю в интерфейсе */
+if(distCirclesSwitch.checked) {
+	distCircles.forEach(circle => circle.addTo(positionCursor));
+	// Посадим куку
+	const expires =  new Date();
+	expires.setTime(expires.getTime() + (30*24*60*60*1000)); 	// протухнет через месяц
+	document.cookie = 'GaladrielMapdistCirclesSwitch=1; expires='+expires+"; path=/; samesite=Lax"; 	// 
+}
+else {
+	distCircles.forEach(circle => circle.removeFrom(positionCursor));
+	// Посадим куку
+	const expires =  new Date();
+	expires.setTime(expires.getTime() + (30*24*60*60*1000)); 	// протухнет через месяц
+	document.cookie = 'GaladrielMapdistCirclesSwitch=0; expires='+expires+"; path=/; samesite=Lax"; 	// 
+}
+} // end function distCirclesToggler
+
+
+// Общие функции
+
+function loadScriptSync(scriptURL){
+/* Синхронная загрузка javascript 
+Вопреки распространённому мнению, script.async = false не приводит к асинхронной загрузке.
+Это свойство в случае загрузки скрипта из скрипта вообще ничего не делает, и имеет смысл
+только при загрзке <script src=""><script>, где указывает, что надо сохранить порядок загрузки
+*/
+const xhr = new XMLHttpRequest();
+xhr.open('GET', scriptURL, false); 	// Подготовим синхронный запрос
+xhr.send();
+if (xhr.status == 200) { 	// Успешно
+	let script = document.createElement("script");
+	script.textContent = xhr.responseText;
+	document.head.appendChild(script);
+	//console.log("[loadScriptSync] Загружен скрипт",scriptURL,script);
+	return script;
+}
+return false;
+} // end function loadScriptSync
+
 
 function bearing(latlng1, latlng2) {
 /**/

@@ -311,6 +311,16 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 				</div>
 				<span style="font-size:120%" id="settingsRoutesAlwaysTXT"></span>
 			</div>
+			<div style="margin: 1rem 1rem;"> <!-- Показывать окружности дистанции -->
+				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
+					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="distCirclesSwitch" onChange="distCirclesToggler();">
+					<label class="onoffswitch-label" for="distCirclesSwitch">
+						<span class="onoffswitch-inner"></span>
+						<span class="onoffswitch-switch"></span>
+					</label>
+				</div>
+				<span style="font-size:120%" id="settingsdistCirclesTXT"></span>
+			</div>
 			<br><br>
 			<div style="margin: 1rem 1rem;"> <!-- Показ целей AIS -->
 				<div class="onoffswitch" style="float:right;margin: 0 auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
@@ -365,6 +375,9 @@ var followPause = 10 * 1000; 	// пауза следования карты за
 var savePositionEvery = 15 * 1000; 	// будем сохранять положение каждые микросекунд локально в куку
 var followPaused; 	// объект таймера, который восстанавливает следование курсору
 if(!velocityVectorLengthInMn) velocityVectorLengthInMn = 10; 	// длинной в сколько минут пути рисуется линия скорости
+// Окружности дистанции
+if(getCookie('GaladrielMapdistCirclesSwitch') == undefined) distCirclesSwitch.checked = true; 	// показывать окружности дистанции
+else distCirclesSwitch.checked = Boolean(+getCookie('GaladrielMapdistCirclesSwitch')); 	// getCookie from galadrielmap.js
 // AIS
 var vehicles = []; 	// list of visible by AIS data vehicle objects массив layers с целями
 // Пути и маршруты
@@ -516,7 +529,7 @@ map.on('movestart zoomstart', function(event) { 	// карту начали дв
 	}
 });
 map.on('zoomend', function(event) {
-	let zoom = event.target.getZoom();	
+	if(distCirclesSwitch.checked) distCirclesUpdate();	// нарисуем круги дистанции
 });
 map.on('moveend', updateClasters); 	// кластеризация точек POI
 //map.on("layeradd", function(event) {
@@ -665,7 +678,50 @@ var GNSScircle = L.circle(cursor.getLatLng(), {
 	pane: 'overlayPane',	// расположим маркер над тайлами, но ниже всего остального
 	zIndexOffset: -502
 });
+// Круги дистанции
+var distCirclesRadius = [200,500,1000,2000]
+var distCircles = [
+	L.circle(cursor.getLatLng(), {
+		radius: distCirclesRadius[0],
+		color: '#FD00DB',
+		weight: 1,
+		opacity: 0.3,
+		fill: false,
+		pane: 'overlayPane',
+		zIndexOffset: -503
+	}),
+	L.circle(cursor.getLatLng(), {
+		radius: distCirclesRadius[1],
+		color: '#FD00DB',
+		weight: 1,
+		opacity: 0.3,
+		fill: false,
+		pane: 'overlayPane',
+		zIndexOffset: -503
+	}),
+	L.circle(cursor.getLatLng(), {
+		radius: distCirclesRadius[2],
+		color: '#FD00DB',
+		weight: 1,
+		opacity: 0.3,
+		fill: false,
+		pane: 'overlayPane',
+		zIndexOffset: -503
+	}),
+	L.circle(cursor.getLatLng(), {
+		radius: distCirclesRadius[3],
+		color: '#FD00DB',
+		weight: 1,
+		opacity: 0.3,
+		fill: false,
+		pane: 'overlayPane',
+		zIndexOffset: -503
+	})
+];
+
+// Курсор: объединение всех фигур
 var positionCursor = L.layerGroup([GNSScircle,velocityVector,cursor]);
+if(distCirclesSwitch.checked) distCircles.forEach(circle => circle.addTo(positionCursor));
 
 // Для визуализации collisionDetector
 var collisionIcon = L.icon({
@@ -863,7 +919,10 @@ function spatialWebSocketStart(){
 			locationDisplay.innerHTML = '&nbsp;';
 			depthDial.innerHTML = '';
 		}
-		else {cursor.setIcon(NoGpsCursor);}	// заменим курсор (значёк) на серый
+		else {
+			cursor.setIcon(NoGpsCursor);	// заменим курсор (значёк) на серый
+			positionTimeDisplay.innerHTML = '<blink>&infin;</blink>';	// но моргать оно не будет, потому что чтобы разные придурки не моргали где ни попадя, этот тег запретили всем совсем навсегда. Ибо нефиг!
+		}
 		//MOBtab.className='disabled'; 	// если нет курсора (координат) -- невозможно включить режим MOB. Это плохая идея.
 		clearInterval(checkDataFreshInterval);	// остановить периодическую проверку свежести
 		window.setTimeout(spatialWebSocketStart, 3000); 	// перезапустим сокет через  секунд. В каком контексте здесь вызывается callback -- мне осталось непонятным, поэтому сокет ваще глобален
@@ -889,6 +948,7 @@ function spatialWebSocketStart(){
 		// Свежее ли положение известно? -- установим курсор в положение
 		//MOBtab.className=''; 	// координаты появились -- можно включить режим MOB
 		positionCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // установим координаты всех маркеров
+		if(distCirclesSwitch.checked) distCirclesUpdate();	// нарисуем круги дистанции
 		let positionTime = new Date(gpsdData.time);
 		let now = new Date();
 		//console.log('gpsdData.time:',gpsdData.time,'now',now,'now-positionTime',(now-positionTime)/1000);

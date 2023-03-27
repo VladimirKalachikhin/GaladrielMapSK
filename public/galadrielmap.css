@@ -346,3 +346,11 @@ ul { /* нужно, чтобы стили работали */
 	padding:0.2rem;
 	margin:0 1rem;
 }
+
+.distCirclesRadiusTooltip {
+	color: #FD00DB;
+	background: transparent;
+	border: none;
+	border-width : 0;
+	border : 0;
+}
