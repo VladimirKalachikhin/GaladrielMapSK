@@ -37,6 +37,11 @@
 	"realTXT" : "real number",
 	"editableObjectDescrTXT" : "Description to object",
 
+	"showMapsTogglerTXT" : [
+		"All maps",
+		"Selected maps"
+	],
+
 	"stringsandliterals" : {
 	 	"homeHeaderTXT" : "Maps",
 	 	"dashboardHeaderTXT" : "Speed&heading",

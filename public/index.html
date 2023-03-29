@@ -5,7 +5,7 @@
 	<meta http-equiv="Content-Script-Type" content="text/javascript">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" > <!--  tell the mobile browser to disable unwanted scaling of the page and set it to its actual size -->
 
-	<script src="internationalisation/internationalisation.js"></script> <!-- там определяются переменные, используемые в загружаемых скриптах -->
+	<script src="internationalisation/internationalisation.js" ></script> <!-- там определяются переменные, используемые в загружаемых скриптах -->
     <!-- Leaflet -->
 	<link rel="stylesheet" href="leaflet/leaflet.css" type="text/css">
 	<script src="leaflet/leaflet.js"></script>
@@ -32,6 +32,8 @@
 	<script src="coordinate-parserPATCHED/validator.js"></script>
 	<script src="coordinate-parserPATCHED/coordinate-number.js"></script> 
 	
+	<script src="long-press-event/dist/long-press-event.min.js"></script>
+
 	<link rel="stylesheet" href="galadrielmap.css" type="text/css"> <!-- замена стилей -->
 	<script src="galadrielmap.js"></script>
 	<script src="options.js"></script>
@@ -74,14 +76,17 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 </script>
 -->
 		<!-- Карты -->
-		<div class="leaflet-sidebar-pane" id="home">
+		<div class="leaflet-sidebar-pane" id="home" style="height:100%;">
 			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="homeHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
-			<br>
-			<ul id="mapDisplayed" class='commonList'>
-			</ul>
-			<ul id="mapList" class='commonList'>
-					<li hiden class="template" onClick="{selectMap(event.currentTarget)}"></li>
-			</ul>
+			<div style="min-height:92%;">
+				<br>
+				<ul id="mapDisplayed" class='commonList'>
+				</ul>
+				<ul id="mapList" class='commonList'>
+						<li hiden class="template" onClick="{selectMap(event.currentTarget)}"></li>
+				</ul>
+			</div>
+			<button id="showMapsToggler" onClick='showMapsToggle();' style="width:90%;height:1.5rem;margin-bottom:1rem;"></button>
 		</div>
 		<!-- Приборы -->
 		<div class="leaflet-sidebar-pane" id="dashboard" style="height:100%;">
@@ -355,6 +360,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 <script> "use strict";
 // Карта
 var defaultMap = 'world-coastline'; 	// chart-plugin identifier Карта, которая показывается, если нечего показывать. Народ интеллектуальный ценз ниасилил.
+var showMapsList = JSON.parse(getCookie('GaladrielshowMapsList')) || [];	// массив названий избранных карт
 var savedLayers = []; 	// массив для хранения объектов, когда они не на карте
 var additionalTileCachePath = ''; 	// дополнительный кусок пути к тайлам между именем карты и /z/x/y.png Используется в версионном кеше, например, в погоде. Без / в конце, но с / в начале, либо пусто. Присваивается в javascriptOpen в параметрах карты. Или ещё где-нибудь.
 var startCenter = JSON.parse(getCookie('GaladrielMapPosition')); 	// getCookie from galadrielmap.js

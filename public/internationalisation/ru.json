@@ -37,6 +37,11 @@
 	"realTXT" : "Дробное число",
 	"editableObjectDescrTXT" : "Описание объекта",
 
+	"showMapsTogglerTXT" : [
+		"Все карты",
+		"Избранные карты"
+	],
+
 	"stringsandliterals" : {
 	 	"homeHeaderTXT" : "Карты",
 	 	"dashboardHeaderTXT" : "Скорость и направление",

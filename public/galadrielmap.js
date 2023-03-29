@@ -100,6 +100,46 @@ listPopulate(trackList,trackDirURI,true);	// список путей, показ
 internalisationApply();	// подписи и заголовки, синхронно
 mapListPopulate();	// список карт, синхронно
 
+// Инициализируем список карт
+if(!showMapsList.length) showMapsToggle(true);	// покажем в списке карт все карты, если нет избранных
+else showMapsToggle();	// покажем только избранные, поскольку изначально не показывается ничего
+
+// чего не сделаешь, если двойное нажатие не работает нигде, а на длительное в Google Chrome
+// и иже с ним навешана всякая фигня, и непросто навешана, а с запрещением всего остального
+function longressListener(e){
+e.preventDefault();
+//console.log(e.target);
+if(showMapsToggler.innerHTML == showMapsTogglerTXT[0]) return;	// текущий режим - "избранные карты", в нём не работаем
+if(showMapsList.includes(e.target.id)){	// это избранная карта
+	const n = showMapsList.indexOf(e.target.id);
+	showMapsList.splice(n,1);	// вырежем имя из массива
+	e.target.classList.remove("showedMapName");
+}
+else {
+	showMapsList.push(e.target.id);
+	e.target.classList.add("showedMapName");
+}
+event.stopImmediatePropagation();	// прекратим всплытие и обломим все имеющиеся обработчики. Вдруг фигня, навешенная скотским Google, перестанет работать.
+//console.log('[longressListener] Список избранных карт:',showMapsList);
+} // end function long-pressListener
+
+let touchstartX, touchstartY;
+function handleSwipe(event){
+let touchendX=event.changedTouches[0].screenX; 
+let touchendY=event.changedTouches[0].screenY; 
+//alert(`handleSwipe touchstartY=${touchstartY}, touchendY=${touchendY}`);
+if((touchendX > touchstartX+10) && (Math.abs(touchendY-touchstartY)<10)){	// вправо горизонтально
+	//alert('handleSwipe горизонтальный жест');
+	longressListener(event);
+}
+} // end function handleSwipe()
+
+for(let mapLi of mapList.children){	// назначим обработчик длинного нажатия на каждое название карты, потому что его можно назначить только так
+	mapLi.addEventListener('long-press', longressListener); 
+	// а также обработчики свайпа, ибо в мобильных Chrome вообще всё через жопу
+	mapLi.addEventListener('touchstart',function(e){touchstartX=e.changedTouches[0].screenX; touchstartY=e.changedTouches[0].screenY;});
+	mapLi.addEventListener('touchend',handleSwipe);
+}
 } // end function onBodyLoad
 
 function mapListPopulate(){
@@ -212,6 +252,7 @@ document.cookie = "GaladrielcurrTrackSwitch="+Number(currTrackSwitch.checked)+";
 document.cookie = "GaladrielloggingSwitch="+Number(loggingSwitch.checked)+"; expires="+expires+"; path=/; SameSite=Lax;"; 	// переключатель loggingSwitch
 document.cookie = "GaladrielSelectedRoutesSwitch="+Number(SelectedRoutesSwitch.checked)+"; expires="+expires+"; path=/; SameSite=Lax;"; 	// переключатель SelectedRoutesSwitch
 document.cookie = "GaladrielminWATCHinterval="+minWATCHinterval+"; expires="+expires+"; path=/; SameSite=Lax;"; 	// 
+document.cookie = "GaladrielshowMapsList="+JSON.stringify(showMapsList)+"; expires="+expires+"; path=/; samesite=Lax"; 	// 
 } // end function doSavePosition
 
 // Функции выбора - удаления карт
@@ -342,6 +383,33 @@ savedLayers[mapname].remove(); 	// удалим слой с карты
 //savedLayers[mapname] = null; 	// удалим сам слой. Но это не надо, ибо включение/выключение отображения слоёв должно быть быстро, и обычно их не надо повторно получать с сервера
 if(mapname==currentTrackName) stopCurrentTrackUpdate();	// Отключим слежение за логом
 } // end function removeMap
+
+function showMapsToggle(all=false){
+/*	переключает показ всех или выбранных карт в списке карт */
+//console.log('[showMapsToggle] showMapsList:',showMapsList);
+if(all || showMapsToggler.innerHTML == showMapsTogglerTXT[0]){	// текущий режим - "избранные карты" (на кнопке надпись: "все карты")
+	for(let mapLi of mapList.children){
+		//console.log('покажем все карты',mapLi.id);
+		mapLi.hidden = false;	// покажем все карты
+		if(showMapsList.includes(mapLi.id)){	// избранная карта
+			mapLi.classList.add("showedMapName");
+		}
+	}
+	showMapsToggler.innerHTML = showMapsTogglerTXT[1];	// сменим режим на "все карты"
+}
+else {	// текущий режим - "все карты" - покажем только избранные
+	for(let mapLi of mapList.children){
+		//console.log('покажем только избранные',mapLi.id);
+		mapLi.hidden = false;	// при старте они все скрытые
+		if(!showMapsList.includes(mapLi.id)){	// карта не в списке избранных
+			mapLi.hidden = true;	// не покажем карту
+		}
+		mapLi.classList.remove("showedMapName");
+	}
+	showMapsToggler.innerHTML = showMapsTogglerTXT[0];	// сменим режим на "избранные карты"
+}
+} // end function showMapsToggle
+
 
 // Функции выбора - удаления треков
 function selectTrack(node,trackList,trackDisplayed,displayTrack) { 	

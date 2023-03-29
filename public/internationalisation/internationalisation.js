@@ -7,6 +7,7 @@ copyToClipboardMessageOkTXT,
 copyToClipboardMessageBadTXT,
 AISstatusTXT = {},
 relBearingTXT,
+showMapsTogglerTXT,
 versionTXT;
 var i18n;
 
@@ -17,7 +18,7 @@ if(navigator.language.includes('ru')) i18nFileName = 'ru.json';
 else i18nFileName = 'en.json';
 //i18nFileName = 'en.json';
 
-const xhr = new XMLHttpRequest();
+let xhr = new XMLHttpRequest();
 xhr.open('GET', '/plugins/galadrielmap_sk/', false); 	// оно не успевает к нужному, поэтому синхронно
 xhr.send();
 if (xhr.status == 200) { 	// Успешно
@@ -37,7 +38,19 @@ fetch('/plugins/galadrielmap_sk/').then(response => response.json()).then(data =
 	console.error('Get version Error:', error);
 });
 */
-fetch('internationalisation/'+i18nFileName).then(response => response.json()).then(data => {
+//fetch('internationalisation/'+i18nFileName).then(response => response.json()).then(data => {
+xhr = new XMLHttpRequest();
+xhr.open('GET', 'internationalisation/'+i18nFileName, false); 	// оно не успевает к нужному, поэтому синхронно
+xhr.send();
+if (xhr.status == 200) { 	// Успешно
+	let data;
+	try {
+		data = JSON.parse(xhr.responseText); 	// 
+	}
+	catch(error) {
+		console.error('Get localisation strings Error:', error);
+		return;
+	}
 	// Глобальные подписи, которые где-то используются. Неизвестно уже, где
 	//console.log(data);
 	i18n = data;
@@ -49,7 +62,8 @@ fetch('internationalisation/'+i18nFileName).then(response => response.json()).th
 		copyToClipboardMessageOkTXT, 
 		copyToClipboardMessageBadTXT,
 		AISstatusTXT,
-		relBearingTXT
+		relBearingTXT,
+		showMapsTogglerTXT
 	} = i18n);	// () тут обязательно, потому что не var {} = obj;
 	//console.log(i18n);
 
@@ -96,7 +110,8 @@ fetch('internationalisation/'+i18nFileName).then(response => response.json()).th
 			console.log('WARNING: No such element: '+DOMid+'\t', error);
 		}
 	}
-}).catch((error) => {
-	console.error('Get localisation strings Error:', error);
-});
+}
+//}).catch((error) => {
+//	console.error('Get localisation strings Error:', error);
+//});
 } // end function internalisationApply
