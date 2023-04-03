@@ -358,6 +358,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 </body>
 
 <script> "use strict";
+// Глобальные переменные
 // Карта
 var defaultMap = 'world-coastline'; 	// chart-plugin identifier Карта, которая показывается, если нечего показывать. Народ интеллектуальный ценз ниасилил.
 var showMapsList = JSON.parse(getCookie('GaladrielshowMapsList')) || [];	// массив названий избранных карт
@@ -535,7 +536,8 @@ map.on('movestart zoomstart', function(event) { 	// карту начали дв
 	}
 });
 map.on('zoomend', function(event) {
-	if(distCirclesSwitch.checked) distCirclesUpdate();	// нарисуем круги дистанции
+	if(distCirclesSwitch.checked) distCirclesUpdate(distCircles);	// нарисуем круги дистанции
+	if(map.hasLayer(centerMark)) centerMarkUpdate();	// нарисуем круги дистанции крестика в центре
 });
 map.on('moveend', updateClasters); 	// кластеризация точек POI
 //map.on("layeradd", function(event) {
@@ -616,20 +618,39 @@ map.on('editable:vertex:dragstart',	function(event) {
 	window.navigator.vibrate(200); // Вибрировать 200ms
 });
 
+// Круги дистанции
+var distCircles = [];
+var centerMarkCircles = [];
+for (let n=0; n<4; n++) {
+	centerMarkCircles.push(	L.circle([], {
+		color: '#FD00DB',
+		weight: 1,
+		opacity: 0.3,
+		fill: false,
+		pane: 'overlayPane',
+		zIndexOffset: -503
+	}));
+	distCircles.push(	L.circle([], {
+		color: '#FD00DB',
+		weight: 1,
+		opacity: 0.3,
+		fill: false,
+		pane: 'overlayPane',
+		zIndexOffset: -503
+	}));
+};
+
 // центр экрана
-let markSize = Math.round(window.innerWidth/5);
-//console.log(markSize);
-var centerMark = L.marker(map.getBounds().getCenter(), {
-	'icon': new L.icon({
-		//iconUrl: './img/Crosshair.svg',
-		iconUrl: centerMark_markerImg,
-		iconSize:     [markSize, markSize], // size of the icon
-		iconAnchor:   [markSize/2, markSize/2], // point of the icon which will correspond to marker's location
-		className: "centerMarkIcon"	// galadrielmap.css
-	}),
+let centerMarkIcon = new L.divIcon({
+	className: "centerMarkIcon"	// galadrielmap.css Установить прозрачность фона иначе, чем внешним стилем не удаётся
+});
+var centerMarkMarker = L.marker(map.getBounds().getCenter(), {
+	'icon': centerMarkIcon,
 	pane: 'overlayPane',	// расположим маркер над тайлами, но ниже всего остального
 	zIndexOffset: -1000
 });
+var centerMark = L.layerGroup([centerMarkMarker]);
+centerMarkCircles.forEach(circle => circle.addTo(centerMark));
 
 // Местоположение
 // маркеры
@@ -684,46 +705,6 @@ var GNSScircle = L.circle(cursor.getLatLng(), {
 	pane: 'overlayPane',	// расположим маркер над тайлами, но ниже всего остального
 	zIndexOffset: -502
 });
-// Круги дистанции
-var distCirclesRadius = [200,500,1000,2000]
-var distCircles = [
-	L.circle(cursor.getLatLng(), {
-		radius: distCirclesRadius[0],
-		color: '#FD00DB',
-		weight: 1,
-		opacity: 0.3,
-		fill: false,
-		pane: 'overlayPane',
-		zIndexOffset: -503
-	}),
-	L.circle(cursor.getLatLng(), {
-		radius: distCirclesRadius[1],
-		color: '#FD00DB',
-		weight: 1,
-		opacity: 0.3,
-		fill: false,
-		pane: 'overlayPane',
-		zIndexOffset: -503
-	}),
-	L.circle(cursor.getLatLng(), {
-		radius: distCirclesRadius[2],
-		color: '#FD00DB',
-		weight: 1,
-		opacity: 0.3,
-		fill: false,
-		pane: 'overlayPane',
-		zIndexOffset: -503
-	}),
-	L.circle(cursor.getLatLng(), {
-		radius: distCirclesRadius[3],
-		color: '#FD00DB',
-		weight: 1,
-		opacity: 0.3,
-		fill: false,
-		pane: 'overlayPane',
-		zIndexOffset: -503
-	})
-];
 
 // Курсор: объединение всех фигур
 var positionCursor = L.layerGroup([GNSScircle,velocityVector,cursor]);
@@ -954,7 +935,7 @@ function spatialWebSocketStart(){
 		// Свежее ли положение известно? -- установим курсор в положение
 		//MOBtab.className=''; 	// координаты появились -- можно включить режим MOB
 		positionCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // установим координаты всех маркеров
-		if(distCirclesSwitch.checked) distCirclesUpdate();	// нарисуем круги дистанции
+		if(distCirclesSwitch.checked) distCirclesUpdate(distCircles);	// нарисуем круги дистанции
 		let positionTime = new Date(gpsdData.time);
 		let now = new Date();
 		//console.log('gpsdData.time:',gpsdData.time,'now',now,'now-positionTime',(now-positionTime)/1000);

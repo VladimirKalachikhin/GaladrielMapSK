@@ -325,6 +325,7 @@ ul { /* нужно, чтобы стили работали */
 }
 
 .centerMarkIcon {
+	background: transparent;
 }
 
 .scaledText {

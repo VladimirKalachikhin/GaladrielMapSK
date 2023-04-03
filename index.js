@@ -532,14 +532,12 @@ app.get(`/${plugin.id}/checkRoutes`, function(request, response) {
 
 // Подготовим картинку для передачи её клиенту, чтобы тот мог видеть её и при потере связи с сервером
 const mob_markerImg = "data:image/png;base64,"+fs.readFileSync(path.resolve(__dirname,'./public','img/mob_marker.png'), 'base64');
-const centerMark_markerImg = "data:image/svg+xml;base64,"+fs.readFileSync(path.resolve(__dirname,'./public','img/Crosshair.svg'), 'base64');
 
 //app.debug(options);
 // Запишем файл для передачи клиенту
 const optionsjs = `// This file created automatically. Don't edit it!
 const velocityVectorLengthInMn = ${options.options.velocityVectorLengthInMn};
 const mob_markerImg = '${mob_markerImg}';
-const centerMark_markerImg = '${centerMark_markerImg}';
 let PosFreshBefore = ${options.timeouts.PosFreshBefore * 1000}; 	// время в милисекундах, через которое положение считается протухшим
 let DepthFreshBefore = ${options.timeouts.DepthFreshBefore * 1000}; 	// время в милисекундах, через которое глубина считается протухшей
 let aisFreshBefore = ${options.timeouts.aisFreshBefore * 1000}; 	// время в милисекундах, через которое цели AIS считаются протухшими
