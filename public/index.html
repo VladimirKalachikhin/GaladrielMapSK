@@ -1466,6 +1466,7 @@ function alarmWebSocketStart(){
 						collisisonDetected.addLayer( L.marker(value.value.vessels[vesselID], {
 							icon: collisionIcon,
 							opacity: 0.5,
+							pane: 'overlayPane',
 							zIndexOffset: -1000
 						}));
 						// Указатели вокруг курсора
