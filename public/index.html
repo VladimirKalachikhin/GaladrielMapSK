@@ -326,6 +326,16 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 				</div>
 				<span style="font-size:120%" id="settingsdistCirclesTXT"></span>
 			</div>
+			<div style="margin: 1rem 1rem;"> <!-- Показывать символ ветра -->
+				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
+					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="windSwitch"  onChange="windSwitchToggler();">
+					<label class="onoffswitch-label" for="windSwitch">
+						<span class="onoffswitch-inner"></span>
+						<span class="onoffswitch-switch"></span>
+					</label>
+				</div>
+				<span style="font-size:120%" id="settingsdistWindTXT"></span>
+			</div>
 			<br><br>
 			<div style="margin: 1rem 1rem;"> <!-- Показ целей AIS -->
 				<div class="onoffswitch" style="float:right;margin: 0 auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
@@ -383,7 +393,7 @@ var savePositionEvery = 15 * 1000; 	// будем сохранять полож�
 var followPaused; 	// объект таймера, который восстанавливает следование курсору
 if(!velocityVectorLengthInMn) velocityVectorLengthInMn = 10; 	// длинной в сколько минут пути рисуется линия скорости
 // Окружности дистанции
-if(getCookie('GaladrielMapdistCirclesSwitch') == undefined) distCirclesSwitch.checked = true; 	// показывать окружности дистанции
+if(getCookie('GaladrielMapdistCirclesSwitch') === null) distCirclesSwitch.checked = true; 	// показывать окружности дистанции
 else distCirclesSwitch.checked = Boolean(+getCookie('GaladrielMapdistCirclesSwitch')); 	// getCookie from galadrielmap.js
 // AIS
 var vehicles = []; 	// list of visible by AIS data vehicle objects массив layers с целями
@@ -395,10 +405,12 @@ var trackDirURI = 'track'; 	// адрес каталога с треками
 var routeDirURI = 'route'; 	// адрес каталога с маршрутами
 var currentTrackName = ''; 	// имя текущего (пишущегося сейчас) трека
 var updateRouteServerURI = 'checkRoutes'; 	// url службы динамического обновления маршрутов
-if(getCookie('GaladrielcurrTrackSwitch') == undefined) currTrackSwitch.checked = true; 	// показывать текущий трек вместе с курсором
+if(getCookie('GaladrielcurrTrackSwitch') === null) currTrackSwitch.checked = true; 	// показывать текущий трек вместе с курсором
 else currTrackSwitch.checked = Boolean(+getCookie('GaladrielcurrTrackSwitch')); 	// getCookie from galadrielmap.js
-if(getCookie('GaladrielSelectedRoutesSwitch') == undefined) SelectedRoutesSwitch.checked = false; 	// показывать выбранные маршруты
+if(getCookie('GaladrielSelectedRoutesSwitch') === null) SelectedRoutesSwitch.checked = false; 	// показывать выбранные маршруты
 else SelectedRoutesSwitch.checked = Boolean(+getCookie('GaladrielSelectedRoutesSwitch')); 	// getCookie from galadrielmap.js
+if(getCookie('GaladrielWindSwitch') === null) windSwitch.checked = true; 	// показывать символ ветра
+else windSwitch.checked = Boolean(+getCookie('GaladrielWindSwitch')); 	// getCookie from galadrielmap.js
 loggingSwitch.checked = Boolean(+getCookie('GaladrielloggingSwitch')); 	// getCookie from galadrielmap.js
 if(loggingSwitch.checked) loggingRun();	// запустим запись трека, если было указано запустить
 var currentRoute; 	// объект Editable, по которому щёлкнули. Типа, текущий.
@@ -426,6 +438,7 @@ drivedPolyLineOptions = { options: {
 var dravingLines = L.layerGroup();	// слои, в которых, собственно, рисуются маршруты и путевые точки
 dravingLines.properties = {};
 var goToPositionManualFlag = false; 	// флаг, что поле goToPositionField стали редактировать руками, и его не надо обновлять
+var distCircles = [];	// круги дистанции, массив L.circle. Обращение к этому массиву может происходить сразу после инициализации карты.
 
 // Dashboard
 var lat; 	 	// широта
@@ -440,7 +453,7 @@ var instanceSelf = getCookie('GaladrielMapInstance');	// идентификат�
 if(!instanceSelf) {
 	instanceSelf = generateUUID();
 	let expires =  new Date();
-	expires.setTime(expires.getTime() + (60*24*60*60*1000)); 	// протухнет через два месяца
+	expires.setTime(expires.getTime() + (24*60*60*1000)); 	// протухнет через сутки
 	document.cookie = "GaladrielMapInstance="+instanceSelf+"; expires="+expires+"; path=/; SameSite=Lax;";
 }
 var collisionVessels = {};	///////// for collision test purpose /////////
@@ -546,7 +559,7 @@ map.on('moveend', updateClasters); 	// кластеризация точек POI
 // Восстановим слои
 var layers = JSON.parse(getCookie('GaladrielMaps')); 	// getCookie from galadrielmap.js
 // Занесём слои на карту
-if(layers) layers.reverse().forEach(function(layerid){ 	// потому что они там были для красоты последним слоем вверъ
+if(layers) layers.reverse().forEach(function(layerid){ 	// потому что они там были для красоты последним слоем вверх
 		for (var i = 0; i < mapList.children.length; i++) { 	// для каждого потомка списка mapList
 			if (mapList.children[i].id==layerid) { 	// 
 				selectMap(mapList.children[i]);
@@ -619,7 +632,6 @@ map.on('editable:vertex:dragstart',	function(event) {
 });
 
 // Круги дистанции
-var distCircles = [];
 var centerMarkCircles = [];
 for (let n=0; n<4; n++) {
 	centerMarkCircles.push(	L.circle([], {
@@ -652,16 +664,41 @@ var centerMarkMarker = L.marker(map.getBounds().getCenter(), {
 var centerMark = L.layerGroup([centerMarkMarker]);
 centerMarkCircles.forEach(circle => circle.addTo(centerMark));
 
+// Символ ветра
+let windSymbolIcon = L.divIcon({
+	className: "",	// если не указать className, то для L.divIcon будет рисоваться какой-то квадратик, и от него никак не избавиться. Глюк?
+	iconAnchor: [-30,0],
+	html:`
+<svg version="1.1" id="wSVGimage"
+width="135" height="30"
+transform="scale(1,1)"
+xmlns="http://www.w3.org/2000/svg">
+<defs>
+	<line id="bLine" x1="0" y1="2.5" x2="70" y2="2.5" />
+	<line id="w2.5" x1="3" y1="2.5" x2="10" y2="13" />
+	<polyline  id="w5" points="0,2.5 10,2.5 25,25"  fill="none"\>
+	<g id="w25">
+		<polygon points="10,5 22.5,25 34.5,5" stroke-width="0" />
+		<line x1="0" y1="2.5" x2="34.5" y2="2.5" />
+	</g>
+</defs>
+<g id="wMark" fill="#00FFA9" fill-opacity="0.75" stroke="#00FFA9" stroke-width="5" stroke-opacity="0.75" >
+</g>
+</svg>
+	`
+});
+let windSymbolMarker = L.marker([],{
+	icon: windSymbolIcon,
+	pane: 'overlayPane',	// расположим маркер над тайлами, но ниже всего остального
+	zIndexOffset: -400
+});
+
 // Местоположение
 // маркеры
 var GpsCursor = L.icon({
 	iconUrl: './img/gpscursor.png',
-	//shadowUrl: '//leafletjs.com/docs/images/leaf-shadow.png',
 	iconSize:     [120, 120], // size of the icon
-	//shadowSize:   [50, 64], // size of the shadow
 	iconAnchor:   [60, 60], // point of the icon which will correspond to marker's location
-	//shadowAnchor: [4, 62],  // the same for the shadow
-	//popupAnchor:  [-3, -76] // point from which the popup should open relative to the iconAnchor
 });
 
 // курсор
@@ -708,7 +745,8 @@ var GNSScircle = L.circle(cursor.getLatLng(), {
 
 // Курсор: объединение всех фигур
 var positionCursor = L.layerGroup([GNSScircle,velocityVector,cursor]);
-if(distCirclesSwitch.checked) distCircles.forEach(circle => circle.addTo(positionCursor));
+distCirclesToggler();	// (если) добавим круги в курсор и заодно освежим куку
+windSwitchToggler();	// (если) добавим символ ветра в курсор и заодно освежим куку
 
 // Для визуализации collisionDetector
 var collisionIcon = L.icon({
@@ -884,6 +922,20 @@ function spatialWebSocketStart(){
 				case 'navigation.magneticDeviation':	// Magnetic deviation of the compass at the current headingCompass погрешность компаса, магнитная девиация
 					TPVdata.magdev = value.value*180/Math.PI;
 					break;
+				case 'environment.wind.directionTrue':	// The wind direction relative to true north
+					if(TPVdata.track){
+						TPVdata.wanglet = TPVdata.track+value.value*180/Math.PI;
+					}
+					break;
+				case 'environment.wind.angleApparent':	// Apparent wind angle, negative to port
+					TPVdata.wangler = value.value*180/Math.PI;
+					break;
+				case 'environment.wind.speedTrue':	// Wind speed over water (as calculated from speedApparent and vessel's speed through water)
+					TPVdata.wspeedt = value.value;
+					break;
+				case 'environment.wind.speedApparent':	//  Apparent wind speed
+					TPVdata.wspeedr = value.value;
+					break;
 				}
 			}
 		}
@@ -981,10 +1033,11 @@ function spatialWebSocketStart(){
 		}
 		
 		// Направление
-		//console.log('Index gpsdData',gpsdData.track);
+		//console.log('[realtimeTPVupdate] gpsdData track',gpsdData.track,'heading',gpsdData.heading);
 		if(gpsdData.track == null || gpsdData.track == undefined) {	// нет путевого угла
 			if(gpsdData.heading !== undefined) {	// зато есть курс
-				positionCursor.invoke('setRotationAngle',gpsdData.heading); // повернём все маркеры
+				velocityVector.setRotationAngle(gpsdData.heading); // повернём оба маркера направления
+				cursor.setRotationAngle(gpsdData.heading);
 				courseDisplay.innerHTML = Math.round(gpsdData.heading); // покажем направление на приборной панели
 				// Заменим подписи
 				dashboardCourseTXT.innerHTML = i18n.stringsandliterals.dashboardHeadingTXT
@@ -993,14 +1046,16 @@ function spatialWebSocketStart(){
 			else if(gpsdData.mheading !== undefined){	// или магнитный курс
 				if(gpsdData.magvar !== undefined) {		// если есть склонение -- он истинный курс
 					let heading = gpsdData.mheading + gpsdData.magvar;
-					positionCursor.invoke('setRotationAngle',heading); // повернём все маркеры
+					velocityVector.setRotationAngle(heading); // повернём оба маркера направления
+					cursor.setRotationAngle(heading);
 					courseDisplay.innerHTML = Math.round(heading); // покажем направление на приборной панели
 					// Заменим подписи
 					dashboardCourseTXT.innerHTML = i18n.stringsandliterals.dashboardHeadingTXT
 					dashboardCourseAltTXT.innerHTML = i18n.stringsandliterals.dashboardHeadingAltTXT
 				}
 				else {
-					positionCursor.invoke('setRotationAngle',gpsdData.mheading); // повернём все маркеры
+					velocityVector.setRotationAngle(gpsdData.mheading); // повернём оба маркера направления
+					cursor.setRotationAngle(gpsdData.mheading);
 					courseDisplay.innerHTML = Math.round(gpsdData.mheading); // покажем направление на приборной панели
 					// Заменим подписи
 					dashboardCourseTXT.innerHTML = i18n.stringsandliterals.dashboardMHeadingTXT
@@ -1009,7 +1064,8 @@ function spatialWebSocketStart(){
 			}
 			else {	// нет никакой информации о направлении
 				courseDisplay.innerHTML = '&nbsp;';
-				positionCursor.invoke('setRotationAngle',0); // повернём все маркеры
+				velocityVector.setRotationAngle(0); // повернём оба маркера направления
+				cursor.setRotationAngle(0);
 			}
 		}
 		else {
@@ -1022,6 +1078,9 @@ function spatialWebSocketStart(){
 			dashboardCourseTXT.innerHTML = i18n.stringsandliterals.dashboardCourseTXT
 			dashboardCourseAltTXT.innerHTML = i18n.stringsandliterals.dashboardCourseAltTXT
 		}
+		// Символ ветра
+		//console.log('wSVGimage:',document.getElementById('wSVGimage'));
+		if(windSwitch.checked) windSymbolUpdate();
 		/*
 		// Визуализация collisionDetector
 		// оказывается, размеры ниже устанавливаются не в смысле значка, а как прямоугольник
@@ -1034,6 +1093,7 @@ function spatialWebSocketStart(){
 		collisionAreaMarker.setLatLng(cursor.getLatLng() );// положение
 		collisionAreaMarker.setRotationAngle(gpsdData.heading); // повернём маркер
 		*/
+		
 		positionCursor.addTo(map); 	// добавить курсор на карту
 
 		// Окружность точност ГПС

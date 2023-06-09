@@ -111,6 +111,7 @@ L.TrackSymbol = L.Path.extend({
 
 		this._speed = aisData.speed;
 		delete aisData.speed;
+		//console.log('aisData.heading=',aisData.heading,'aisData.course=',aisData.course);
 		this._course = aisData.course * Math.PI/180;
 		delete aisData.course;
 		this._heading = aisData.heading * Math.PI/180;
@@ -132,7 +133,6 @@ L.TrackSymbol = L.Path.extend({
 		this._shiptype = aisData.shiptype;
 		delete aisData.shiptype;
 		this._setColorsByTypeOfShip();
-		//if(this.options.mmsi==244770791) console.log(aisData.lat,aisData.lon);
 		if(((aisData.lat !== undefined) && (aisData.lat !== null)) && ((aisData.lon !== undefined) && (aisData.lon !== null))) {
 		//if(aisData.lat && aisData.lon) {
 		    var oldLatLng = this._latlng;
@@ -188,11 +188,14 @@ L.TrackSymbol = L.Path.extend({
 			iconName = '';
 			break;
 		}
-		//console.log(thisScript.src.substr(0, thisScript.src.lastIndexOf("/"))+"/symbols/"+iconName);
+		//console.log("aisData['status']=",aisData['status'],thisScript.src.substr(0, thisScript.src.lastIndexOf("/"))+"/symbols/"+iconName);
 		if(iconName) iconName = '<img width="24px" style="float:right;margin:0.1rem;" src="'+(thisScript.src.substr(0, thisScript.src.lastIndexOf("/"))+"/symbols/"+iconName)+'">';
 		let statusText;
-		if(!aisData.status_text) statusText = AISstatusTXT[aisData.status];
+		if(!aisData.status_text) statusText = AISstatusTXT[aisData.status];	// internationalisation
 		else statusText = aisData.status_text.trim();
+		let shiptype_text;
+		if(!aisData.shiptype_text) shiptype_text = AISshipTypeTXT[this._shiptype];	// internationalisation
+		else shiptype_text = aisData.shiptype_text.trim();
 		
 		let dataStamp = '';
 		if(this.options.timestamp){
@@ -209,7 +212,7 @@ L.TrackSymbol = L.Path.extend({
 	${this.options.mmsi} <span style='float:right;'>${this.options.callsign||''}</span>
 	</div>
 	<div style="text-align: left;">
-		${this.options.shiptype_text||''}
+		${shiptype_text||''}
 	</div>
 	<div style='width:100%;background-color:lavender;'>
 		<span style='font-size:110%;'>${statusText||''}</span><br>
@@ -284,27 +287,6 @@ ${this.options.hazard_text||''} ${this.options.loaded_text||''}<br>
     return this.redraw();
   },
   
-  /**
-   * Sets the course over ground [degrees].
-   * The speed-leader points in this direction.
-   * @method setCourse
-   * @param course {Number} The course in radians.
-   */
-  setCourse: function( course ) {
-    this._course = course * Math.PI/180;
-    return this.redraw();
-  },
-  
-  /**
-   * Sets the heading of the symbol [degrees].
-   * The heading rotates the symbol.
-   * @method setHeading
-   * @param course {Number} The heading in radians.
-   */
-  setHeading: function( heading ) {
-    this._heading = heading * Math.PI/180;
-    return this.redraw();
-  },
   
   /**
    * Sets the leaderTime of the symbol [seconds].
@@ -622,9 +604,12 @@ ${this.options.hazard_text||''} ${this.options.loaded_text||''}<br>
 		        this.setStyle({fillColor: "#00ffff"});
 		        break;
 		    case 34: //Dive Vessel
+		        this.setStyle({color: "#008b8b"});
+		        this.setStyle({fillColor: "#0A84F8"});
+		        break;
 		    case 35: //Military Ops
 		        this.setStyle({color: "#008b8b"});
-		        this.setStyle({fillColor: "#00ffff"});
+		        this.setStyle({fillColor: "#000080"});
 		        break;
 		    case 36: //Sailing Vessel
 		        this.setStyle({color: "#8b008b"});
@@ -654,11 +639,11 @@ ${this.options.hazard_text||''} ${this.options.loaded_text||''}<br>
 		        break;
 		    case 50: //Pilot Vessel
 		        this.setStyle({color: "#008b8b"});
-		        this.setStyle({fillColor: "#00ffff"});
+		        this.setStyle({fillColor: "#CF3A0F"});
 		        break;
 		    case 51: //SAR
 		        this.setStyle({color: "#008b8b"});
-		        this.setStyle({fillColor: "#00ffff"});
+		        this.setStyle({fillColor: "#F57900"});
 		        break;
 		    case 52: //Tug
 		        this.setStyle({color: "#008b8b"});
@@ -670,11 +655,11 @@ ${this.options.hazard_text||''} ${this.options.loaded_text||''}<br>
 		        break;
 		    case 54: //Anti-Pollution
 		        this.setStyle({color: "#008b8b"});
-		        this.setStyle({fillColor: "#00ffff"});
+		        this.setStyle({fillColor: "#4E9A06"});
 		        break;
 		    case 55: //Law Enforce
 		        this.setStyle({color: "#008b8b"});
-		        this.setStyle({fillColor: "#00ffff"});
+		        this.setStyle({fillColor: "#FCAF3E"});
 		        break;
 		    case 56: //Local Vessel
 		    case 57: //Local Vessel

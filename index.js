@@ -47,6 +47,12 @@ plugin.schema = {
 						}
 					}
 				},
+				windProp:{
+					type: 'boolean',
+					title: 'Use true wind instead of apparent',
+					description: '',
+					default: false
+				},
 				velocityVectorLengthInMn:{
 					type: 'number',
 					title: 'Velocity vector length.',
@@ -535,6 +541,15 @@ const mob_markerImg = "data:image/png;base64,"+fs.readFileSync(path.resolve(__di
 
 //app.debug(options);
 // Запишем файл для передачи клиенту
+let windDirection, windSpeed;
+if(options.options.windProp){
+	windDirection = "environment.wind.directionTrue";
+	windSpeed = "environment.wind.speedTrue";
+}
+else {
+	windDirection = "environment.wind.angleApparent";
+	windSpeed = "environment.wind.speedApparent";
+}
 const optionsjs = `// This file created automatically. Don't edit it!
 const velocityVectorLengthInMn = ${options.options.velocityVectorLengthInMn};
 const mob_markerImg = '${mob_markerImg}';
@@ -545,6 +560,7 @@ const ConfigSpeedProp = '${options.options.speedProp.feature}';	// что име
 const ConfigDepthProp = '${options.options.depthProp.feature}';	// что именно используется как глубина
 const useSystemTimeouts = ${options.timeouts.useSystem};	// пытаться использовать время жизни от SignalK
 const depthInData = ${JSON.stringify(options.depthInData)};	// параметры того, как показывать глубину в gpx
+const useTrueWind = ${options.options.windProp};	// ипользуется ли истинный или вымпельный ветер
 const TPVsubscribe = {
 	"context": "vessels.self",
 	"subscribe": [
@@ -598,6 +614,18 @@ const TPVsubscribe = {
 		},
 		{
 			"path": "${options.options.depthProp.feature}",
+			"format": "delta",
+			"policy": "instant",
+			"minPeriod": 0
+		},
+		{
+			"path": "${windDirection}",
+			"format": "delta",
+			"policy": "instant",
+			"minPeriod": 0
+		},
+		{
+			"path": "${windSpeed}",
 			"format": "delta",
 			"policy": "instant",
 			"minPeriod": 0
