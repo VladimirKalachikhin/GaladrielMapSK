@@ -409,8 +409,6 @@ if(getCookie('GaladrielcurrTrackSwitch') === null) currTrackSwitch.checked = tru
 else currTrackSwitch.checked = Boolean(+getCookie('GaladrielcurrTrackSwitch')); 	// getCookie from galadrielmap.js
 if(getCookie('GaladrielSelectedRoutesSwitch') === null) SelectedRoutesSwitch.checked = false; 	// показывать выбранные маршруты
 else SelectedRoutesSwitch.checked = Boolean(+getCookie('GaladrielSelectedRoutesSwitch')); 	// getCookie from galadrielmap.js
-if(getCookie('GaladrielWindSwitch') === null) windSwitch.checked = true; 	// показывать символ ветра
-else windSwitch.checked = Boolean(+getCookie('GaladrielWindSwitch')); 	// getCookie from galadrielmap.js
 loggingSwitch.checked = Boolean(+getCookie('GaladrielloggingSwitch')); 	// getCookie from galadrielmap.js
 if(loggingSwitch.checked) loggingRun();	// запустим запись трека, если было указано запустить
 var currentRoute; 	// объект Editable, по которому щёлкнули. Типа, текущий.
@@ -439,6 +437,8 @@ var dravingLines = L.layerGroup();	// слои, в которых, собств�
 dravingLines.properties = {};
 var goToPositionManualFlag = false; 	// флаг, что поле goToPositionField стали редактировать руками, и его не надо обновлять
 var distCircles = [];	// круги дистанции, массив L.circle. Обращение к этому массиву может происходить сразу после инициализации карты.
+if(getCookie('GaladrielWindSwitch') === null) windSwitch.checked = true; 	// показывать символ ветра
+else windSwitch.checked = Boolean(+getCookie('GaladrielWindSwitch')); 	// getCookie from galadrielmap.js
 
 // Dashboard
 var lat; 	 	// широта
@@ -682,11 +682,12 @@ xmlns="http://www.w3.org/2000/svg">
 		<line x1="0" y1="2.5" x2="34.5" y2="2.5" />
 	</g>
 </defs>
-<g id="wMark" fill="#00FFA9" fill-opacity="0.75" stroke="#00FFA9" stroke-width="5" stroke-opacity="0.75" >
+<g id="wMark" fill="#8900FF" fill-opacity="0.75" stroke="#8900FF" stroke-width="5" stroke-opacity="0.75" >
 </g>
 </svg>
 	`
 });
+
 let windSymbolMarker = L.marker([],{
 	icon: windSymbolIcon,
 	pane: 'overlayPane',	// расположим маркер над тайлами, но ниже всего остального
