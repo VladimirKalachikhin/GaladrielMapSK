@@ -1,7 +1,7 @@
 /* Стили, заменяющие соответствующее в оригинальных стилях */
 /* leaflet */
 .leaflet-touch .leaflet-bar a {
-	background-color: rgba(255,255,255,0.66);
+	/*background-color: rgba(255,255,255,0.66);*/
     width: 1.65rem;
     height: 1.65rem;
     line-height: 1.65rem;
@@ -190,6 +190,9 @@ div.leaflet-control-zoom {
 .leaflet-control-zoom-out {
 	margin-top: 2rem;
 }
+.leaflet-control-attribution {
+	background-color:rgba(0, 0, 0, 0)!important;	/* прозрачный фон, защищённый от переписывания в других css */
+}
 
 
 /* Свои стили */
@@ -212,7 +215,7 @@ ul { /* нужно, чтобы стили работали */
 	white-space: nowrap;
 }
 .currentTrackName {
-	background-color:  rgba(227, 231, 251, 0.5); /* бледно-голубой полупрозрачный */
+	background-color:  rgba(227, 231, 251, 0.8) !important; /* бледно-голубой полупрозрачный Потому что так эти li разноцветные, и эти цвета сохраняются. Но текущий трек, типа, надо выделить */
 }
 .big_symbol {
 	height:90%;
@@ -280,7 +283,7 @@ ul { /* нужно, чтобы стили работали */
     display: inline-block;
 	font-weight: bold;
 	font-size: 120%;
-	width: 7rem;
+	width: 47%;
     border: 1px solid;
     border-radius: 5px;
     text-align: center;
@@ -289,12 +292,12 @@ ul { /* нужно, чтобы стили работали */
 .routeControls > input[type="radio"].L + label {
     /*border-right: none;*/
     border-radius: 5px 0px 0px 5px;
-    width:7rem;
+    width:47%;
 }
 .routeControls > input[type="radio"].R + label {
     /*border-left: none;*/
     border-radius: 0px 5px 5px 0px;
-    width:7rem;
+    width:47%;
 }
 .routeControls > input[type="radio"]:checked + label {
 	background-color: rgb(233, 233, 233);
@@ -328,9 +331,12 @@ ul { /* нужно, чтобы стили работали */
 	background: transparent;
 }
 
-.scaledText {
+.selectedTile {
+	background-color: rgba(0,200,255,0.35);
 }
 
+.scaledText {
+}
 
 .pointButton {
 	width:2rem;
