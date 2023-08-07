@@ -6,7 +6,7 @@ This is a [SignalK](https://signalk.org/)-based chart plotter navigation softwar
 
 ## v. 0.7
 
-The chartplotter is a edition of the [GaladrielMap](/Galadriel-map/), designed to work as SignalK webapp. Refer to the [GaladrielMap](/Galadriel-map/) documentation for information.
+The chartplotter is a edition of the [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/), designed to work as SignalK webapp. Refer to the [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/) documentation for information.
 
 ## Limitations
 * GaladrielMap SignalK edition use [@signalk/charts-plugin](https://www.npmjs.com/package/@signalk/charts-plugin) for charts instead [GaladrielCache](https://github.com/VladimirKalachikhin/Galadriel-cache). So [Weather](http://weather.openportguide.de/index.php/en/) map is not available, such well as some other maps from GaladrielMap. There is also no tile caching.  
