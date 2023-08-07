@@ -1,4 +1,4 @@
-[In English](https://github.com/VladimirKalachikhin/GaladrielMapSK/blob/master/README.md)  
+[In English](README.md)  
 # GaladrielMap SignalK edition[![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
 Простой картплотер (электронно-картографическая система, ЭКС), предназначенный для любительского использования на маломерных судах, в домах на колёсах и внедорожных автомобилях вместе с сервером [SignalK](https://signalk.org/).  
 Приложение запускается в браузере на телефоне, планшете или другом устройстве -- никакиих приложений устанавливать не нужно.

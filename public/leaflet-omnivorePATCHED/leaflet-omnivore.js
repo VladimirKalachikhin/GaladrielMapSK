@@ -555,7 +555,7 @@ else { 	// это индивидуальная точка
 			pane: 'overlayPane',
 			zIndexOffset: -600
 		});
-		console.log('[getMarkerToPoint] _tooltip:',marker._tooltip);
+		//console.log('[getMarkerToPoint] _tooltip:',marker._tooltip);
 		// поскольку ._container появляется только после добавления на карту, изменение цвета
 		// выполняется по соответствующему событию.
 		// Но вообще нормального способа динамически менять цвет нет.
