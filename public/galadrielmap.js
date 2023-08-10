@@ -1446,7 +1446,7 @@ try {
 	let xhr = new XMLHttpRequest();
 	const url = encodeURI('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+lat+'&lon='+lon);
 	xhr.open('GET', url, true); 	// Подготовим асинхронный запрос
-	//xhr.setRequestHeader('Referer',url); 	// nominatim.org требует?
+	xhr.setRequestHeader('Referer',url); 	// nominatim.org требует?
 	xhr.send();
 	xhr.onreadystatechange = function() { // 
 		if (this.readyState != 4) return; 	// запрос ещё не завершился
@@ -1458,9 +1458,10 @@ try {
 } catch (error) { 	// строка - не координаты
 	//console.log(stringPos,error);
 	let xhr = new XMLHttpRequest();
-	const url = encodeURI('https://nominatim.openstreetmap.org/search/'+stringPos+'?format=jsonv2'); 	// прямое геокодирование
+	//const url = encodeURI('https://nominatim.openstreetmap.org/search/'+stringPos+'?format=jsonv2'); 	// прямое геокодирование
+	const url = encodeURI('https://nominatim.openstreetmap.org/search?q='+stringPos+'&format=jsonv2'); 	// прямое геокодирование
 	xhr.open('GET', url, true); 	// Подготовим асинхронный запрос
-	//xhr.setRequestHeader('Referer',url); 	// nominatim.org требует?
+	xhr.setRequestHeader('Referer',url); 	// nominatim.org требует?
 	xhr.send();
 	xhr.onreadystatechange = function() { // 
 		if (this.readyState != 4) return; 	// запрос ещё не завершился
