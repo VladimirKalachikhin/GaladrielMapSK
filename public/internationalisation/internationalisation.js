@@ -6,6 +6,7 @@ longTXT,
 copyToClipboardMessageOkTXT, 
 copyToClipboardMessageBadTXT,
 AISstatusTXT = {},
+AISshipTypeTXT = {},
 relBearingTXT,
 showMapsTogglerTXT,
 versionTXT;
@@ -62,6 +63,7 @@ if (xhr.status == 200) { 	// Успешно
 		copyToClipboardMessageOkTXT, 
 		copyToClipboardMessageBadTXT,
 		AISstatusTXT,
+		AISshipTypeTXT,
 		relBearingTXT,
 		showMapsTogglerTXT
 	} = i18n);	// () тут обязательно, потому что не var {} = obj;
