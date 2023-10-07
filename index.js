@@ -765,14 +765,6 @@ const notificationaSubscribe = {
 `;
 fs.writeFileSync(__dirname+'/public/options.js',optionsjs);
 
-plugin.stop = function () {
-// Here we put logic we need when the plugin stops
-app.debug('Plugin stopped');
-};
-
-
-
-
 
 function tailCustom(filepath,lines) {
 //
@@ -789,6 +781,11 @@ function tailCustom(filepath,lines) {
 } // end function tailCustom
 
 }; // end plugin.start
+
+plugin.stop = function () {
+// Here we put logic we need when the plugin stops
+app.debug('Plugin stopped');
+}; // end plugin.stop
 
 function gpx2geoJSONpoint(gpxPts) {
 /* Получает массив строк trkpt, rtept или wpt, разделённую \n , вовращает GeoJSON LineString */
