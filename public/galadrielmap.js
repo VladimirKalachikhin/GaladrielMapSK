@@ -70,7 +70,7 @@ distCirclesUpdate()	Устанавливает диаметр и подписи 
 distCirclesToggler() включает/выключает показ окружностей дистанции по переключателю в интерфейсе
  
 windSwitchToggler()
-windSymbolUpdate(TPVdata)
+windSymbolUpdate()
 realWindSymbolUpdate(direction=0,speed=0)
 
 restoreDisplayedRoutes()
@@ -189,33 +189,36 @@ function listPopulate(listObject,dirURI,chkCurrent=false,withExt=true,onComplete
 //
 fetch(dirURI)	// запросим список файлов route
 .then((response) => {
-	//console.log(response.text());
     return response.json();
 })
 .then(data => {
 	//console.log('[listPopulate] data:',data);
-	if(chkCurrent) currentTrackName = data.currentTrackName.substring(0, data.currentTrackName.lastIndexOf('.')) || data.currentTrackName;	// глобальная переменная
-	const templateLi = listObject.querySelector('li[class="template"]');	// почему-то 'li[hidden]' не работает.
-	listObject.querySelectorAll('li').forEach(li => {	// удалим из списка что там есть. delete использовать нельзя, потому что delete не уничтожает объекты, вопреки своему названию.
-		if(li!=templateLi) {
-			//console.log(li);
-			li.remove();
-			li = null;
-		}
-	});
-	data.filelist.forEach(fileName => {
-		if(!withExt) fileName = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
-		let newLI = templateLi.cloneNode(true);
-		newLI.classList.remove("template");
-		newLI.id = fileName;
-		newLI.innerText = fileName;
-		newLI.hidden=false;
-		listObject.append(newLI);
-		if(chkCurrent && fileName == currentTrackName) {
-			// Сделаем текущим и запустим слежение
-			doCurrentTrackName(fileName);	// обязательно после append, ибо вне дерева элементы не ищутся. JavaScript -- коллекция нелепиц.
-		}
-	});
+	if(data){
+		if(chkCurrent) currentTrackName = data.currentTrackName.substring(0, data.currentTrackName.lastIndexOf('.')) || data.currentTrackName;	// глобальная переменная
+		if(data.filelist.length){
+			const templateLi = listObject.querySelector('li[class="template"]');	// почему-то 'li[hidden]' не работает.
+			listObject.querySelectorAll('li').forEach(li => {	// удалим из списка что там есть. delete использовать нельзя, потому что delete не уничтожает объекты, вопреки своему названию.
+				if(li!=templateLi) {
+					//console.log(li);
+					li.remove();
+					li = null;
+				}
+			});
+			data.filelist.forEach(fileName => {
+				if(!withExt) fileName = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
+				let newLI = templateLi.cloneNode(true);
+				newLI.classList.remove("template");
+				newLI.id = fileName;
+				newLI.innerText = fileName;
+				newLI.hidden=false;
+				listObject.append(newLI);
+				if(chkCurrent && fileName == currentTrackName) {
+					// Сделаем текущим и запустим слежение
+					doCurrentTrackName(fileName);	// обязательно после append, ибо вне дерева элементы не ищутся. JavaScript -- коллекция нелепиц.
+				}
+			});
+		};
+	};
 	//console.log('[listPopulate] listObject:',listObject,'onComplete:',onComplete);
 	if(onComplete) onComplete();	// здесь надо }).then(что?=>{if(onComplete) onComplete();}) ?
 })
@@ -1925,11 +1928,11 @@ else {
 } // end function windSwitchToggler
 
 function windSymbolUpdate(){
-/**/
+/* предполагается, что значения ветра есть, хотя, может быть, и нулевые */
 //console.log('[windSymbolUpdate] useTrueWind=',useTrueWind);
 if(useTrueWind){	// options.js указано использовать истинный ветер
 	//console.log('[windSymbolUpdate] wspeedt=',TPVdata.wspeedt,'wanglet=',TPVdata.wanglet,'track=',TPVdata.track);
-	if(TPVdata.wspeedt && TPVdata.wanglet && TPVdata.track){
+	if(TPVdata.track != undefined){
 		let dir = TPVdata.wanglet + TPVdata.track - 90;	// картинка-то у нас горизонтальна
 		if(dir >= 360) dir -= 360;
 		realWindSymbolUpdate(dir,TPVdata.wspeedt);
@@ -1938,12 +1941,10 @@ if(useTrueWind){	// options.js указано использовать исти�
 }
 else {	// указано использовать вымпельный ветер
 	//console.log('[windSymbolUpdate] wind dir=',TPVdata.wangler+TPVdata.heading,'wspeedr=',TPVdata.wspeedr);
-	if(TPVdata.wspeedr && TPVdata.wangler){
-		let dir = TPVdata.wangler + (TPVdata.heading || TPVdata.track) - 90;	// картинка-то у нас горизонтальна
-		if(dir >= 360) dir -= 360;
-		realWindSymbolUpdate(dir,TPVdata.wspeedr);
-	}
-	else realWindSymbolUpdate();
+	let dir = TPVdata.wangler + (TPVdata.heading || TPVdata.track) - 90;	// картинка-то у нас горизонтальна
+	if(dir >= 360) dir -= 360;
+	//console.log('dir=',dir);
+	realWindSymbolUpdate(dir,TPVdata.wspeedr);
 }
 } // end function windSymbolUpdate
 

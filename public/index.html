@@ -229,9 +229,9 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 				<textarea id = 'routeSaveDescr' title="" rows='5' cols='255' placeholder='' style='width:93%;padding: 0.5rem 3%;'></textarea>
 				<button onClick="
 					saveGPX();
-					currentRoute = null;
-					routeSaveName.value = '';
-					routeSaveDescr.value = '';" 
+					//currentRoute = null;
+					//routeSaveName.value = '';
+					//routeSaveDescr.value = '';" 
 				" type='submit'  class='okButton' style="float:right;"><img src="img/ok.svg" alt="Ok" width="16px"></button>
 				<button onClick='routeSaveName.value=""; routeSaveDescr.value="";' type='reset' class='okButton' style="float:left;"><img src="img/no.svg" alt="clear" width="16px"></button>
 				<div id='routeSaveMessage' style='margin: 1rem;'></div>
@@ -243,7 +243,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			<ul id="routeDisplayed" class='commonList'>
 			</ul>
 			<ul id="routeList" class='commonList'>
-				<li hiden class="template" onClick='{selectTrack(event.currentTarget,routeList,routeDisplayed,displayRoute)}'></li>
+				<li hidden class="template" onClick='{selectTrack(event.currentTarget,routeList,routeDisplayed,displayRoute)}'></li>
 			</ul>
 		</div>
 		<!-- MOB -->
@@ -385,6 +385,7 @@ if(!minWATCHinterval) minWATCHinterval = 0;
 minWATCHintervalInput.value = minWATCHinterval;
 if(PosFreshBefore < (2*minWATCHinterval*1000+1000)) PosFreshBefore = 2*minWATCHinterval*1000+1000;	// PosFreshBefore в options.js
 if(DepthFreshBefore < (2*minWATCHinterval*1000)) DepthFreshBefore = 2*minWATCHinterval*1000;	// DepthFreshBefore в options.js
+if(WindFreshBefore < (2*minWATCHinterval*1000)) WindFreshBefore = 2*minWATCHinterval*1000;	// WindFreshBefore в options.js
 var followToCursor = true; 	// карта следует за курсором Обеспечивает только паузу следования при перемещениях и масштабировании карты руками
 var noFollowToCursor = false; 	// карта никогда не следует за курсором Глобальное отключение следования. Само не восстанавливается.
 var CurrnoFollowToCursor = 1; 	// глобальная переменная для сохранения состояния
@@ -520,6 +521,22 @@ sidebar.on("content", function(event){ 	// Событие открытия? па
 		editorEnabled = true;	// разрешим редактирования
 		routeCreateButton.disabled=false; 	// - сделать доступной кнопку Начать
 		pointsControlsEnable();	// включим кнопки точек
+		break;
+	case 'routes':	// треки
+		// обновим список маршрутов, асинхронно
+		listPopulate(routeList,routeDirURI,false,true,function(){
+			const routeListLi = routeList.querySelectorAll('li');
+			routeDisplayed.querySelectorAll('li').forEach(function (displayedLi){
+				//console.log('displayedLi:',displayedLi.id);
+				for(const li of routeListLi){
+					//console.log('\trouteList li',li.id);
+					if(displayedLi.id==li.id){
+						li.remove();	// method removes the element from the DOM. Объект остаётся в коллекции routeListLi? Похоже, да, хотя не должен? Тогда он будет убит сборщиком мусора только после смерти routeListLi
+						break;
+					};
+				};
+			});
+		});
 		break;
 	case 'MOB': 	// человек за бортом
 		if(!map.hasLayer(mobMarker)) MOBalarm();
@@ -694,7 +711,7 @@ xmlns="http://www.w3.org/2000/svg">
 <defs>
 	<line id="bLine" x1="0" y1="2.5" x2="70" y2="2.5" />
 	<line id="w2.5" x1="3" y1="2.5" x2="10" y2="13" />
-	<polyline  id="w5" points="0,2.5 10,2.5 25,25"  fill="none"\>
+	<polyline  id="w5" points="0,2.5 10,2.5 25,25"  fill="none"/>
 	<g id="w25">
 		<polygon points="10,5 22.5,25 34.5,5" stroke-width="0" />
 		<line x1="0" y1="2.5" x2="34.5" y2="2.5" />
@@ -861,14 +878,19 @@ function spatialWebSocketStart(){
 		console.log("[spatialWebSocket open] Subscribe sended");
 		// Хоть какая-то проверка актуальности координат -- за отсутствием чего-то такого в SignalK
 		if(useSystemTimeouts){	// options.js
-			// Попытка сделать правильно в этом кривом SignalK
+			// Попытка сделать минимально правильно в этом кривом SignalK
+			// Хотя, в принципе, нужно пытаться получить .meta.timeout для каждой величины.
 			// Во-первых, meta.timeout реально вообще нигде нет. По идее, его должен указывать производитель данных, но нет.
 			// Во-вторых, к этому моменту может вообще не быть navigation, а по подписке не присылается meta
 			// В-третьих, в доке указано, что должен быть meta.timeout, но если смотреть по аналогии с units, скажем, то оно meta.properties.longitude.timeout Как оно правильно -- неизвестно
 			let timeout = getSelfPathC('navigation.position.meta.timeout');
 			if(timeout) PosFreshBefore = timeout*1000;
 			timeout = getSelfPathC(ConfigDepthProp+'.meta.timeout');
-			if(timeout) DepthFreshBefore = timeout*1000;
+			if(timeout) {
+				SpeedFreshBefore = timeout*1000;
+				DepthFreshBefore = timeout*1000;
+				WindFreshBefore = timeout*1000;
+			}
 		}
 		// Попытка переподключения к серверу, если позиция давно не обновлялась
 		checkDataFreshInterval = setInterval(function (){
@@ -910,7 +932,10 @@ function spatialWebSocketStart(){
 					TPVdata.lon = value.value.longitude;
 					TPVdata.lat = value.value.latitude;
 					//console.log('TPVdata lon lat',TPVdata.lon,TPVdata.lat);
-					TPVdata.time = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
+					// timestamp будет один на все величины. Это неправильно, но, насколько я понимаю,
+					// SignalK по крайней мере, для величин, не имеющих своего timestamp в источнике,
+					// в качестве timestamp ставит текущее время.
+					TPVdata.positionTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
 					break;
 				case 'navigation.courseOverGroundTrue':
 					TPVdata.track = value.value*180/Math.PI;
@@ -930,11 +955,13 @@ function spatialWebSocketStart(){
 				case 'navigation.speedOverGround':	// что именно -- устанавливается в конфигурации плагина
 				case 'navigation.speedThroughWater':
 					TPVdata.speed = value.value;
+					TPVdata.speedTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
 					break;
 				case 'environment.depth.belowSurface':	// что именно -- устанавливается в конфигурации плагина
 				case 'environment.depth.belowKeel':
 				case 'environment.depth.belowTransducer':
 					TPVdata.depth = value.value;
+					TPVdata.depthTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
 					break;
 				case 'navigation.magneticVariation':	// The magnetic variation (declination) at the current position that must be added to the magnetic heading to derive the true heading. Easterly variations are positive and Westerly variations are negative (in Radians). магнитное склонение
 					TPVdata.magvar = value.value*180/Math.PI;
@@ -945,16 +972,20 @@ function spatialWebSocketStart(){
 				case 'environment.wind.directionTrue':	// The wind direction relative to true north
 					if(TPVdata.track){
 						TPVdata.wanglet = TPVdata.track+value.value*180/Math.PI;
+						TPVdata.windTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
 					}
 					break;
 				case 'environment.wind.angleApparent':	// Apparent wind angle, negative to port
 					TPVdata.wangler = value.value*180/Math.PI;
+					TPVdata.windTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
 					break;
 				case 'environment.wind.speedTrue':	// Wind speed over water (as calculated from speedApparent and vessel's speed through water)
 					TPVdata.wspeedt = value.value;
+					TPVdata.windTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
 					break;
 				case 'environment.wind.speedApparent':	//  Apparent wind speed
 					TPVdata.wspeedr = value.value;
+					TPVdata.windTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
 					break;
 				}
 			}
@@ -1002,16 +1033,16 @@ function spatialWebSocketStart(){
 			locationDisplay.innerHTML = '&nbsp;';
 			depthDial.innerHTML = '';
 			//MOBtab.className='disabled'; 	// если нет курсора (координат) -- невозможно включить режим MOB. Это плохая идея.
-			return;
+			//return;	// могут быть другие величины, например - глубина
 		}
 		// Свежее ли положение известно? -- установим курсор в положение
 		//MOBtab.className=''; 	// координаты появились -- можно включить режим MOB
 		positionCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // установим координаты всех маркеров
 		if(distCirclesSwitch.checked) distCirclesUpdate(distCircles);	// нарисуем круги дистанции
-		let positionTime = new Date(gpsdData.time);
+		let positionTime = new Date(gpsdData.positionTime);
 		let now = new Date();
-		//console.log('gpsdData.time:',gpsdData.time,'now',now,'now-positionTime',(now-positionTime)/1000);
-		if((now-positionTime) > PosFreshBefore) {
+		//console.log('now-positionTime=',(now - new Date(gpsdData.positionTime))/1000);
+		if((now - positionTime) > PosFreshBefore) {
 			cursor.setIcon(NoGpsCursor); 	// свежее положение было определено раньше, чем PosFreshBefore милисекунд назад
 		}
 		else cursor.setIcon(GpsCursor);
@@ -1030,7 +1061,6 @@ function spatialWebSocketStart(){
 			//var velocity = Math.round((gpsdData.speed*60*60/1000)*10)/10; 	// скорость от gpsd - в метрах в секунду
 			var velocity = Math.round((gpsdData.speed*60*60/1000)*10)/10; 	// скорость от gpsd - в метрах в секунду
 
-			velocityDial.innerHTML = velocity;
 			// Установим длину указателя скорости за  минуты
 			var velocityCursorLength = gpsdData.speed*60*velocityVectorLengthInMn; 	// метров  за  минуты
 			velocityCursorLength = Math.round(velocityCursorLength/metresPerPixel);	// пикселей
@@ -1038,11 +1068,15 @@ function spatialWebSocketStart(){
 			velocityCursor.options.iconSize=[5,velocityCursorLength];
 			velocityCursor.options.iconAnchor=[3,velocityCursorLength];
 			velocityVector.setIcon(velocityCursor); 	// изменить иконку у маркера
+			if((now - new Date(gpsdData.speedTime)) > SpeedFreshBefore) {	// тайм-штамп в SignalK один на посылку данных
+				velocityDial.innerHTML = `<span style="color:silver;">${velocity}</span>`;
+			}
+			else velocityDial.innerHTML = velocity;
 		}
 		if(gpsdData.depth) {
 			//console.log('gpsdData.depth:',gpsdData.depth);
 			depthDial.innerHTML = '<br><br><div style="font-size:50%;">'+dashboardDepthMesTXT+'</div><br>';
-			if((now-positionTime) > DepthFreshBefore) {	// тайм-штамп в SignalK один на посылку данных
+			if((now - new Date(gpsdData.depthTime)) > DepthFreshBefore) {
 				depthDial.innerHTML += '<div style="color:silver;">'+(Math.round(gpsdData.depth*100)/100)+'</div>';
 			}
 			else depthDial.innerHTML += '<div>'+(Math.round(gpsdData.depth*100)/100)+'</div>';
@@ -1093,14 +1127,28 @@ function spatialWebSocketStart(){
 			if(gpsdData.heading !== undefined) cursor.setRotationAngle(gpsdData.heading);
 			else if((gpsdData.mheading !== undefined) && (gpsdData.magvar !== undefined)) cursor.setRotationAngle(gpsdData.mheading + gpsdData.magvar);
 			else cursor.setRotationAngle(gpsdData.track);
-			courseDisplay.innerHTML = Math.round(gpsdData.track); // покажем направление на приборной панели
+			if((now-positionTime) > PosFreshBefore) {	// положение протухло
+				courseDisplay.innerHTML = '<span style="color:silver;">'+Math.round(gpsdData.track)+'</span>'; // покажем направление на приборной панели
+			}
+			else courseDisplay.innerHTML = Math.round(gpsdData.track); // покажем направление на приборной панели
 			// Заменим подписи, вдруг до этого не было путевого угла
 			dashboardCourseTXT.innerHTML = i18n.stringsandliterals.dashboardCourseTXT
 			dashboardCourseAltTXT.innerHTML = i18n.stringsandliterals.dashboardCourseAltTXT
 		}
 		// Символ ветра
 		//console.log('wSVGimage:',document.getElementById('wSVGimage'));
-		if(windSwitch.checked) windSymbolUpdate();
+		if((now - new Date(gpsdData.windTime)) > WindFreshBefore) {
+			if(TPVdata.wspeedt) delete TPVdata.wspeedt;
+			if(TPVdata.wanglet) delete TPVdata.wanglet;
+			if(TPVdata.wspeedr) delete TPVdata.wspeedr;
+			if(TPVdata.wangler) delete TPVdata.wangler;
+			windSymbolUpdate();
+		};
+		if(windSwitch.checked){
+			if(((TPVdata.wspeedr != undefined) && (TPVdata.wangler != undefined)) || ((TPVdata.wspeedt != undefined) && (TPVdata.wanglet != undefined))){
+				windSymbolUpdate();
+			}
+		}
 		/*
 		// Визуализация collisionDetector
 		// оказывается, размеры ниже устанавливаются не в смысле значка, а как прямоугольник
@@ -1133,7 +1181,10 @@ function spatialWebSocketStart(){
 		// координаты курсора с точностью знаков
 		lat = Math.round(cursor.getLatLng().lat*10000)/10000; 	 	// широта
 		lng = Math.round(cursor.getLatLng().lng*10000)/10000; 	 	// долгота
-		locationDisplay.innerHTML = latTXT+' '+lat+'<br>'+longTXT+' '+lng;	
+		if((now-positionTime) > PosFreshBefore) {	// положение протухло
+			locationDisplay.innerHTML = '<span style="color:silver;">'+latTXT+' '+lat+'<br>'+longTXT+' '+lng+'</span>';	
+		}
+		else locationDisplay.innerHTML = latTXT+' '+lat+'<br>'+longTXT+' '+lng;	
 		followSwitch.checked = !noFollowToCursor; 	// выставим переключатель на панели Настроек в текущее положение	
 		
 		// MOB

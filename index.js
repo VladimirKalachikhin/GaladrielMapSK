@@ -70,7 +70,7 @@ plugin.schema = {
 					type: 'boolean',
 					title: 'Enable',
 					description: '',
-					default: true
+					default: false
 				},
 				minvalue:{
 					type: 'number',
@@ -125,9 +125,21 @@ plugin.schema = {
 					description: `All devices on your network must have the same time (with differents less than 1 sec.) -- check this and you can be sure that you see actual data.`,
 					default: 5
 				},
+				SpeedFreshBefore:{
+					type: 'number',
+					title: 'The speed is considered correct no longer than this time, seconds.',
+					description: `All devices on your network must have the same time (with differents less than 1 sec.) -- check this and you can be sure that you see actual data.`,
+					default: 2
+				},
 				DepthFreshBefore:{
 					type: 'number',
 					title: 'The depth is considered correct no longer than this time, seconds.',
+					description: `All devices on your network must have the same time (with differents less than 1 sec.) -- check this and you can be sure that you see actual data.`,
+					default: 2
+				},
+				WindFreshBefore:{
+					type: 'number',
+					title: 'The wind is considered correct no longer than this time, seconds.',
 					description: `All devices on your network must have the same time (with differents less than 1 sec.) -- check this and you can be sure that you see actual data.`,
 					default: 2
 				},
@@ -554,7 +566,9 @@ const optionsjs = `// This file created automatically. Don't edit it!
 const velocityVectorLengthInMn = ${options.options.velocityVectorLengthInMn};
 const mob_markerImg = '${mob_markerImg}';
 let PosFreshBefore = ${options.timeouts.PosFreshBefore * 1000}; 	// время в милисекундах, через которое положение считается протухшим
+let SpeedFreshBefore = ${options.timeouts.SpeedFreshBefore * 1000}; 	// время в милисекундах, через которое скорость считается протухшей
 let DepthFreshBefore = ${options.timeouts.DepthFreshBefore * 1000}; 	// время в милисекундах, через которое глубина считается протухшей
+let WindFreshBefore = ${options.timeouts.WindFreshBefore * 1000}; 	// время в милисекундах, через которое весь ветер считается протухшим
 let aisFreshBefore = ${options.timeouts.aisFreshBefore * 1000}; 	// время в милисекундах, через которое цели AIS считаются протухшими
 const ConfigSpeedProp = '${options.options.speedProp.feature}';	// что именно используется как скорость
 const ConfigDepthProp = '${options.options.depthProp.feature}';	// что именно используется как глубина
