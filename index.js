@@ -555,7 +555,8 @@ const mob_markerImg = "data:image/png;base64,"+fs.readFileSync(path.resolve(__di
 // Запишем файл для передачи клиенту
 let windDirection, windSpeed;
 if(options.options.windProp){
-	windDirection = "environment.wind.directionTrue";
+	//windDirection = "environment.wind.directionTrue";
+	windDirection = "environment.wind.angleTrueWater";
 	windSpeed = "environment.wind.speedTrue";
 }
 else {

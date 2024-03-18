@@ -1932,12 +1932,8 @@ function windSymbolUpdate(){
 //console.log('[windSymbolUpdate] useTrueWind=',useTrueWind);
 if(useTrueWind){	// options.js указано использовать истинный ветер
 	//console.log('[windSymbolUpdate] wspeedt=',TPVdata.wspeedt,'wanglet=',TPVdata.wanglet,'track=',TPVdata.track);
-	if(TPVdata.track != undefined){
-		let dir = TPVdata.wanglet + TPVdata.track - 90;	// картинка-то у нас горизонтальна
-		if(dir >= 360) dir -= 360;
-		realWindSymbolUpdate(dir,TPVdata.wspeedt);
-	}
-	else realWindSymbolUpdate();
+	let dir = TPVdata.wanglet - 90;	// картинка-то у нас горизонтальна
+	realWindSymbolUpdate(dir,TPVdata.wspeedt);
 }
 else {	// указано использовать вымпельный ветер
 	//console.log('[windSymbolUpdate] wind dir=',TPVdata.wangler+TPVdata.heading,'wspeedr=',TPVdata.wspeedr);

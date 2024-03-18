@@ -955,13 +955,13 @@ function spatialWebSocketStart(){
 				case 'navigation.speedOverGround':	// что именно -- устанавливается в конфигурации плагина
 				case 'navigation.speedThroughWater':
 					TPVdata.speed = value.value;
-					TPVdata.speedTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
+					TPVdata.speedTime = update.timestamp;
 					break;
 				case 'environment.depth.belowSurface':	// что именно -- устанавливается в конфигурации плагина
 				case 'environment.depth.belowKeel':
 				case 'environment.depth.belowTransducer':
 					TPVdata.depth = value.value;
-					TPVdata.depthTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
+					TPVdata.depthTime = update.timestamp;
 					break;
 				case 'navigation.magneticVariation':	// The magnetic variation (declination) at the current position that must be added to the magnetic heading to derive the true heading. Easterly variations are positive and Westerly variations are negative (in Radians). магнитное склонение
 					TPVdata.magvar = value.value*180/Math.PI;
@@ -970,22 +970,26 @@ function spatialWebSocketStart(){
 					TPVdata.magdev = value.value*180/Math.PI;
 					break;
 				case 'environment.wind.directionTrue':	// The wind direction relative to true north
-					if(TPVdata.track){
+					if(TPVdata.track){	// приведём к курсовому углу
 						TPVdata.wanglet = TPVdata.track+value.value*180/Math.PI;
-						TPVdata.windTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
+						TPVdata.windTime = update.timestamp;
 					}
+					break;
+				case 'environment.wind.angleTrueWater':	// True wind angle based on speed through water, negative to port
+					TPVdata.wanglet = value.value*180/Math.PI;
+					TPVdata.windTime = update.timestamp;
 					break;
 				case 'environment.wind.angleApparent':	// Apparent wind angle, negative to port
 					TPVdata.wangler = value.value*180/Math.PI;
-					TPVdata.windTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
+					TPVdata.windTime = update.timestamp;
 					break;
 				case 'environment.wind.speedTrue':	// Wind speed over water (as calculated from speedApparent and vessel's speed through water)
 					TPVdata.wspeedt = value.value;
-					TPVdata.windTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
+					TPVdata.windTime = update.timestamp;
 					break;
 				case 'environment.wind.speedApparent':	//  Apparent wind speed
 					TPVdata.wspeedr = value.value;
-					TPVdata.windTime = update.timestamp;	// там не требуется unix timestamp, а, наоборот, дата в виде строки
+					TPVdata.windTime = update.timestamp;
 					break;
 				}
 			}
