@@ -77,7 +77,7 @@ restoreDisplayedRoutes()
 chkDisplayedList(List,Displayed)	Проверим соответствие списков 
 currentTrackUpdate()	загружает трек, делает его показываемым и обновляет по мере записи
 
-loadScriptSync(scriptURL)	Синхронная загрузка javascriptbearing(latlng1, latlng2)
+loadScriptSync(scriptURL)	Синхронная загрузка javascript
 
 bearing(latlng1, latlng2)
 

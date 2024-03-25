@@ -942,15 +942,18 @@ function spatialWebSocketStart(){
 					break;
 				case 'navigation.headingTrue':
 					TPVdata.heading = value.value*180/Math.PI;
+					TPVdata.headingTime = update.timestamp;
 					break;
 				// в принципе, может быть и navigation.headingMagnetic и navigation.headingCompass
 				// причём разные (с учётом navigation.magneticDeviation)
 				// Кто им доктор?
 				case 'navigation.headingMagnetic':
 					TPVdata.mheading = value.value*180/Math.PI;
+					TPVdata.mheadingTime = update.timestamp;
 				case 'navigation.headingCompass':
 					TPVdata.mheading = value.value*180/Math.PI;
 					if(TPVdata.magdev !== undefined) TPVdata.mheading += TPVdata.magdev;
+					TPVdata.mheadingTime = update.timestamp;
 					break;
 				case 'navigation.speedOverGround':	// что именно -- устанавливается в конфигурации плагина
 				case 'navigation.speedThroughWater':
@@ -1032,10 +1035,10 @@ function spatialWebSocketStart(){
 		if(gpsdData.error || (gpsdData.lon == null)||(gpsdData.lat == null) || (gpsdData.lon == undefined)||(gpsdData.lat == undefined)) { 	// 
 			console.log('No spatial info in GPSD data',gpsdData);
 			positionCursor.remove(); 	// уберём курсор с карты
-			velocityDial.innerHTML = '&nbsp;'; 	// обнулим панель приборов
-			courseDisplay.innerHTML = '&nbsp;';
-			locationDisplay.innerHTML = '&nbsp;';
-			depthDial.innerHTML = '';
+			//velocityDial.innerHTML = '&nbsp;'; 	// обнулим панель приборов
+			//courseDisplay.innerHTML = '&nbsp;';
+			//locationDisplay.innerHTML = '&nbsp;';
+			//depthDial.innerHTML = '';
 			//MOBtab.className='disabled'; 	// если нет курсора (координат) -- невозможно включить режим MOB. Это плохая идея.
 			//return;	// могут быть другие величины, например - глубина
 		}
@@ -1047,7 +1050,7 @@ function spatialWebSocketStart(){
 		let now = new Date();
 		//console.log('now-positionTime=',(now - new Date(gpsdData.positionTime))/1000);
 		if((now - positionTime) > PosFreshBefore) {
-			cursor.setIcon(NoGpsCursor); 	// свежее положение было определено раньше, чем PosFreshBefore милисекунд назад
+			cursor.setIcon(NoGpsCursor); 	// свежее положение было определено раньше, чем PosFreshBefore милисекунд назад, серый курсор
 		}
 		else cursor.setIcon(GpsCursor);
 		// Информация о свежести данных на приборной панели
@@ -1091,6 +1094,12 @@ function spatialWebSocketStart(){
 		}
 		
 		// Направление
+		if((gpsdData.heading != undefined) && ((now - new Date(gpsdData.headingTime)) > PosFreshBefore)) {
+			// На самом деле, это не очень надо, потому что обычно heading и track согласованы,
+			// но может оказаться так, что heading было, а потом не стало. Тогда будет весело.
+			delete gpsdData.heading;
+			delete gpsdData.headingTime;
+		}
 		//console.log('[realtimeTPVupdate] gpsdData track',gpsdData.track,'heading',gpsdData.heading);
 		if(gpsdData.track == null || gpsdData.track == undefined) {	// нет путевого угла
 			if(gpsdData.heading !== undefined) {	// зато есть курс
@@ -1267,17 +1276,21 @@ function watchAISstart() {
 		if(!data.updates){	// handshaiking
 			return;
 		}
+		//console.log('data:',data);
 		//console.log('data.context:',data.context,vesselSelf,AISdata);
 		// Было бы неправильно показывать AIS только при наличии своих координат
 		// но пока их нет -- нет и vesselSelf, а значит, среди целей AIS может быть и сам я
 		if(data.context == vesselSelf) {
 			if(vesselSelf in AISdata){
 				delete AISdata[vesselSelf];
-				realtimeAISupdate(JSON.parse('{"class":"AIS","ais":'+JSON.stringify(AISdata)+'}'));	// 
+				vehicles[vesselSelf].remove();
+				vehicles[vesselSelf] = null;
+				delete vehicles[vesselSelf];
 			}
 			return;
 		}
-		
+		// Приходит по одному сообщению на context, т.е., одно сообщение на цель AIS
+		// с, возможно, множеством updates
 		//const vessel = data.context.substring(8);	// vessels.
 		const vessel = data.context;
 		if(!AISdata[vessel]) AISdata[vessel] = {};
@@ -1349,8 +1362,43 @@ function watchAISstart() {
 					//console.log(vessel,'navigationDatetime=',AISdata[vessel].navigationDatetime,`AISdata[vessel].timestamp=`,AISdata[vessel].timestamp,Math.round(Date.parse(update.timestamp)/1000)-AISdata[vessel].timestamp);
 					if(!AISdata[vessel].navigationDatetime) AISdata[vessel].timestamp = Math.round(Date.parse(update.timestamp)/1000);	// Если navigation.datetime не посылается
 					break;
-				case 'navigation.state':
-					if(isNaN(value.value)) AISdata[vessel].status_text = value.value;
+				case 'navigation.state':	// Злопротивный SignalK присылает статус как левый текст.
+					//console.log(value.value);
+					if(isNaN(value.value)) {
+						AISdata[vessel].status_text = value.value;
+						switch(value.value){	//Navigational status 0 = under way using engine, 1 = at anchor, 2 = not under command, 3 = restricted maneuverability, 4 = constrained by her draught, 5 = moored, 6 = aground, 7 = engaged in fishing, 8 = under way sailing, 9 = reserved for future amendment of navigational status for ships carrying DG, HS, or MP, or IMO hazard or pollutant category C, high speed craft (HSC), 10 = reserved for future amendment of navigational status for ships carrying dangerous goods (DG), harmful substances (HS) or marine pollutants (MP), or IMO hazard or pollutant category A, wing in ground (WIG);11 = power-driven vessel towing astern (regional use), 12 = power-driven vessel pushing ahead or towing alongside (regional use); 13 = reserved for future use, 14 = AIS-SART (active), MOB-AIS, EPIRB-AIS 15 = undefined = default (also used by AIS-SART, MOB-AIS and EPIRB-AIS under test)
+						case 'motoring':
+							AISdata[vessel].status = 0;	// under way using engine
+							break;
+						case 'anchored':
+							AISdata[vessel].status = 1;	// at anchor
+							break;
+						case 'not under command':
+							AISdata[vessel].status = 2;	// not under command
+							break;
+						case 'restricted manouverability':
+							AISdata[vessel].status = 3;	// restricted maneuverability
+							break;
+						case 'constrained by draft':
+							AISdata[vessel].status = 4;	// constrained by her draught
+							break;
+						case 'moored':
+							AISdata[vessel].status = 5;	// moored
+							break;
+						case 'aground':
+							AISdata[vessel].status = 6;	// aground
+							break;
+						case 'fishing':
+							AISdata[vessel].status = 7;	// engaged in fishing
+							break;
+						case 'sailing':
+							AISdata[vessel].status = 8;	// under way sailing
+							break;
+						case 'default':
+						default:
+							AISdata[vessel].status = 15;	// undefined = default (also used by AIS-SART, MOB-AIS and EPIRB-AIS under test
+						};
+					}
 					else AISdata[vessel].status = value.value;
 					break;
 				case 'navigation.courseOverGroundTrue':
@@ -1385,9 +1433,8 @@ function watchAISstart() {
 			//console.log('After',AISdata[vessel]);
 			//console.log('aisWebSocket.onmessage AISdata:',AISdata);
 		//}
-		data = null;
-		realtimeAISupdate(JSON.parse('{"class":"AIS","ais":'+JSON.stringify(AISdata)+'}'));	// хрен его знает где и почему портится AISdata, поэтому передаём "по значению".
-		//realtimeAISupdate({"class":"AIS","ais":AISdata});	// 
+		
+		realtimeAISupdate(vessel);	// рисуем на карте эту цель AIS
 		
 		/////////////////////////// collisionDetector test ///////////////////////////////
 		//displayCollisionAreas();	// показываем отладочную информацию предупреждения о столкновениях
@@ -1410,56 +1457,61 @@ function watchAISstart() {
 	  console.log(`[aisWebSocket error] ${error.message}`);
 	}; 	//end aisWebSocket.onerror
 
-	function realtimeAISupdate(aisClass) {
-	// Показывает цели AIS, перечисленные в aisClass.ais
-	// те, которых там нет -- перестаёт показывать
-	let aisData = aisClass.ais;
-	//console.log(aisData); 	// массив с данными целей
-	//console.log('',JSON.stringify(aisData));
-	//console.log(DisplayAISswitch);
-	let vehiclesVisible = [];
+	function realtimeAISupdate(vehicle) {
+	/* Это вызывается для каждой цели AIS */
+	
 	const defaultSymbol = [0.8,0, -0.3,0.35, -0.3,-0.35]; 	// треугольник вправо, расстояния от центра, через которые нарисуют polyline
 	const noHeadingSymbol = [0.35,0, 0,0.35, -0.35,0, 0,-0.35]; 	// ромбик
 	const netAISdefaultSymbol = [1*0.5,0, 0.25*0.5,0.25*0.5, 0,1*0.5, -0.25*0.5,0.5*0.5, -1*0.5,0.75*0.5, -1*0.5,-0.75*0.5, -0.25*0.5,-0.5*0.5, 0,-1*0.5, 0.25*0.5,-0.25*0.5]; 	// треугольник, расстояния от центра, через которые нарисуют polyline
 	const netAISnoHeadingSymbol = [1*0.35,0, 0.75*0.35,0.5*0.35, 1*0.35,1*0.35, 0.5*0.35,0.75*0.35, 0,1*0.35, -0.5*0.35,0.75*0.35, -1*0.35,1*0.35, -0.75*0.35,0.5*0.35, -1*0.35,0, -0.75*0.35,-0.5*0.35, -1*0.35,-1*0.35, -0.5*0.35,-0.75*0.35, 0,-1*0.35, 0.5*0.35,-0.75*0.35, 1*0.35,-1*0.35, 0.75*0.35,-0.5*0.35]; 	// ромбик: правый, верхний, левый, нижний ПРотив часовой от правого?
-	for(const vehicle in aisData){
-		//console.log(vehicle,aisData[vehicle]);
-		if(vehicle.toLowerCase() == 'error') break;
-		if((aisData[vehicle].lat === null) || (aisData[vehicle].lon === null) || (aisData[vehicle].lat === undefined) || (aisData[vehicle].lon === undefined)) continue;	// не показываем цели без координат
-		//console.log(vehicle,'протух на',(Date.now()-aisData[vehicle].timestamp*1000)/1000,aisFreshBefore/1000);
-		if((Date.now()-aisData[vehicle].timestamp*1000)>aisFreshBefore) continue;	// не показываем протухшие цели. Они могут появляться быстрее, чем удаляются из списка aisData
-		if(!vehicles[vehicle]) { 	// global var, массив layers с целями
-			//console.log('Create layers',vehicle,aisData[vehicle]);
-			vehicles[vehicle] = L.trackSymbol(L.latLng(0,0),{
-				trackId: vehicle,
-				leaderTime: velocityVectorLengthInMn*60,
-				fill: true,
-				fillOpacity: 1.0,
-				stroke: true,
-				opacity: 1.0,
-				weight: 1.0,
-			}).addTo(map);
-		}
-		// Значёк будем переприсваивать каждый раз, потому что в SignalK неизвестно, когда придёт
-		// признак aisData[vehicle].netAIS
-		if(aisData[vehicle].netAIS) { 	// цель получена от netAIS
-			vehicles[vehicle].setDefaultSymbol(netAISdefaultSymbol);
-			vehicles[vehicle].setNoHeadingSymbol(netAISnoHeadingSymbol);
-		}
-		else { 	// цель получена от локального приёмника AIS
-			vehicles[vehicle].setDefaultSymbol(defaultSymbol);
-			vehicles[vehicle].setNoHeadingSymbol(noHeadingSymbol);
-		}
-		//console.log(vehicles[vehicle]);
-		vehicles[vehicle].addData(aisData[vehicle]); 	// обновим данные		
-		vehiclesVisible.push(vehicle); 	// запомним, какие есть
+	//console.log(vehicle,'протух на',(Date.now()-AISdata[vehicle].timestamp*1000)/1000,aisFreshBefore/1000);
+	if((Date.now()-AISdata[vehicle].timestamp*1000)>aisFreshBefore){	// не показываем протухшие цели. Они могут появляться быстрее, чем удаляются из списка aisData
+		//delete AISdata[vesselSelf];
+		vehicles[vesselSelf].remove();
+		vehicles[vesselSelf] = null;
+		delete vehicles[vesselSelf];
+		return;	// ? Может быть, надо, оставив в AISdata, удалить из vehicles и с экрана?
 	}
-	for(const vehicle in vehicles){
-		if(vehiclesVisible.includes(vehicle) && DisplayAISswitch.checked) continue; 	// типа, синхронизация... clearInterval -- асинхронная функция, и может не успеть отключить опрос AIS до того, как цели будут убраны с экрана. Тогда они уберутся здесь.
-		vehicles[vehicle].remove();
-		vehicles[vehicle] = null;
-		delete vehicles[vehicle];
+	if(!vehicles[vehicle]) { 	// global var, массив layers с целями
+		//console.log('Create layers',vehicle,AISdata[vehicle]);
+		vehicles[vehicle] = L.trackSymbol(L.latLng(0,0),{
+			trackId: vehicle,
+			leaderTime: velocityVectorLengthInMn*60,
+			fill: true,
+			fillOpacity: 1.0,
+			stroke: true,
+			opacity: 1.0,
+			weight: 1.0,
+		});
+	};
+	// Значёк будем переприсваивать каждый раз, потому что в SignalK неизвестно, когда придёт
+	// признак AISdata[vehicle].netAIS
+	if(AISdata[vehicle].netAIS) { 	// цель получена от netAIS
+		vehicles[vehicle].setDefaultSymbol(netAISdefaultSymbol);
+		vehicles[vehicle].setNoHeadingSymbol(netAISnoHeadingSymbol);
 	}
+	else { 	// цель получена от локального приёмника AIS
+		vehicles[vehicle].setDefaultSymbol(defaultSymbol);
+		vehicles[vehicle].setNoHeadingSymbol(noHeadingSymbol);
+	}
+	// обновим данные Здесь обязательно нужно передать "по значению", почему -- неясно.	
+	// addData просто заменяет всё на параметр? Оно заменяет всё на ссылку на параметр.
+	// Но тогда всё равно данные должны быть полными, ведь в AISdata полные данные?
+	//if(AISdata[vehicle].mmsi == '230279000') {
+	//	// в AISdata действительно полные данные
+	//	//console.log(JSON.stringify(AISdata[vehicle]));
+	//	console.log(AISdata[vehicle]);
+	//}
+	// Видимо, проблема в addData и/или дальше, в L.trackSymbol. Нужно ли разбираться?
+	vehicles[vehicle].addData(JSON.parse(JSON.stringify(AISdata[vehicle]))); 
+	//vehicles[vehicle].addData(AISdata[vehicle]); 
+	
+	// если сперва приходило всякое, но координат не было -- цели будут скапливаться в L.latLng(0,0)
+	// поэтому добавим на карту, только если есть координаты.
+	let latlng = vehicles[vehicle].getLatLng();
+	if((latlng.lat || latlng.lng) && !map.hasLayer(vehicles[vehicle])){
+		vehicles[vehicle].addTo(map);
+	};
 	} // end function realtimeAISupdate
 
 return aisWebSocket

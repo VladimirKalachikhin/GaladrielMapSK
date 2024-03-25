@@ -6,8 +6,7 @@
    version="1.1"
    xmlns="http://www.w3.org/2000/svg"
    xmlns:svg="http://www.w3.org/2000/svg">
-  <g
-     transform="translate(-14.505328,-49.076957)">
+  <g transform="translate(-14.505328,-49.076957)">
     <path
        style="fill:#ff0000;stroke:#000000;stroke-width:0.264583;stroke-opacity:1"
        d="m 44.356335,49.265726 -29.540317,30.611569 21.0721,0.05736 V 123.0576 H 54.070469 V 79.984782 l 21.062281,0.05736 z" />

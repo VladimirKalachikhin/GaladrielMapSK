@@ -106,7 +106,7 @@ L.TrackSymbol = L.Path.extend({
   _setPath: function(){
   	let pathString = this.getPathString();
   	let center = this._map.latLngToLayerPoint(this._latlng);
-  	//console.log("status=",this.options.status);
+  	//console.log("leaflet-tracksymbol [_setPath] status=",this.options.status);
   	switch(+this.options.status){
   	case 1:
   	case 5:
@@ -116,7 +116,7 @@ M ${center.x+4} ${center.y-4} L ${center.x-4} ${center.y+4}
 M ${center.x} ${center.y-4} L ${center.x} ${center.y+4} 
 M ${center.x-4} ${center.y} L ${center.x+4} ${center.y} `;
   	}
-  	//console.log('[_setPath] center=',center,'pathString=',pathString);
+  	//console.log('leaflet-tracksymbol [_setPath] center=',center,'pathString=',pathString);
     this._path.setAttribute('d',pathString);
   },
 
@@ -158,7 +158,7 @@ M ${center.x-4} ${center.y} L ${center.x+4} ${center.y} `;
 		//console.log(this.options.mmsi);
 		//console.log(this._shiptype);
 
-       	//if(this.options.mmsi==244770791) console.log(this.options);
+       	//if(this.options.mmsi==230703000) console.log(this.options);
        	let speedKMH='';
        	if(this._speed) speedKMH = Math.round((this._speed*60*60/1000)*10)/10+' Km/h';
       
