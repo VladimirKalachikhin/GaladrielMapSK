@@ -583,14 +583,14 @@ xhr.onreadystatechange = function() { //
 	if (this.readyState != 4) return; 	// запрос ещё не завершился, покинем функцию
 	if (this.status != 200) { 	// запрос завершлся, но неудачно
 		//console.log('Server return '+this.status+'\ncurrentTrackServerURI='+currentTrackServerURI+'\ncurrTrackName='+currentTrackName+'\n\n');
-		console.log('To [updateCurrTrack] server return '+this.status+' instead '+currentTrackName+' last segment.');
+		//console.log('To [updateCurrTrack] server return '+this.status+' instead '+currentTrackName+' last segment.');
 		if(typeof loggingIndicator != 'undefined'){ 	// лампочка в интерфейсе
 			loggingIndicator.style.color='red';
 			loggingIndicator.innerText='\u2B24';
 		}
 		return; 	// что-то не то с сервером
 	}
-	//console.log(this.responseText);
+	//console.log('updateCurrTrack responseText=',this.responseText);
 	let resp = {};
 	try {
 		resp = JSON.parse(this.responseText);
@@ -628,6 +628,7 @@ xhr.onreadystatechange = function() { //
 				loggingIndicator.innerText='';
 				if(currentWaitTrackUpdateProcess){
 					clearInterval(currentWaitTrackUpdateProcess);	
+					currentWaitTrackUpdateProcess = null;
 					console.log('[updateCurrTrack] Не должно быть currentWaitTrackUpdateProcess, но он был. Убили, запускаем.');
 				}
 				if(currTrackSwitch.checked) startCurrentWaitTrackUpdateProcess();	// Текущий трек всегда показывается
@@ -1552,6 +1553,7 @@ if(currTrackSwitch.checked){	// Текущий трек всегда показ�
 	console.log('[loggingWait]  Logging check started by user');
 }
 else {
+	console.log('[loggingWait] перед остановкой процесса currentWaitTrackUpdateProcess:',currentWaitTrackUpdateProcess);
 	if(currentWaitTrackUpdateProcess){
 		clearInterval(currentWaitTrackUpdateProcess);
 		currentWaitTrackUpdateProcess = null;
@@ -1596,6 +1598,7 @@ function loggingCheck(logging='logging/status') {
 Запрос возвращает состояние записи трека на момент запроса, _до_ выполнения команды. Ибо команда ---
 это просто изменение пути navigation.trip.logging
 */
+//console.log('Вызвали [loggingCheck] logging=',logging);
 let xhr = new XMLHttpRequest();
 xhr.open('GET', encodeURI(logging), true); 	// Подготовим асинхронный запрос
 xhr.send();
