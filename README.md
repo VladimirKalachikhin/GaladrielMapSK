@@ -1,5 +1,5 @@
 [Русское описание](README.ru-RU.md)  
-# GaladrielMap SignalK edition[![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
+# GaladrielMap SignalK edition [![License: CC BY-NC-SA 4.0](Cc-by-nc-sa_icon.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en)
 This is a [SignalK](https://signalk.org/)-based chart plotter navigation software (chartplotter) for pleasure crafts, motorhomes, and off-road cars. With SignalK server it can work on mobile clients without install any app.  Only browser need.
 <div style='float:right;'><a href='https://github.com/VladimirKalachikhin/Galadriel-map/discussions'>Forum</a>
 </div>
