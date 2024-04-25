@@ -1607,11 +1607,12 @@ function alarmWebSocketStart(){
 					//console.log('mobMarkerJSON:',mobMarkerJSON);
 					// Восстановим мультислой маркеров из GeoJSON, а потом каждому маркеру в мультислое присвоим иконку, которая в GeoJSON не сохраняется.
 					mobMarker.remove(); 	// убрать мультислой-маркер с карты
-					mobMarker = null; 	// реально удалим объект
 					mobMarker = L.geoJSON(mobMarkerJSON); 	// создадим новый объект
+					let lastMarker;
 					mobMarker.eachLayer(function (layer) {
 						if(layer instanceof L.Marker)	{
 							layer.setIcon(mobIcon);
+							if(!layer.feature.properties) layer.feature.properties = {};
 							layer.on('click', function(ev){
 								currentMOBmarker = ev.target;
 								clearCurrentStatus(); 	// удалим признак current у всех маркеров
@@ -1620,9 +1621,14 @@ function alarmWebSocketStart(){
 							}); 	// текущим будет маркер, по которому кликнули
 							//console.log('Маркеры в полученной информации MOB ',layer);
 							if(layer.feature.properties.current) currentMOBmarker = layer; 	// текущим станет указанный в переданных данных
+							lastMarker = layer;
 						}
 						else mobMarker.removeLayer(layer); 	// Считаем, что это toMOBline, и там больше ничего такого нет
 					});
+					if(!currentMOBmarker) {	// кто-то левый прислал GeoJSON без указания текущей точки. Сделаем текущей последнюю.
+						lastMarker.feature.properties.current = true;
+						currentMOBmarker = lastMarker;
+					}
 					mobMarker.addLayer(toMOBline);
 					mobMarker.addTo(map); 	// покажем мультислой с маркерами MOB
 					mobMarker.eachLayer(function (layer) { 	// сделаем каждый маркер draggable

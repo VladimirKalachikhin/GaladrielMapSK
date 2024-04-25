@@ -235,7 +235,7 @@ var matches = document.cookie.match(new RegExp(
 	)
 );
 return matches ? decodeURIComponent(matches[1]) : null;
-}
+}; // end function getCookie
 
 function doSavePosition(){
 /* Сохранение положения
@@ -2105,7 +2105,7 @@ return bearing;
  */
 function atou(b64) {
   return decodeURIComponent(escape(atob(b64)));
-}
+}; // end function atou
 
 /**
  * Unicode to ASCII (encode data to Base64)
@@ -2114,7 +2114,7 @@ function atou(b64) {
  */
 function utoa(data) {
   return btoa(unescape(encodeURIComponent(data)));
-}
+}; // end function utoa
 
 function generateUUID() { 
 // Public Domain/MIT https://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid
@@ -2132,7 +2132,7 @@ function generateUUID() {
         }
         return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
     });
-}
+}; // end function generateUUID
 
 //////////// Эта функция используются в leflet-omnivore.js, но как её туда запихать правильным образом --
 // я не понимаю. arrayHasOnly нужна в двух местах, для которых, вроде, нет другого общего пространства имён,
