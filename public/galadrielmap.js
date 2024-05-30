@@ -1942,7 +1942,7 @@ else {	// указано использовать вымпельный вете�
 	//console.log('[windSymbolUpdate] wind dir=',TPVdata.wangler+TPVdata.heading,'wspeedr=',TPVdata.wspeedr);
 	let dir = TPVdata.wangler + (TPVdata.heading || TPVdata.track) - 90;	// картинка-то у нас горизонтальна
 	if(dir >= 360) dir -= 360;
-	//console.log('dir=',dir);
+	//console.log('[windSymbolUpdate] dir=',dir);
 	realWindSymbolUpdate(dir,TPVdata.wspeedr);
 }
 } // end function windSymbolUpdate

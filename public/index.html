@@ -1603,8 +1603,74 @@ function alarmWebSocketStart(){
 					}
 					//console.log('режим MOB есть, пришли новые данные');
 					if(value.value.source == instanceSelf) continue byUpdates;	// это нами же установленный MOB
-					let mobMarkerJSON = value.value.position;	// Это GeoJSON
+					let mobMarkerJSON;
+					if(value.value.position && value.value.position.features){	// Это GeoJSON
+						mobMarkerJSON = value.value.position;	// Это GeoJSON
+					}
+					else{ 
+						let mobPosition; 
+						if(value.value.data && value.value.data.position){
+							// mob as described https://github.com/SignalK/signalk-server/pull/1560
+							// при этом у этих кретинов может быть "position": "No vessel position data."
+							mobPosition = {'longitude': value.value.data.position.longitude,'latitude': value.value.data.position.latitude,'nogeojson': true};
+						}
+						else {
+							if(value.value.position){
+								const s = JSON.stringify(value.value.position);
+								if(s.includes('longitude') && s.includes('latitude')){
+									mobPosition = {'longitude': value.value.position.longitude,'latitude': value.value.position.latitude,'nogeojson': true};
+								}
+								else if(s.includes('lng') && s.includes('lat')){
+									mobPosition = {'longitude': value.value.position.lng,'latitude': value.value.position.lat,'nogeojson': true};
+								}
+								else if(s.includes('lon') && s.includes('lat')){
+									mobPosition = {'longitude': value.value.position.lon,'latitude': value.value.position.lat,'nogeojson': true};
+								}
+								else if(Array.isArray(value.value.position)){
+									mobPosition = {'longitude': value.value.position[0],'latitude': value.value.position[1],'nogeojson': true};
+								};
+							}
+							else{
+								const s = JSON.stringify(value.value);
+								if(s.includes('longitude') && s.includes('latitude')){
+									mobPosition = {'longitude': value.value.longitude,'latitude': value.value.latitude,'nogeojson': true};
+								}
+								else if(s.includes('lng') && s.includes('lat')){
+									mobPosition = {'longitude': value.value.lng,'latitude': value.value.lat,'nogeojson': true};
+								}
+								else if(s.includes('lon') && s.includes('lat')){
+									mobPosition = {'longitude': value.value.lon,'latitude': value.value.lat,'nogeojson': true};
+								}
+								else if(Array.isArray(value.value)){
+									mobPosition = {'longitude': value.value[0],'latitude': value.value[1],'nogeojson': true};
+								};
+							};
+						};
+						if(!mobPosition) continue byUpdates;
+						mobPosition.longitude = parseFloat(mobPosition.longitude);
+						mobPosition.latitude = parseFloat(mobPosition.latitude);
+						if(isNaN(mobPosition.longitude) || isNaN(mobPosition.latitude)) continue byUpdates;
+						mobMarkerJSON = {
+							"type": "FeatureCollection",
+							"features": [
+								{
+									"type": "Feature",
+									"geometry": {
+										"type": "Point",
+										"coordinates": [
+											mobPosition.longitude,
+											mobPosition.latitude
+										]
+									},
+									"properties": {
+										"current": true
+									}
+								}
+							]
+						};
+					};
 					//console.log('mobMarkerJSON:',mobMarkerJSON);
+					if(!mobMarkerJSON) continue byUpdates;
 					// Восстановим мультислой маркеров из GeoJSON, а потом каждому маркеру в мультислое присвоим иконку, которая в GeoJSON не сохраняется.
 					mobMarker.remove(); 	// убрать мультислой-маркер с карты
 					mobMarker = L.geoJSON(mobMarkerJSON); 	// создадим новый объект
