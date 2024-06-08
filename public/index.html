@@ -1020,6 +1020,13 @@ function spatialWebSocketStart(){
 			cursor.setIcon(NoGpsCursor);	// заменим курсор (значёк) на серый
 			positionTimeDisplay.innerHTML = '<blink>&infin;</blink>';	// но моргать оно не будет, потому что чтобы разные придурки не моргали где ни попадя, этот тег запретили всем совсем навсегда. Ибо нефиг!
 		}
+		// Уберём символ ветра
+		if(TPVdata.wspeedt) delete TPVdata.wspeedt;
+		if(TPVdata.wanglet) delete TPVdata.wanglet;
+		if(TPVdata.wspeedr) delete TPVdata.wspeedr;
+		if(TPVdata.wangler) delete TPVdata.wangler;
+		windSymbolUpdate();
+
 		//MOBtab.className='disabled'; 	// если нет курсора (координат) -- невозможно включить режим MOB. Это плохая идея.
 		clearInterval(checkDataFreshInterval);	// остановить периодическую проверку свежести
 		window.setTimeout(spatialWebSocketStart, 3000); 	// перезапустим сокет через  секунд. В каком контексте здесь вызывается callback -- мне осталось непонятным, поэтому сокет ваще глобален
