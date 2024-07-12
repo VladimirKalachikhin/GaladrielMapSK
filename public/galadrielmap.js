@@ -1931,7 +1931,10 @@ else {
 } // end function windSwitchToggler
 
 function windSymbolUpdate(){
-/* предполагается, что значения ветра есть, хотя, может быть, и нулевые */
+/* предполагается, что значения ветра есть, хотя, может быть, и нулевые 
+При этом они уже приведены к абсолютному значению (относительно N), в отличии
+от оригинального GaladrielMap, где эта процедура имеет дело с ветром относительно судна
+*/
 //console.log('[windSymbolUpdate] useTrueWind=',useTrueWind);
 if(useTrueWind){	// options.js указано использовать истинный ветер
 	//console.log('[windSymbolUpdate] wspeedt=',TPVdata.wspeedt,'wanglet=',TPVdata.wanglet,'track=',TPVdata.track);
@@ -1940,8 +1943,7 @@ if(useTrueWind){	// options.js указано использовать исти�
 }
 else {	// указано использовать вымпельный ветер
 	//console.log('[windSymbolUpdate] wind dir=',TPVdata.wangler+TPVdata.heading,'wspeedr=',TPVdata.wspeedr);
-	let dir = TPVdata.wangler + (TPVdata.heading || TPVdata.track) - 90;	// картинка-то у нас горизонтальна
-	if(dir >= 360) dir -= 360;
+	let dir = TPVdata.wangler - 90;	// картинка-то у нас горизонтальна
 	//console.log('[windSymbolUpdate] dir=',dir);
 	realWindSymbolUpdate(dir,TPVdata.wspeedr);
 }

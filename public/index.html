@@ -972,19 +972,47 @@ function spatialWebSocketStart(){
 				case 'navigation.magneticDeviation':	// Magnetic deviation of the compass at the current headingCompass погрешность компаса, магнитная девиация
 					TPVdata.magdev = value.value*180/Math.PI;
 					break;
-				case 'environment.wind.directionTrue':	// The wind direction relative to true north
-					if(TPVdata.track){	// приведём к курсовому углу
-						TPVdata.wanglet = TPVdata.track+value.value*180/Math.PI;
-						TPVdata.windTime = update.timestamp;
-					}
-					break;
-				case 'environment.wind.angleTrueWater':	// True wind angle based on speed through water, negative to port
+				// Ветер. Будем определять его противоестественно: не относительно судна, а
+				// относительно N
+				case 'environment.wind.directionTrue':	// Абсолютный ветер. The wind direction relative to true north
 					TPVdata.wanglet = value.value*180/Math.PI;
 					TPVdata.windTime = update.timestamp;
 					break;
-				case 'environment.wind.angleApparent':	// Apparent wind angle, negative to port
-					TPVdata.wangler = value.value*180/Math.PI;
-					TPVdata.windTime = update.timestamp;
+				case 'environment.wind.angleApparent':	// Вымпельный ветер. Apparent wind angle, negative to port
+					if(TPVdata.heading){	// приведём к абсолютному значению в соответствии с курсом
+						TPVdata.wangler = TPVdata.heading+value.value*180/Math.PI;
+						if(TPVdata.wangler >= 360) TPVdata.wangler -= 360;
+						TPVdata.windTime = update.timestamp;
+					}
+					else if(TPVdata.track){	// но если вдруг курса нет, то к тому, что есть
+						TPVdata.wangler = TPVdata.track+value.value*180/Math.PI;
+						if(TPVdata.wangler >= 360) TPVdata.wangler -= 360;
+						TPVdata.windTime = update.timestamp;
+					};
+					break;
+				case 'environment.wind.angleTrueWater':	// Истинный ветер. True wind angle based on speed through water, negative to port
+					if(TPVdata.heading){	// истинный ветер, но приведём к курсу
+						TPVdata.wanglet = TPVdata.heading+value.value*180/Math.PI;
+						if(TPVdata.wanglet >= 360) TPVdata.wanglet -= 360;
+						TPVdata.windTime = update.timestamp;
+					}
+					else if(TPVdata.track){	// но если вдруг курса нет, то к тому, что есть
+						TPVdata.wanglet = TPVdata.track+value.value*180/Math.PI;
+						if(TPVdata.wanglet >= 360) TPVdata.wanglet -= 360;
+						TPVdata.windTime = update.timestamp;
+					};
+					break;
+				case 'environment.wind.angleTrueGround':	// Истинный ветер. True wind angle based on speed over ground, negative to port
+					if(TPVdata.track){	// истинный ветер, приведём к курсовому углу
+						TPVdata.wanglet = TPVdata.track+value.value*180/Math.PI;
+						if(TPVdata.wanglet >= 360) TPVdata.wanglet -= 360;
+						TPVdata.windTime = update.timestamp;
+					}
+					else if(TPVdata.heading){	// но если вдруг курсового угла нет, то к тому, что есть
+						TPVdata.wanglet = TPVdata.heading+value.value*180/Math.PI;
+						if(TPVdata.wanglet >= 360) TPVdata.wanglet -= 360;
+						TPVdata.windTime = update.timestamp;
+					};
 					break;
 				case 'environment.wind.speedTrue':	// Wind speed over water (as calculated from speedApparent and vessel's speed through water)
 					TPVdata.wspeedt = value.value;
