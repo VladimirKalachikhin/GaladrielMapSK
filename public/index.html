@@ -912,7 +912,7 @@ function spatialWebSocketStart(){
 			console.log('spatialWebSocket: Parsing inbound data',error.message);
 			return;
 		}
-		//console.log('From SignalK',data,vesselSelf);
+		//console.log('From SignalK',data);
 		if(!data.updates){	// ответ на какой-то запрос
 			//console.log('Other From SignalK',data);
 			if(data.self){	// handshaiking
@@ -982,11 +982,13 @@ function spatialWebSocketStart(){
 					if(TPVdata.heading){	// приведём к абсолютному значению в соответствии с курсом
 						TPVdata.wangler = TPVdata.heading+value.value*180/Math.PI;
 						if(TPVdata.wangler >= 360) TPVdata.wangler -= 360;
+						else if(TPVdata.wangler<0) TPVdata.wangler += 360;
 						TPVdata.windTime = update.timestamp;
 					}
 					else if(TPVdata.track){	// но если вдруг курса нет, то к тому, что есть
 						TPVdata.wangler = TPVdata.track+value.value*180/Math.PI;
 						if(TPVdata.wangler >= 360) TPVdata.wangler -= 360;
+						else if(TPVdata.wangler<0) TPVdata.wangler += 360;
 						TPVdata.windTime = update.timestamp;
 					};
 					break;
@@ -994,11 +996,13 @@ function spatialWebSocketStart(){
 					if(TPVdata.heading){	// истинный ветер, но приведём к курсу
 						TPVdata.wanglet = TPVdata.heading+value.value*180/Math.PI;
 						if(TPVdata.wanglet >= 360) TPVdata.wanglet -= 360;
+						else if(TPVdata.wanglet<0) TPVdata.wanglet += 360;
 						TPVdata.windTime = update.timestamp;
 					}
 					else if(TPVdata.track){	// но если вдруг курса нет, то к тому, что есть
 						TPVdata.wanglet = TPVdata.track+value.value*180/Math.PI;
 						if(TPVdata.wanglet >= 360) TPVdata.wanglet -= 360;
+						else if(TPVdata.wanglet<0) TPVdata.wanglet += 360;
 						TPVdata.windTime = update.timestamp;
 					};
 					break;
@@ -1006,11 +1010,13 @@ function spatialWebSocketStart(){
 					if(TPVdata.track){	// истинный ветер, приведём к курсовому углу
 						TPVdata.wanglet = TPVdata.track+value.value*180/Math.PI;
 						if(TPVdata.wanglet >= 360) TPVdata.wanglet -= 360;
+						else if(TPVdata.wanglet<0) TPVdata.wanglet += 360;
 						TPVdata.windTime = update.timestamp;
 					}
 					else if(TPVdata.heading){	// но если вдруг курсового угла нет, то к тому, что есть
 						TPVdata.wanglet = TPVdata.heading+value.value*180/Math.PI;
 						if(TPVdata.wanglet >= 360) TPVdata.wanglet -= 360;
+						else if(TPVdata.wanglet<0) TPVdata.wanglet += 360;
 						TPVdata.windTime = update.timestamp;
 					};
 					break;
@@ -1500,11 +1506,14 @@ function watchAISstart() {
 	const netAISdefaultSymbol = [1*0.5,0, 0.25*0.5,0.25*0.5, 0,1*0.5, -0.25*0.5,0.5*0.5, -1*0.5,0.75*0.5, -1*0.5,-0.75*0.5, -0.25*0.5,-0.5*0.5, 0,-1*0.5, 0.25*0.5,-0.25*0.5]; 	// треугольник, расстояния от центра, через которые нарисуют polyline
 	const netAISnoHeadingSymbol = [1*0.35,0, 0.75*0.35,0.5*0.35, 1*0.35,1*0.35, 0.5*0.35,0.75*0.35, 0,1*0.35, -0.5*0.35,0.75*0.35, -1*0.35,1*0.35, -0.75*0.35,0.5*0.35, -1*0.35,0, -0.75*0.35,-0.5*0.35, -1*0.35,-1*0.35, -0.5*0.35,-0.75*0.35, 0,-1*0.35, 0.5*0.35,-0.75*0.35, 1*0.35,-1*0.35, 0.75*0.35,-0.5*0.35]; 	// ромбик: правый, верхний, левый, нижний ПРотив часовой от правого?
 	//console.log(vehicle,'протух на',(Date.now()-AISdata[vehicle].timestamp*1000)/1000,aisFreshBefore/1000);
-	if((Date.now()-AISdata[vehicle].timestamp*1000)>aisFreshBefore){	// не показываем протухшие цели. Они могут появляться быстрее, чем удаляются из списка aisData
-		//delete AISdata[vesselSelf];
-		vehicles[vesselSelf].remove();
-		vehicles[vesselSelf] = null;
-		delete vehicles[vesselSelf];
+	// не показываем протухшие цели. Они могут появляться быстрее, чем удаляются из списка aisData
+	// тем более, что решили из AISdata их не удалять
+	if(vehicles[vehicle] && (Date.now()-AISdata[vehicle].timestamp*1000)>aisFreshBefore){	
+		//console.log('Протух vehicle',vehicle,vehicles[vehicle],AISdata[vehicle]);
+		//delete AISdata[vehicle];
+		vehicles[vehicle].remove();
+		vehicles[vehicle] = null;
+		delete vehicles[vehicle];
 		return;	// ? Может быть, надо, оставив в AISdata, удалить из vehicles и с экрана?
 	}
 	if(!vehicles[vehicle]) { 	// global var, массив layers с целями

@@ -14,10 +14,9 @@ var i18n;
 
 function internalisationApply() {
 //
-let i18nFileName;
-if(navigator.language.includes('ru')) i18nFileName = 'ru.json';
-else i18nFileName = 'en.json';
+let i18nFileName = navigator.language.split(',',1)[0].split(';',1)[0].split('-',1)[0].toLowerCase()+'.json';	// хотя она и так должна быть LowerCase, но то должна.
 //i18nFileName = 'en.json';
+//console.log('internationalisation.js [internalisationApply] i18nFileName=',i18nFileName,navigator.language);
 
 let xhr = new XMLHttpRequest();
 xhr.open('GET', '/plugins/galadrielmap_sk/', false); 	// оно не успевает к нужному, поэтому синхронно
