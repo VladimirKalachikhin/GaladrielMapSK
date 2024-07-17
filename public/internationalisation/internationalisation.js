@@ -15,7 +15,7 @@ var i18n;
 function internalisationApply() {
 //
 let i18nFileName = navigator.language.split(',',1)[0].split(';',1)[0].split('-',1)[0].toLowerCase()+'.json';	// хотя она и так должна быть LowerCase, но то должна.
-i18nFileName = 'fi.json';
+//i18nFileName = 'fi.json';
 //console.log('internationalisation.js [internalisationApply] i18nFileName=',i18nFileName,navigator.language);
 
 let xhr = new XMLHttpRequest();
