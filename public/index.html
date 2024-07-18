@@ -1083,9 +1083,11 @@ function spatialWebSocketStart(){
 			//MOBtab.className='disabled'; 	// если нет курсора (координат) -- невозможно включить режим MOB. Это плохая идея.
 			//return;	// могут быть другие величины, например - глубина
 		}
-		// Свежее ли положение известно? -- установим курсор в положение
-		//MOBtab.className=''; 	// координаты появились -- можно включить режим MOB
-		positionCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // установим координаты всех маркеров
+		else {
+			// Свежее ли положение известно? -- установим курсор в положение
+			//MOBtab.className=''; 	// координаты появились -- можно включить режим MOB
+			positionCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // установим координаты всех маркеров
+		};
 		if(distCirclesSwitch.checked) distCirclesUpdate(distCircles);	// нарисуем круги дистанции
 		let positionTime = new Date(gpsdData.positionTime);
 		let now = new Date();
