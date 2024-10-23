@@ -14,10 +14,6 @@ var i18n;
 
 function internalisationApply() {
 //
-let i18nFileName = navigator.language.split(',',1)[0].split(';',1)[0].split('-',1)[0].toLowerCase()+'.json';	// хотя она и так должна быть LowerCase, но то должна.
-//i18nFileName = 'fi.json';
-//console.log('internationalisation.js [internalisationApply] i18nFileName=',i18nFileName,navigator.language);
-
 let xhr = new XMLHttpRequest();
 xhr.open('GET', '/plugins/galadrielmap_sk/', false); 	// оно не успевает к нужному, поэтому синхронно
 xhr.send();
@@ -28,8 +24,8 @@ if (xhr.status == 200) { 	// Успешно
 		document.title = 'GaladrielMap SignalK edition '+versionTXT;
 	}
 	catch(err) { 	// а ваще облом, ибо нефиг
-	}
-}
+	};
+};
 /* 
 fetch('/plugins/galadrielmap_sk/').then(response => response.json()).then(data => {
 	versionTXT = data.version;	// глобальная переменная
@@ -39,11 +35,21 @@ fetch('/plugins/galadrielmap_sk/').then(response => response.json()).then(data =
 });
 */
 // Глобальные подписи, которые где-то используются. Неизвестно уже, где
-i18n = getI18nData(i18nFileName);
+//const navlen = 'nb-NO,nb;q=0.9,no-NO;q=0.8,no;q=0.6,nn-NO;q=0.5,nn;q=0.4,en-US;q=0.3,en;q=0.1';
+//let i18nFileNames = navlen.split(',').map((l)=>l.split(';')[0]);
+let i18nFileNames = navigator.language.split(',').map((l)=>l.split(';')[0]);
+// Здесь игнорируются двойные локали (en-US), поэтому американскую локализацию сделать нельзя. Удмуртскую тоже.
+i18nFileNames = Array.from(new Set(i18nFileNames.map((l)=>l.split('-')[0].toLowerCase())));	// unique через set
+console.log('[internalisationApply] navigator.language=',navigator.language,'i18nFileNames:',i18nFileNames);
+for(const i18nFileName of i18nFileNames){
+	i18n = getI18nData(i18nFileName+'.json');
+	if(i18n) break;
+};
 if(!i18n) {
 	console.log('No localisation data, trying to use default.');
 	i18n = getI18nData('en.json');
 }
+//console.log('[internalisationApply] i18n=',i18n);
 if(i18n){
 	({	dashboardDepthMesTXT, 
 		dashboardMeterMesTXT, 
@@ -102,14 +108,15 @@ if(i18n){
 			console.log('WARNING: No such element: '+DOMid+'\t', error);
 		};
 	};
-};
+}; 
+// end
 
 function getI18nData(i18nFileName){
 //fetch('internationalisation/'+i18nFileName).then(response => response.json()).then(data => {
 //}).catch((error) => {
 //	console.error('Get localisation strings Error:', error);
 //});
-xhr = new XMLHttpRequest();
+let xhr = new XMLHttpRequest();
 xhr.open('GET', 'internationalisation/'+i18nFileName, false); 	// оно не успевает к нужному, поэтому синхронно
 xhr.send();
 if (xhr.status == 200) { 	// Успешно

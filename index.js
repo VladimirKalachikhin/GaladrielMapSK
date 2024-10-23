@@ -10,7 +10,6 @@ plugin.schema = {
 	title: plugin.name,
 	description: 'Reload chartplotter after changing all of this.',
 	type: 'object',
-	required: ['PosFreshBefore','DepthFreshBefore','routeDir','trackDir'],
 	properties: {
 		options:{
 			type: 'object',
@@ -58,6 +57,29 @@ plugin.schema = {
 					title: 'Velocity vector length.',
 					description: 'Own and AIS targets, minutes of movement.',
 					default: 10
+				},
+				defaultMap:{
+					type: 'string',
+					title: 'Default map',
+					description:'Map to display then no map selected. Signal K Charts plugin identifier, no Signal K Charts plugin Provider Name. Find identifier by http://http://localhost:3000/signalk/v1/api/resources/charts/',
+					default: 'world-coastline'
+				},
+				defaultCenter:{
+					type: "object",
+					title: 'Default map center',
+					description:'map center when no coordinates sets',
+					properties: {
+						latitude: {
+							title: "Latitude",
+							type: "number",
+							default: 55.754
+						},
+						longitude: {
+							title: "Longitude",
+							type: "number",
+							default: 37.62
+						}
+					}
 				}
 			}
 		},
@@ -165,12 +187,17 @@ let currentTrackName = '';	// имя текущего файла, без пут�
 
 if(options.options.speedProp.feature.includes('SOG')) options.options.speedProp.feature = 'navigation.speedOverGround';
 else if(options.options.speedProp.feature.includes('STW')) options.options.speedProp.feature = 'navigation.speedThroughWater';
-
 if(options.options.depthProp.feature.includes('DBS')) options.options.depthProp.feature = 'environment.depth.belowSurface';
 else if(options.options.depthProp.feature.includes('DBK')) options.options.depthProp.feature = 'environment.depth.belowKeel';
 else if(options.options.depthProp.feature.includes('DBT')) options.options.depthProp.feature = 'environment.depth.belowTransducer';
+if(options.options.velocityVectorLengthInMn == undefined) options.options.velocityVectorLengthInMn = 10;
+if(options.options.defaultMap == undefined) options.options.defaultMap = 'world-coastline';
+if(options.options.defaultCenter.latitude == undefined) options.options.defaultCenter.latitude = 55.754;
+if(options.options.defaultCenter.longitude == undefined) options.options.defaultCenter.longitude = 37.62;
+if(options.depthInData.minvalue == undefined) options.options.depthInData.minvalue = 0;
+if(options.depthInData.maxvalue == undefined) options.options.depthInData.maxvalue = 10;
 
-if(!options.directory.routeDir) options.directory.routeDir = 'route';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает
+if(!options.directory.routeDir) options.directory.routeDir = 'route';	// Вообще-то, это обстоятельство должно ослеживаться SignalK, но по факту оно этого не делает. Не должно. Я слишком хорошо о них думаю. default в схеме вовсе не означает, что в отсутствии значения будет поставлено это.
 if(options.directory.routeDir[0]!='/') options.directory.routeDir = path.resolve(__dirname,'./public',options.directory.routeDir);	// если путь не абсолютный -- сделаем абсолютным
 try{
 	fs.mkdirSync(options.directory.routeDir,{recursive:true});
@@ -205,11 +232,14 @@ catch(error){
 		app.debug(`False to create ${options.directory.trackDir} by Operation timed out`);
 		app.setPluginError(`False to create ${options.directory.trackDir} by Operation timed out`);
 		break;
-	}
-}
+	};
+};
 
-
-
+if(options.timeouts.PosFreshBefore == undefined) options.timeouts.PosFreshBefore = 5;
+if(options.timeouts.SpeedFreshBefore == undefined) options.timeouts.SpeedFreshBefore = 2;
+if(options.timeouts.DepthFreshBefore == undefined) options.timeouts.DepthFreshBefore = 2;
+if(options.timeouts.WindFreshBefore == undefined) options.timeouts.WindFreshBefore = 2;
+if(options.timeouts.aisFreshBefore == undefined) options.timeouts.aisFreshBefore = 600;
 
 let trackDir = options.directory.trackDir;
 
@@ -564,6 +594,8 @@ else {
 	windSpeed = "environment.wind.speedApparent";
 }
 const optionsjs = `// This file created automatically. Don't edit it!
+const defaultCenter = [${options.options.defaultCenter.latitude},${options.options.defaultCenter.longitude}];
+const defaultMap = '${options.options.defaultMap}'; 	// chart-plugin identifier Карта, которая показывается, если нечего показывать. Народ интеллектуальный ценз ниасилил.
 const velocityVectorLengthInMn = ${options.options.velocityVectorLengthInMn};
 const mob_markerImg = '${mob_markerImg}';
 let PosFreshBefore = ${options.timeouts.PosFreshBefore * 1000}; 	// время в милисекундах, через которое положение считается протухшим

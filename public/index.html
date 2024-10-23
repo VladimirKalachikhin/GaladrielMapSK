@@ -1,5 +1,5 @@
 <!DOCTYPE html >
-<html lang="ru">
+<html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<meta http-equiv="Content-Script-Type" content="text/javascript">
@@ -62,7 +62,7 @@ html, body, #mapid {
 			<li id="routesTab"><a href="#routes" role="tab"><img src="img/poi.svg" alt="Routes and POI" width="70%"></a></li>
 		</ul>
 		<ul role="tablist" id="settingsList">
-			<li id="MOBtab"><a href="#MOB" role="tab"><img src="img/mob.svg" alt="activate MOB" width="70%"></a></li>
+			<li id="MOBtab" style="margin-bottom:1.5em;"><a href="#MOB" role="tab"><img src="img/mob.svg" alt="activate MOB" width="70%"></a></li>
 			<li><a href="#settings" role="tab"><img src="img/settings1.svg" alt="settings" width="70%"></a></li>
 		</ul>
 	</div>
@@ -215,8 +215,8 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 					<button onClick='goToPositionField.value += "″";goToPositionField.focus();' style="width:2rem;height:1.5rem;margin:0 0rem 0 0;"><span style="font-weight: bold; font-size:150%;">″</span></button><br>
 				</div>
 				<span id="routePosTXT"></span><br>
-				<input id='goToPositionField' type="text" title="" size='12' style='width:11rem;font-size:150%;'>			
-				<button id='goToPositionButton' onClick='flyByString(goToPositionField.value);' style="width:3rem;padding:0.2rem;float:right;"><img src="img/ok.svg" alt="Ok" width="16px"></button><br>
+				<input id='goToPositionField' type="text" title="" size='12' style='width:70%;font-size:150%;'>			
+				<button id='goToPositionButton' class='okButton' onClick='flyByString(goToPositionField.value);' style="float:right;"><img src="img/ok.svg" alt="Ok" width="16px"></button><br>
 			</div>
 			<div  style='width:98%;height:12rem;overflow:auto;margin:0.3rem 0;'>
 				<ul id='geocodedList' class='commonList'>
@@ -286,7 +286,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 		<!-- Настройки -->
 		<div class="leaflet-sidebar-pane" id="settings">
 			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"><span id="settingsHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
-			<div style="margin: 1rem 1rem;"> <!-- Следование за курсором -->
+			<div style="margin:  0.7em 1em;"> <!-- Следование за курсором -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
 					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="followSwitch" onChange="noFollowToCursor=!noFollowToCursor; CurrnoFollowToCursor=noFollowToCursor;" checked>
 					<label class="onoffswitch-label" for="followSwitch">
@@ -296,7 +296,8 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 				</div>
 				<span style="font-size:120%" id="settingsCursorTXT"></span>
 			</div>
-			<div style="margin: 1rem 1rem;"> <!-- Текущий трек всегда показывается -->
+			<br>
+			<div style="margin:  0.7em 1em;"> <!-- Текущий трек всегда показывается -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
 					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="currTrackSwitch" onChange="loggingWait();" checked>
 					<label class="onoffswitch-label" for="currTrackSwitch">
@@ -306,7 +307,8 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 				</div>
 				<span style="font-size:120%" id="settingsTrackTXT"></span>
 			</div>
-			<div style="margin: 1rem 1rem;"> <!-- Выбранные маршруты всегда показываются -->
+			<br>
+			<div style="margin:  0.7em 1em;"> <!-- Выбранные маршруты всегда показываются -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
 					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="SelectedRoutesSwitch" onChange="">
 					<label class="onoffswitch-label" for="SelectedRoutesSwitch">
@@ -316,7 +318,8 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 				</div>
 				<span style="font-size:120%" id="settingsRoutesAlwaysTXT"></span>
 			</div>
-			<div style="margin: 1rem 1rem;"> <!-- Показывать окружности дистанции -->
+			<br>
+			<div style="margin:  0.7em 1em;"> <!-- Показывать окружности дистанции -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
 					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="distCirclesSwitch" onChange="distCirclesToggler();">
 					<label class="onoffswitch-label" for="distCirclesSwitch">
@@ -326,7 +329,8 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 				</div>
 				<span style="font-size:120%" id="settingsdistCirclesTXT"></span>
 			</div>
-			<div style="margin: 1rem 1rem;"> <!-- Показывать символ ветра -->
+			<br>
+			<div style="margin:  0.7em 1em;"> <!-- Показывать символ ветра -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
 					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="windSwitch"  onChange="windSwitchToggler();">
 					<label class="onoffswitch-label" for="windSwitch">
@@ -336,8 +340,8 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 				</div>
 				<span style="font-size:120%" id="settingsdistWindTXT"></span>
 			</div>
-			<br><br>
-			<div style="margin: 1rem 1rem;"> <!-- Показ целей AIS -->
+			<br>
+			<div style="margin: 3em 1em 0.1em;"> <!-- Показ целей AIS -->
 				<div class="onoffswitch" style="float:right;margin: 0 auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
 					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="DisplayAISswitch" onChange="watchAISswitching();">
 					<label class="onoffswitch-label" for="DisplayAISswitch">
@@ -345,10 +349,10 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 						<span class="onoffswitch-switch"></span>
 					</label>
 				</div>
-				<span style="font-size:120%;vertical-align:middle;" id="DisplayAIS_TXT"></span>
+				<span style="font-size:120%;" id="DisplayAIS_TXT"></span>
 			</div>
-			<br><br>
-			<div style="margin: 1rem 1rem;"> <!-- максимальная скорость обновления -->
+			<br>
+			<div style="margin: 3em 1em 0.1em;"> <!-- максимальная скорость обновления -->
 				<div style="float:right;margin: 1rem auto;">
 					<input id='minWATCHintervalInput' type="text" pattern="[0-9]*" title="" size='4' style='width:3rem;font-size:175%;'
 					 onChange="minWATCHinterval=parseFloat(this.value);
@@ -359,7 +363,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 					"
 					>
 				</div>
-				<span style="font-size:120%;vertical-align:middle;" id="minWATCHintervalTXT"></span>
+				<span style="font-size:120%;" id="minWATCHintervalTXT"></span>
 			</div>
 		</div>
 	</div>
@@ -370,12 +374,11 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 <script> "use strict";
 // Глобальные переменные
 // Карта
-var defaultMap = 'world-coastline'; 	// chart-plugin identifier Карта, которая показывается, если нечего показывать. Народ интеллектуальный ценз ниасилил.
 var showMapsList = JSON.parse(getCookie('GaladrielshowMapsList')) || [];	// массив названий избранных карт
 var savedLayers = []; 	// массив для хранения объектов, когда они не на карте
 var additionalTileCachePath = ''; 	// дополнительный кусок пути к тайлам между именем карты и /z/x/y.png Используется в версионном кеше, например, в погоде. Без / в конце, но с / в начале, либо пусто. Присваивается в javascriptOpen в параметрах карты. Или ещё где-нибудь.
 var startCenter = JSON.parse(getCookie('GaladrielMapPosition')); 	// getCookie from galadrielmap.js
-if(! startCenter) startCenter = L.latLng([55.754,37.62]); 	// начальная точка
+if(! startCenter) startCenter = L.latLng(defaultCenter); 	// начальная точка из options.js
 var startZoom = JSON.parse(getCookie('GaladrielMapZoom')); 	// getCookie from galadrielmap.js
 if(! startZoom) startZoom = 12; 	// начальный масштаб
 var userMoveMap = true; 	// флаг для отделения собственных движений карты от пользовательских. Считаем все пользовательскими, и только где надо - выставляем иначе
@@ -663,7 +666,12 @@ map.on('editable:drawing:end',	function(event) {
 	routeCreateButton.checked=false;
 });
 map.on('editable:vertex:dragstart',	function(event) {
-	window.navigator.vibrate(200); // Вибрировать 200ms
+	// Придурки из Mozilla сделали Error при вызове этой функции из десктопного браузера, когда как
+	// в https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate ясно сказано:
+	// "If the device doesn't support vibration, this method has no effect. "
+	// И до какого-то момента так всё и было.
+	// Короче, они это отключили, но никому не сказали: https://github.com/mdn/content/issues/34703
+	if(typeof window.navigator.vibrate === 'function') window.navigator.vibrate(200); // Вибрировать 200ms
 });
 
 // Круги дистанции
@@ -1087,6 +1095,7 @@ function spatialWebSocketStart(){
 			// Свежее ли положение известно? -- установим курсор в положение
 			//MOBtab.className=''; 	// координаты появились -- можно включить режим MOB
 			positionCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // установим координаты всех маркеров
+			positionCursor.addTo(map); 	// добавить курсор на карту
 		};
 		if(distCirclesSwitch.checked) distCirclesUpdate(distCircles);	// нарисуем круги дистанции
 		let positionTime = new Date(gpsdData.positionTime);
@@ -1218,8 +1227,6 @@ function spatialWebSocketStart(){
 		collisionAreaMarker.setRotationAngle(gpsdData.heading); // повернём маркер
 		*/
 		
-		positionCursor.addTo(map); 	// добавить курсор на карту
-
 		// Окружность точност ГПС
 		var errGNSS = (+gpsdData.errX+gpsdData.errY)/2;
 		if(!errGNSS) errGNSS = 10; // метров
