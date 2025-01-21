@@ -106,7 +106,7 @@ L.TrackSymbol = L.Path.extend({
   _setPath: function(){
   	let pathString = this.getPathString();
   	let center = this._map.latLngToLayerPoint(this._latlng);
-  	//console.log("leaflet-tracksymbol [_setPath] status=",this.options.status);
+  	//console.log("status=",this.options.status);
   	switch(+this.options.status){
   	case 1:
   	case 5:
@@ -115,8 +115,8 @@ L.TrackSymbol = L.Path.extend({
 M ${center.x+4} ${center.y-4} L ${center.x-4} ${center.y+4} 
 M ${center.x} ${center.y-4} L ${center.x} ${center.y+4} 
 M ${center.x-4} ${center.y} L ${center.x+4} ${center.y} `;
-  	}
-  	//console.log('leaflet-tracksymbol [_setPath] center=',center,'pathString=',pathString);
+  	};
+  	//console.log('[_setPath] center=',center,'pathString=',pathString);
     this._path.setAttribute('d',pathString);
   },
 
@@ -155,10 +155,11 @@ M ${center.x-4} ${center.y} L ${center.x+4} ${center.y} `;
 			delete aisData.lon;
 		}
 	    L.setOptions(this, aisData); 	// остальное запишем в options
+		//console.log(this.options);
 		//console.log(this.options.mmsi);
 		//console.log(this._shiptype);
 
-       	//if(this.options.mmsi==230703000) console.log(this.options);
+       	//if(this.options.mmsi==244770791) console.log(this.options);
        	let speedKMH='';
        	if(this._speed) speedKMH = Math.round((this._speed*60*60/1000)*10)/10+' Km/h';
       
@@ -197,12 +198,43 @@ M ${center.x-4} ${center.y} L ${center.x+4} ${center.y} `;
 		case 12: 	// power-driven vessel pushing ahead or towing alongside (regional use)
 			iconName = 'waterskiing.png';
 			break;
+		case 14:	// AIS-SART (active), MOB-AIS, EPIRB-AIS
+			//console.log("this.options.safety_related_text=",this.options.safety_related_text);
+			const cautions = ['wreck','sinking','fire','criminal','pirate','robbery','aid','medical'];
+			let words = [];
+			if(this.options.safety_related_text) words = this.options.safety_related_text.toLowerCase().split(/[^a-zA-Z]+/).filter(word => word.length > 0);	// https://dev.to/kamonwan/the-right-way-to-break-string-into-words-in-javascript-3jp6
+			words = new Set(words);
+			const caution = [...cautions].filter(word => words.has(word));
+			//console.log('[addData] :',caution);
+			switch(caution[0]){
+			case 'wreck': 
+			case 'sinking': 
+				iconName = 'shipwreck_danger.png';
+				break;
+			case 'fire': 
+				iconName = 'fire.png';
+				break;
+			case 'criminal': 
+			case 'pirate': 
+			case 'robbery': 
+				iconName = 'robbery.png';
+				break;
+			case 'aid': 
+			case 'medical': 
+				iconName = 'medical.png';
+				break;
+			default:
+				iconName = 'caution.png';
+			}
+			break;
 		default: 	// undefined = default
 			iconName = '';
 			break;
 		}
-		//console.log("aisData['status']=",aisData['status'],thisScript.src.substr(0, thisScript.src.lastIndexOf("/"))+"/symbols/"+iconName);
-		if(iconName) iconName = '<img width="24px" style="float:right;margin:0.1rem;" src="'+(thisScript.src.substr(0, thisScript.src.lastIndexOf("/"))+"/symbols/"+iconName)+'">';
+		//console.log("aisData['status']=",aisData['status'],thisScript.src.substring(0, thisScript.src.lastIndexOf("/"))+"/symbols/"+iconName);
+		//console.log("aisData['safety_related_text']=",aisData['safety_related_text']);
+		let iconIMG='';
+		if(iconName) iconIMG = '<img width="24px" style="float:right;margin:0.1rem;" src="'+(thisScript.src.substring(0, thisScript.src.lastIndexOf("/"))+"/symbols/"+iconName)+'">';
 		let statusText;
 		if(!aisData.status_text) statusText = AISstatusTXT[aisData.status];	// internationalisation
 		else statusText = aisData.status_text.trim();
@@ -219,7 +251,7 @@ M ${center.x-4} ${center.y} L ${center.x+4} ${center.y} `;
 
 		let PopupContent = `
 <div>
-	${iconName}
+	${iconIMG}
 	<span style='font-size:120%';'>${this.options.shipname||''}</span><br>
 	<div style='width:100%;'>
 	${this.options.mmsi} <span style='float:right;'>${this.options.callsign||''}</span>
@@ -228,23 +260,39 @@ M ${center.x-4} ${center.y} L ${center.x+4} ${center.y} `;
 		${shiptype_text||''}
 	</div>
 	<div style='width:100%;background-color:lavender;'>
-		<span style='font-size:110%;'>${statusText||''}</span><br>
+		<span style='font-size:110%;'>${this.options.safety_related_text||''} ${statusText||''}</span><br>
 	</div>
 	<div style='width:100%;'>
 		<div style='width:40%;float:right;text-align:right;'>${speedKMH}</div>
 		<span >${this.options.destination||''}</span>
 	</div>
-${this.options.hazard_text||''} ${this.options.loaded_text||''}<br>
-<span style='float:right;'>This on <a href='http://www.marinetraffic.com/ais/details/ships/mmsi:${this.options.mmsi}' target='_blank'>MarineTraffic.com</a></span>
-<span>${dataStamp}</span>
+${this.options.hazard_text||''} ${this.options.loaded_text||''}<br>`;
+		if(this.options.mmsi && this.options.mmsi.substring(0,2)!=='97') PopupContent += `<span style='float:right;'>This on <a href='http://www.marinetraffic.com/ais/details/ships/mmsi:${this.options.mmsi}' target='_blank'>MarineTraffic.com</a></span>`;	// это не AIS-SART
+		PopupContent += `<span>${dataStamp}</span>
 </div>
 		`;
         if(this.getPopup()){
             this.getPopup().setContent(PopupContent);
         }
         else console.log('Нет POPUP!')
-
-	return this.redraw(); 	// 
+        
+		if(this.options.sart){	// AIS-SART, но не обязательно mmsi==97XXXXXXX
+	        if(!this.getTooltip()){
+				// Идея показать картинку вместо Tooltip с целью имитации маркера, который здесь 
+				// ну совсем лишний, реализовалась, как обычно, через жопу. Иначе никак.
+				this.bindTooltip('',{
+					permanent:true,
+					direction:"top",
+					opacity:1,
+					className:"sartTooltip"
+				}); 	// приклеим tooltip. .closeTooltip() не надо?
+			};
+			const TooltipContent = '<img width="24px" style="margin:0; position:relative; bottom:24px; right:12px; opacity:1 !important;" src="'+thisScript.src.substring(0, thisScript.src.lastIndexOf("/"))+'/symbols/'+iconName+'">';
+			this.getTooltip().setContent(TooltipContent); 	// .openTooltip() не надо?
+		};
+		
+		//console.log('[addData] result this:',this)
+		return this.redraw(); 	// 
 	},
 
   /**

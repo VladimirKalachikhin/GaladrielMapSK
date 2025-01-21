@@ -755,6 +755,18 @@ const AISsubscribe = {
 			"minPeriod": 0
 		},
 		{
+			"path": "navigation.state_text",
+			"format": "delta",
+			"policy": "instant",
+			"minPeriod": 0
+		},
+		{
+			"path": "navigation.safety_related_text",
+			"format": "delta",
+			"policy": "instant",
+			"minPeriod": 0
+		},
+		{
 			"path": "navigation.courseOverGroundTrue",
 			"format": "delta",
 			"policy": "instant",

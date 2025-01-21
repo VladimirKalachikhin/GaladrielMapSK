@@ -26,6 +26,7 @@
 
     <script src="L.TileLayer.Mercator/src/L.TileLayer.Mercator.js"></script>
 	<script src="supercluster/dist/supercluster.js"></script>
+	<link rel="stylesheet" href="leaflet-tracksymbolPATCHED/leaflet-tracksymbol.css"/>
 	<script src="leaflet-tracksymbolPATCHED/leaflet-tracksymbol.js"></script>
 
 	<script src="coordinate-parserPATCHED/coordinates.js">	</script>
@@ -33,6 +34,8 @@
 	<script src="coordinate-parserPATCHED/coordinate-number.js"></script> 
 	
 	<script src="long-press-event/dist/long-press-event.min.js"></script>
+
+	<script src="Leaflet.TextPath/leaflet.textpath.js"></script>
 
 	<link rel="stylesheet" href="galadrielmap.css" type="text/css"> <!-- замена стилей -->
 	<script src="galadrielmap.js"></script>
@@ -506,6 +509,9 @@ L.control.scale({
 var copyToClipboard = new L.Control.CopyToClipboard({ 	// класс определён в galadrielmap.js
 	position: 'bottomright'
 }); 	// на карту не добавляется
+
+// Добавим копирование содержимого goToPositionField. На него навешивается много обработчиков
+goToPositionField.addEventListener('long-press', function(e){doCopyToClipboard(goToPositionField.value);}); 	// при получении фокуса - прекратить обновление
 
 
 // Панель управления
@@ -1261,7 +1267,7 @@ function spatialWebSocketStart(){
 			//console.log('azimuth=',azimuth,latlng1, latlng2)
 			azimuthMOBdisplay.innerHTML = Math.round(azimuth);
 			distanceMOBdisplay.innerHTML = Math.round(latlng1.distanceTo(latlng2));
-			locationMOBdisplay.innerHTML = latTXT+' '+Math.round(currentMOBmarker.getLatLng().lat*10000)/10000+' '+longTXT+' '+Math.round(currentMOBmarker.getLatLng().lng*10000)/10000;	
+			locationMOBdisplay.innerHTML = latTXT+' '+Math.round(currentMOBmarker.getLatLng().lat*10000)/10000+'<br>'+longTXT+' '+Math.round(currentMOBmarker.getLatLng().lng*10000)/10000;	
 			let heading = gpsdData.track || gpsdData.heading || gpsdData.mheading;
 			if(heading) {
 				let relBearing = azimuth-heading+22.5;	// половина от 45 против часовой стрелке
@@ -1350,7 +1356,7 @@ function watchAISstart() {
 			for(let value of update.values){
 				//console.log(data.context,value.path,value.value);
 				//console.log(data.context,value);
-				//if(data.context == 'vessels.urn:mrn:imo:mmsi:357535405') console.log(data.context,value.value);
+				//if(data.context == 'vessels.urn:mrn:imo:mmsi:201246757') console.log(data.context,value.path,value.value);
 				switch(value.path){
 				case '':	// похоже, правильный путь - "", а не name, но тогда нет места для mmsi, ибо оно тоже по пути "". 
 							// Но, видимо, по одному пути может быть много объектов?
@@ -1412,10 +1418,21 @@ function watchAISstart() {
 					//console.log(vessel,'navigationDatetime=',AISdata[vessel].navigationDatetime,`AISdata[vessel].timestamp=`,AISdata[vessel].timestamp,Math.round(Date.parse(update.timestamp)/1000)-AISdata[vessel].timestamp);
 					if(!AISdata[vessel].navigationDatetime) AISdata[vessel].timestamp = Math.round(Date.parse(update.timestamp)/1000);	// Если navigation.datetime не посылается
 					break;
-				case 'navigation.state':	// Злопротивный SignalK присылает статус как левый текст.
+				case 'navigation.safety_related_text':	
+					AISdata[vessel].safety_related_text = value.value;
+					break;
+				case 'navigation.state_text':	
+					AISdata[vessel].status_text = value.value;
+					//console.log(data.context,value.path,value.value);
+					break;
+				case 'navigation.state':	
+					// Злопротивный SignalK присылает статус как левый текст, причём не всегда,
+					// а когда делает какие-то выводы относительно этого статуса.
+					// Так, если исходное сообщение AIS имеет тип 14 и mmsi 97.. - то будет 
+					// type ais-sart, а иначе - исходный тип 14. Казлы.
 					//console.log(value.value);
 					if(isNaN(value.value)) {
-						AISdata[vessel].status_text = value.value;
+						if(!AISdata[vessel].status_text) AISdata[vessel].status_text = value.value;
 						switch(value.value){	//Navigational status 0 = under way using engine, 1 = at anchor, 2 = not under command, 3 = restricted maneuverability, 4 = constrained by her draught, 5 = moored, 6 = aground, 7 = engaged in fishing, 8 = under way sailing, 9 = reserved for future amendment of navigational status for ships carrying DG, HS, or MP, or IMO hazard or pollutant category C, high speed craft (HSC), 10 = reserved for future amendment of navigational status for ships carrying dangerous goods (DG), harmful substances (HS) or marine pollutants (MP), or IMO hazard or pollutant category A, wing in ground (WIG);11 = power-driven vessel towing astern (regional use), 12 = power-driven vessel pushing ahead or towing alongside (regional use); 13 = reserved for future use, 14 = AIS-SART (active), MOB-AIS, EPIRB-AIS 15 = undefined = default (also used by AIS-SART, MOB-AIS and EPIRB-AIS under test)
 						case 'motoring':
 							AISdata[vessel].status = 0;	// under way using engine
@@ -1443,6 +1460,9 @@ function watchAISstart() {
 							break;
 						case 'sailing':
 							AISdata[vessel].status = 8;	// under way sailing
+							break;
+						case 'ais-sart':
+							AISdata[vessel].status = 14;	// AIS-SART (active), MOB-AIS, EPIRB-AIS
 							break;
 						case 'default':
 						default:
@@ -1540,6 +1560,7 @@ function watchAISstart() {
 	// Значёк будем переприсваивать каждый раз, потому что в SignalK неизвестно, когда придёт
 	// признак AISdata[vehicle].netAIS
 	if(AISdata[vehicle].netAIS) { 	// цель получена от netAIS
+		//console.log('Create netAIS layers',vehicle,AISdata[vehicle]);
 		vehicles[vehicle].setDefaultSymbol(netAISdefaultSymbol);
 		vehicles[vehicle].setNoHeadingSymbol(netAISnoHeadingSymbol);
 	}
@@ -1547,14 +1568,15 @@ function watchAISstart() {
 		vehicles[vehicle].setDefaultSymbol(defaultSymbol);
 		vehicles[vehicle].setNoHeadingSymbol(noHeadingSymbol);
 	}
+	if(AISdata[vehicle].status==14)	AISdata[vehicle].sart=true;	// .sart отдельно потому, что непонятно, по каким признакам устаналивать, что это sart. В данном случае - только по признаку status==14
 	// обновим данные Здесь обязательно нужно передать "по значению", почему -- неясно.	
 	// addData просто заменяет всё на параметр? Оно заменяет всё на ссылку на параметр.
 	// Но тогда всё равно данные должны быть полными, ведь в AISdata полные данные?
-	//if(AISdata[vehicle].mmsi == '230279000') {
+	//if(AISdata[vehicle].mmsi == '201246757') {
 	//	// в AISdata действительно полные данные
 	//	//console.log(JSON.stringify(AISdata[vehicle]));
 	//	console.log(AISdata[vehicle]);
-	//}
+	//};
 	// Видимо, проблема в addData и/или дальше, в L.trackSymbol. Нужно ли разбираться?
 	vehicles[vehicle].addData(JSON.parse(JSON.stringify(AISdata[vehicle]))); 
 	//vehicles[vehicle].addData(AISdata[vehicle]); 
@@ -1564,6 +1586,7 @@ function watchAISstart() {
 	let latlng = vehicles[vehicle].getLatLng();
 	if((latlng.lat || latlng.lng) && !map.hasLayer(vehicles[vehicle])){
 		vehicles[vehicle].addTo(map);
+		//console.log('[realtimeAISupdate] vehicles[vehicle]:',vehicle,vehicles[vehicle]);
 	};
 	} // end function realtimeAISupdate
 
@@ -1750,8 +1773,8 @@ function alarmWebSocketStart(){
 					}
 					mobMarker.addLayer(toMOBline);
 					mobMarker.addTo(map); 	// покажем мультислой с маркерами MOB
-					mobMarker.eachLayer(function (layer) { 	// сделаем каждый маркер draggable
-						if(layer instanceof L.Marker)	{	
+					mobMarker.eachLayer(function (layer) { 	// сделаем каждый маркер draggable, кроме маркеров AIS SART
+						if(layer instanceof L.Marker && !layer.feature.properties.mmsi)	{	
 							layer.dragging.enable(); 	// переключение возможно, только если маркер на карте
 							layer.on('dragend', function(event){
 								//console.log("New MOB marker from server data dragged end, send to server new coordinates",currentMOBmarker);

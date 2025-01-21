@@ -40,7 +40,8 @@ fetch('/plugins/galadrielmap_sk/').then(response => response.json()).then(data =
 let i18nFileNames = navigator.language.split(',').map((l)=>l.split(';')[0]);
 // Здесь игнорируются двойные локали (en-US), поэтому американскую локализацию сделать нельзя. Удмуртскую тоже.
 i18nFileNames = Array.from(new Set(i18nFileNames.map((l)=>l.split('-')[0].toLowerCase())));	// unique через set
-console.log('[internalisationApply] navigator.language=',navigator.language,'i18nFileNames:',i18nFileNames);
+//console.log('[internalisationApply] navigator.language=',navigator.language,'i18nFileNames:',i18nFileNames);
+//i18nFileNames = ['en'];
 for(const i18nFileName of i18nFileNames){
 	i18n = getI18nData(i18nFileName+'.json');
 	if(i18n) break;

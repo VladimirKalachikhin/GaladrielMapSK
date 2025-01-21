@@ -1692,7 +1692,7 @@ else {
 	centerMarkOn(); 	// включить крестик в середине
 	latlng = centerMarkMarker.getLatLng();
 	locationMOBdisplay.innerHTML = latTXT+' '+Math.round(latlng.lat*10000)/10000+'<br>'+longTXT+' '+Math.round(latlng.lng*10000)/10000;	
-}
+};
 
 currentMOBmarker = L.marker(latlng, { 	// маркер для этой точки
 	icon: mobIcon,
