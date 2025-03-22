@@ -80,6 +80,12 @@ plugin.schema = {
 							default: 37.62
 						}
 					}
+				},
+				AISasMOB:{
+					type: 'boolean',
+					title: 'Display AIS MOB and AIS EPIRB as MOB',
+					description: 'Shows AIS  MOB and AIS EPIRB targets as mobs, not as vessels. If there are such targets, the MOB alarm is triggered.',
+					default: true
 				}
 			}
 		},
@@ -183,6 +189,7 @@ const path = require('path');
 const cp = require('child_process');
 
 app.debug('GaladrielMap started');
+//app.debug('options:',options);
 let currentTrackName = '';	// имя текущего файла, без пути, но с расширением
 
 if(options.options.speedProp.feature.includes('SOG')) options.options.speedProp.feature = 'navigation.speedOverGround';
@@ -607,7 +614,8 @@ const ConfigSpeedProp = '${options.options.speedProp.feature}';	// что име
 const ConfigDepthProp = '${options.options.depthProp.feature}';	// что именно используется как глубина
 const useSystemTimeouts = ${options.timeouts.useSystem};	// пытаться использовать время жизни от SignalK
 const depthInData = ${JSON.stringify(options.depthInData)};	// параметры того, как показывать глубину в gpx
-const useTrueWind = ${options.options.windProp};	// ипользуется ли истинный или вымпельный ветер
+const useTrueWind = ${options.options.windProp};	// используется ли истинный или вымпельный ветер
+const AISasMOB = ${options.options.AISasMOB};	// показывать AIS MOB и AIS EPIRB как MOB
 const TPVsubscribe = {
 	"context": "vessels.self",
 	"subscribe": [

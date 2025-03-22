@@ -4,7 +4,7 @@ This is a [SignalK](https://signalk.org/)-based chart plotter navigation softwar
 <div style='float:right;'><a href='https://github.com/VladimirKalachikhin/Galadriel-map/discussions'>Forum</a>
 </div>
 
-## v. 0.9
+## v. 0.11
 
 The chartplotter is a edition of the [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/), designed to work as SignalK webapp. Refer to the [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/) documentation for information.
 
@@ -36,7 +36,7 @@ But GaladrielMap has a possibility to show any currently being recorded .gpx fil
 The `value` of `notifications.mob` path has  the following additional properties except specified in the documentation:  
 
 `"source":` the UUID of instance firing of notification,  
-`"position":` the GeoJSON object with MOB spatial info
+`"position":` the GeoJSON object with MOB spatial info and other necessary.
 
 
 ## Support

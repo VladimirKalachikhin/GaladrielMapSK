@@ -282,7 +282,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 					this.nextElementSibling.disabled=false;
 					this.style.color="green";
 				'>&#x2B24;</a>
-				<button onClick='MOBclose();' style="width:75%;" disabled><span style="" id="cancelMOBTXT"></span></button>
+				<button onClick='realMOBclose();' style="width:75%;" disabled><span style="" id="cancelMOBTXT"></span></button>
 				</div>
 			</div>
 		</div>
@@ -455,10 +455,10 @@ var lng; 	 	// долгота, округлённые до 4-х знаков
 var currentMOBmarker;
 // main output data
 var upData = {};
-var vesselSelf;
+var vesselSelf = getCookie('GaladrielvesselSelf');
 var instanceSelf = getCookie('GaladrielMapInstance');	// идентификатор экземпляра программы
 if(!instanceSelf) {
-	instanceSelf = generateUUID();
+	instanceSelf = '-' + generateUUID();	// - в начале - чтобы начало не совпало с mmsi
 	let expires =  new Date();
 	expires.setTime(expires.getTime() + (24*60*60*1000)); 	// протухнет через сутки
 	document.cookie = "GaladrielMapInstance="+instanceSelf+"; expires="+expires+"; path=/; SameSite=Lax;";
@@ -838,36 +838,42 @@ var toMOBline = L.polyline([], {
 var mobMarker = getCookie('GaladrielMapMOB'); 	// getCookie from galadrielmap.js
 //console.log('Восстановление MOB: mobMarker',mobMarker);
 if(mobMarker) {
-	// Восстановим мультислой маркеров из GeoJSON, а потом каждому маркеру в мультислое присвоим иконку, которая в GeoJSON не сохраняется.
-	mobMarker = L.geoJSON(JSON.parse(mobMarker));
-	mobMarker.eachLayer(function (layer) {
-		if(layer instanceof L.Marker)	{
-			layer.setIcon(mobIcon);
-			currentMOBmarker = layer; 	// последний станет текущим
-		}
-		else mobMarker.removeLayer(layer); 	// Считаем, что это toMOBline, и там больше ничего такого нет
-	});
-	mobMarker.addLayer(toMOBline);
-	mobMarker.addTo(map);
-	mobMarker.eachLayer(function (layer) { 	// сделаем каждый маркер draggable
-		if(layer instanceof L.Marker)	{	
-			layer.dragging.enable(); 	// переключение возможно, только если маркер на карте
-			layer.on('dragend', function(event){
-				//console.log("New MOB marker from server data dragged end, send to server new coordinates",currentMOBmarker);
-				sendMOBtoServer(); 
-			}); 	// отправим на сервер новые сведения, когда перемещение маркера закончилось. Если просто указать функцию -- в sendMOBtoServer передаётся event. Если в одну строку -- всё равно передаётся event. Что за???
-		}
-	});
-}
-else mobMarker = L.layerGroup().addLayer(toMOBline);
-
-//var mobMarker = L.layerGroup().addLayer(toMOBline);
+	let mobMarkerJSON;
+	try{
+		mobMarkerJSON = JSON.parse(mobMarker);
+	}
+	catch(err){
+		console.log('GaladrielMapMOB cookie is bad, JSON.parse error:',err.text);
+	};
+	//console.log('from cookie:',JSON.stringify(mobMarkerJSON));	// L.geoJSON не сохраняет левые поля из geoJSON
+	if((typeof mobMarkerJSON === "object") && mobMarkerJSON.features && (typeof mobMarkerJSON.features === "object")){
+		let pt = false
+		for(let feature of mobMarkerJSON.features){
+			if(feature.geometry.type != 'Point') continue;
+			if((typeof feature.geometry.coordinates === "object") && feature.geometry.coordinates.length != 0){
+				pt=true;
+				break;
+			};
+		};
+		if(pt){	// В куке - объект geojson с точкой с координатами
+			createMOBpointMarker(mobMarkerJSON);// Восстановим мультислой маркеров из GeoJSON
+			//console.log('mobMarker from cookie:',mobMarker);
+		};
+	};
+};
+// Если маркера MOB таки нет - создадим его.
+if((typeof mobMarker !== "object") || !(mobMarker instanceof L.LayerGroup)) {
+	mobMarker = L.layerGroup().addLayer(toMOBline);	// таким образом, mobMarker всегда есть.
+	mobMarker.feature = {properties: {}};
+};
 
 // Позиционирование
 // Realtime периодическое обновление
 var spatialWebSocket; // 
 var TPVdata = {};	// буфер с данными позиционирования, скорости и направления
-var lastDataUpdate;	// момент последнего обновления координат
+var lastDataUpdate=0;	// момент последнего получения данных, в милисекундах	
+var PosFreshBeforeMultiplexor=30;	// через сколько интервалов PosFreshBefore убирать курсор совсем
+var lastPositionUpdate=0;	// момент последнего обновления координат, в милисекундах	
 
 function spatialWebSocketStart(){
 //
@@ -877,9 +883,6 @@ function spatialWebSocketStart(){
 
 	spatialWebSocket.onopen = function(event) {
 		console.log("[spatialWebSocket open] Connection established");
-		if(map.hasLayer(mobMarker)){ 	// если показывается мультислой с маркерами MOB
-			sendMOBtoServer(); 	// отдадим данные MOB для передачи на сервер, на всякий случай -- вдруг там не знают
-		}
 		
 		// Если сервера не было, то списки могли изменится после его перезапуска
 		// не уверен, что стоит заморачиваться с перегрузкой всех списков, перепоказом маршрутов и вот этим всем...
@@ -914,6 +917,7 @@ function spatialWebSocketStart(){
 				spatialWebSocket.close(1000,'The latest data was received too long ago');
 			}
 		},PosFreshBefore);
+		windSwitchToggler();	// (если) добавим символ ветра в курсор
 	}; // end spatialWebSocket.onopen
 
 	spatialWebSocket.onmessage = function(event) {
@@ -1056,27 +1060,23 @@ function spatialWebSocketStart(){
 
 	spatialWebSocket.onclose = function(event) {
 		console.log(`spatialWebSocket closed: connection broken with code ${event.code} by reason ${event.reason}`);
-		//console.log('lastDataUpdate',lastDataUpdate,Date.now()-lastDataUpdate,'PosFreshBefore*30',PosFreshBefore*30);
-		if((Date.now()-lastDataUpdate)>PosFreshBefore*30) {
+		//console.log('lastDataUpdate',lastDataUpdate,Date.now()-lastDataUpdate,'PosFreshBefore*PosFreshBeforeMultiplexor',PosFreshBefore*PosFreshBeforeMultiplexor);
+		if((Date.now()-lastDataUpdate)>PosFreshBefore*PosFreshBeforeMultiplexor) {
 			positionCursor.remove(); 	// уберём курсор (layerGroup) с карты
-			velocityDial.innerHTML = '&nbsp;'; 	// обнулим панель приборов
-			courseDisplay.innerHTML = '&nbsp;';
-			locationDisplay.innerHTML = '&nbsp;';
-			depthDial.innerHTML = '';
+			clearInterval(checkDataFreshInterval);	// остановить периодическую проверку свежести
 		}
 		else {
 			cursor.setIcon(NoGpsCursor);	// заменим курсор (значёк) на серый
 			positionTimeDisplay.innerHTML = '<blink>&infin;</blink>';	// но моргать оно не будет, потому что чтобы разные придурки не моргали где ни попадя, этот тег запретили всем совсем навсегда. Ибо нефиг!
 		}
+		velocityDial.innerHTML = '&nbsp;'; 	// обнулим панель приборов
+		courseDisplay.innerHTML = '&nbsp;';
+		locationDisplay.innerHTML = '&nbsp;';
+		depthDial.innerHTML = '';
 		// Уберём символ ветра
-		if(TPVdata.wspeedt) delete TPVdata.wspeedt;
-		if(TPVdata.wanglet) delete TPVdata.wanglet;
-		if(TPVdata.wspeedr) delete TPVdata.wspeedr;
-		if(TPVdata.wangler) delete TPVdata.wangler;
-		windSymbolUpdate();
+		windSymbolMarker.removeFrom(positionCursor);
 
 		//MOBtab.className='disabled'; 	// если нет курсора (координат) -- невозможно включить режим MOB. Это плохая идея.
-		clearInterval(checkDataFreshInterval);	// остановить периодическую проверку свежести
 		window.setTimeout(spatialWebSocketStart, 3000); 	// перезапустим сокет через  секунд. В каком контексте здесь вызывается callback -- мне осталось непонятным, поэтому сокет ваще глобален
 	}; // end spatialWebSocket.onclose
 
@@ -1089,19 +1089,24 @@ function spatialWebSocketStart(){
 		// Положение неизвестно
 		if(gpsdData.error || (gpsdData.lon == null)||(gpsdData.lat == null) || (gpsdData.lon == undefined)||(gpsdData.lat == undefined)) { 	// 
 			console.log('No spatial info in GPSD data',gpsdData);
-			positionCursor.remove(); 	// уберём курсор с карты
-			//velocityDial.innerHTML = '&nbsp;'; 	// обнулим панель приборов
-			//courseDisplay.innerHTML = '&nbsp;';
-			//locationDisplay.innerHTML = '&nbsp;';
-			//depthDial.innerHTML = '';
-			//MOBtab.className='disabled'; 	// если нет курсора (координат) -- невозможно включить режим MOB. Это плохая идея.
-			//return;	// могут быть другие величины, например - глубина
+			//console.log('lastPositionUpdate=',lastPositionUpdate,'PosFreshBefore*PosFreshBeforeMultiplexor=',PosFreshBefore*PosFreshBeforeMultiplexor,Date.now()-lastPositionUpdate);
+			if((Date.now()-lastPositionUpdate)>PosFreshBefore*PosFreshBeforeMultiplexor) {	// обычно PosFreshBefore -- 3-5 секунд
+				positionCursor.remove(); 	// уберём курсор с карты
+				//velocityDial.innerHTML = '&nbsp;'; 	// обнулим панель приборов
+				//courseDisplay.innerHTML = '&nbsp;';
+				//locationDisplay.innerHTML = '&nbsp;';
+				//depthDial.innerHTML = '';
+				//MOBtab.className='disabled'; 	// если нет курсора (координат) -- невозможно включить режим MOB. Это плохая идея.
+				return;	// могут быть другие величины, например - глубина
+			}
+			else  cursor.setIcon(NoGpsCursor)	// заменим курсор (значёк) на серый
 		}
 		else {
 			// Свежее ли положение известно? -- установим курсор в положение
+			lastPositionUpdate = Date.now();
 			//MOBtab.className=''; 	// координаты появились -- можно включить режим MOB
 			positionCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // установим координаты всех маркеров
-			positionCursor.addTo(map); 	// добавить курсор на карту
+			if(!map.hasLayer(positionCursor)) positionCursor.addTo(map); 	// добавить курсор на карту
 		};
 		if(distCirclesSwitch.checked) distCirclesUpdate(distCircles);	// нарисуем круги дистанции
 		let positionTime = new Date(gpsdData.positionTime);
@@ -1257,25 +1262,27 @@ function spatialWebSocketStart(){
 		followSwitch.checked = !noFollowToCursor; 	// выставим переключатель на панели Настроек в текущее положение	
 		
 		// MOB
-		if(map.hasLayer(mobMarker)){ 	// если показывается мультислой с маркерами MOB 
+		if(mobMarker.hasLayer(currentMOBmarker) ){	// Если это чужой MOB, то currentMOBmarker может не показываться или быть не указан
 			//console.log('[spatialWebSocket.onmessage] mobMarker.getLayers():',mobMarker.getLayers());
-			let latlng1 = cursor.getLatLng();
-			let latlng2 = currentMOBmarker.getLatLng();
-			toMOBline.setLatLngs([latlng1,latlng2]); 	// обновим линию к текущему маркеру MOB
-			// информация о MOB на панели
-			const azimuth = bearing(latlng1, latlng2);
-			//console.log('azimuth=',azimuth,latlng1, latlng2)
-			azimuthMOBdisplay.innerHTML = Math.round(azimuth);
-			distanceMOBdisplay.innerHTML = Math.round(latlng1.distanceTo(latlng2));
-			locationMOBdisplay.innerHTML = latTXT+' '+Math.round(currentMOBmarker.getLatLng().lat*10000)/10000+'<br>'+longTXT+' '+Math.round(currentMOBmarker.getLatLng().lng*10000)/10000;	
-			let heading = gpsdData.track || gpsdData.heading || gpsdData.mheading;
-			if(heading) {
-				let relBearing = azimuth-heading+22.5;	// половина от 45 против часовой стрелке
-				if(relBearing<0) relBearing = 360+relBearing;
-				relBearing = Math.floor(relBearing/45); 	// курсовой угол (relative bearing) / 45 градусов -- номер сектора, против часовой стрелки
-				if(relBearing>7) relBearing = 0;
-				directionMOBdisplay.innerHTML = relBearingTXT[relBearing];
-			}
+			if(currentMOBmarker){	// Если это чужой MOB, то currentMOBmarker может быть не указан
+				let latlng1 = cursor.getLatLng();
+				let latlng2 = currentMOBmarker.getLatLng();
+				toMOBline.setLatLngs([latlng1,latlng2]); 	//console.log('обновим линию к текущему маркеру MOB');
+				// информация о MOB на панели
+				const azimuth = bearing(latlng1, latlng2);
+				//console.log('azimuth=',azimuth,latlng1, latlng2)
+				azimuthMOBdisplay.innerHTML = Math.round(azimuth);
+				distanceMOBdisplay.innerHTML = Math.round(latlng1.distanceTo(latlng2));
+				locationMOBdisplay.innerHTML = latTXT+' '+Math.round(currentMOBmarker.getLatLng().lat*10000)/10000+'<br>'+longTXT+' '+Math.round(currentMOBmarker.getLatLng().lng*10000)/10000;	
+				let heading = gpsdData.track || gpsdData.heading || gpsdData.mheading;
+				if(heading) {
+					let relBearing = azimuth-heading+22.5;	// половина от 45 против часовой стрелке
+					if(relBearing<0) relBearing = 360+relBearing;
+					relBearing = Math.floor(relBearing/45); 	// курсовой угол (relative bearing) / 45 градусов -- номер сектора, против часовой стрелки
+					if(relBearing>7) relBearing = 0;
+					directionMOBdisplay.innerHTML = relBearingTXT[relBearing];
+				};
+			};
 		}
 	}; // end function realtimeTPVupdate
 }; // end function spatialWebSocketStart
@@ -1291,6 +1298,7 @@ function spatialWebSocketStop(message=''){
 // Данные AIS
 // 	Запуск периодических функций
 var aisWebSocket;	// будет глобальный сокет для AIS
+
 // буфер с данными AIS
 // Но у нас уже есть vehicles? В vehicles -- показываемые объекты Leaflet,
 // а здесь -- все сведения о целях AIS, показываемых сейчас, или нет.
@@ -1345,16 +1353,18 @@ function watchAISstart() {
 			}
 			return;
 		}
-		// Приходит по одному сообщению на context, т.е., одно сообщение на цель AIS
+		// Приходит по одному сообщению на context, при этом - множество сообщений на цель AIS,
+		// по мере прихода предложений AIS.
 		// с, возможно, множеством updates
 		//const vessel = data.context.substring(8);	// vessels.
-		const vessel = data.context;
+		const vessel = data.context;	// возможно, так лучше, чтобы ключи были заведомо строки.
 		if(!AISdata[vessel]) AISdata[vessel] = {};
 		//if(AISdata[vessel].shipname == 'Sample Ship Name') console.log('Before',JSON.stringify(AISdata[vessel]));
-		//AISdata[vessel].mmsi = vessel.slice(vessel.lastIndexOf('mmsi')+5);
+		//AISdata[vessel].mmsi = data.context.split(':').pop();	
+		//console.log('[aisWebSocket.onmessage] vessel=',vessel,data);
 		for(let update of data.updates){
 			for(let value of update.values){
-				//console.log(data.context,value.path,value.value);
+				//console.log('[aisWebSocket.onmessage] data.context=',data.context,value.path,value.value);
 				//console.log(data.context,value);
 				//if(data.context == 'vessels.urn:mrn:imo:mmsi:201246757') console.log(data.context,value.path,value.value);
 				switch(value.path){
@@ -1495,16 +1505,32 @@ function watchAISstart() {
 					AISdata[vessel].navigationDatetime = ts;	
 					//console.log(vessel,'navigation.datetime=',value.value,AISdata[vessel].timestamp);
 					break;
-				}
-			}
-		}
+				};
+			};
+		};
+		//console.log('[aisWebSocket.onmessage] vessel:',vessel,JSON.stringify(AISdata[vessel]));
 		//if(AISdata[vessel].shipname == 'Sample Ship Name') {
 			//console.log('After',JSON.stringify(AISdata[vessel]));
 			//console.log('After',AISdata[vessel]);
-			//console.log('aisWebSocket.onmessage AISdata:',AISdata);
+			//console.log('[aisWebSocket.onmessage] AISdata:',AISdata);
 		//}
 		
-		realtimeAISupdate(vessel);	// рисуем на карте эту цель AIS
+		// это AIS MOB
+		// данные приходят по мере потока AIS, и первым - mmsi
+		// Похоже, иногда почему-то mmsi приходит не первым, даже после координат,
+		// и тогда эта цель AIS будет показываться и как MOB, и как кораблик.
+		// Поэтому выделяем mmsi из ключа
+		if(!AISdata[vessel].mmsi) AISdata[vessel].mmsi = vessel.split(':').pop();	// последний элемент строки, mmsi
+		if(AISasMOB && AISdata[vessel].mmsi && (AISdata[vessel].mmsi.startsWith('972') || AISdata[vessel].mmsi.startsWith('974'))){
+		  	// Поскольку данные AIS MOB приходят всегда, изменилось там что-нибудь, или нет
+		  	// следует оставить их в AISdata, но показывать не как кораблик, а как MOB
+			//console.log('[aisWebSocket.onmessage] AIS MOB:',vessel,JSON.stringify(AISdata[vessel]));
+		  	realtimeAIS_MOBupdate(vessel);	// рисует на карте значки MOB и поднимает (но не прекращает) режим MOB на сервере
+		}
+		else {
+			//console.log('[aisWebSocket.onmessage] AIS:',vessel,JSON.stringify(AISdata[vessel]));
+			realtimeAISupdate(vessel);	// рисуем на карте эту цель AIS
+		};
 		
 		/////////////////////////// collisionDetector test ///////////////////////////////
 		//displayCollisionAreas();	// показываем отладочную информацию предупреждения о столкновениях
@@ -1528,7 +1554,7 @@ function watchAISstart() {
 	}; 	//end aisWebSocket.onerror
 
 	function realtimeAISupdate(vehicle) {
-	/* Это вызывается для каждой цели AIS */
+	/* Это вызывается для каждой цели AIS для её показа */
 	
 	const defaultSymbol = [0.8,0, -0.3,0.35, -0.3,-0.35]; 	// треугольник вправо, расстояния от центра, через которые нарисуют polyline
 	const noHeadingSymbol = [0.35,0, 0,0.35, -0.35,0, 0,-0.35]; 	// ромбик
@@ -1569,6 +1595,7 @@ function watchAISstart() {
 		vehicles[vehicle].setNoHeadingSymbol(noHeadingSymbol);
 	}
 	if(AISdata[vehicle].status==14)	AISdata[vehicle].sart=true;	// .sart отдельно потому, что непонятно, по каким признакам устаналивать, что это sart. В данном случае - только по признаку status==14
+	else AISdata[vehicle].sart=false;
 	// обновим данные Здесь обязательно нужно передать "по значению", почему -- неясно.	
 	// addData просто заменяет всё на параметр? Оно заменяет всё на ссылку на параметр.
 	// Но тогда всё равно данные должны быть полными, ведь в AISdata полные данные?
@@ -1580,6 +1607,7 @@ function watchAISstart() {
 	// Видимо, проблема в addData и/или дальше, в L.trackSymbol. Нужно ли разбираться?
 	vehicles[vehicle].addData(JSON.parse(JSON.stringify(AISdata[vehicle]))); 
 	//vehicles[vehicle].addData(AISdata[vehicle]); 
+	//console.log('[realtimeAISupdate] vehicles[vehicle]:',vehicles[vehicle]);
 	
 	// если сперва приходило всякое, но координат не было -- цели будут скапливаться в L.latLng(0,0)
 	// поэтому добавим на карту, только если есть координаты.
@@ -1590,8 +1618,20 @@ function watchAISstart() {
 	};
 	} // end function realtimeAISupdate
 
+	function realtimeAIS_MOBupdate(vessel) {
+	/* Это вызывается для каждой цели AIS MOB для её показа */
+	if((AISdata[vessel].lon === undefined) || (AISdata[vessel].lat === undefined)) return;
+	//console.log('[realtimeAIS_MOBupdate] AIS MOB:',vessel,JSON.stringify(AISdata[vessel]));
+	//console.log('[realtimeAIS_MOBupdate] timestamp: маркера пришло',mobMarker.feature.properties.timestamp,'<',AISdata[vessel].timestamp);
+	if(!mobMarker.feature.properties.timestamp) mobMarker.feature.properties.timestamp = 0;
+	if(mobMarker.feature.properties.timestamp < AISdata[vessel].timestamp){	// пришли свежие данные
+		MOBalarm([AISdata[vessel].lat,AISdata[vessel].lon],AISdata[vessel]);
+	};
+	}; // end function realtimeAIS_MOBupdate
+
 return aisWebSocket
 } // end function watchAISstart
+
 
 watchAISstart(); 	// запускам периодическую функцию смотреть AIS
 DisplayAISswitch.checked = true;
@@ -1640,6 +1680,7 @@ function alarmWebSocketStart(){
 		console.log("[alarmWebSocket open] Connection established");
 		event.target.send(JSON.stringify(notificationaSubscribe));	// подписываемся на получение данных
 		if(map.hasLayer(mobMarker)){ 	// если показывается мультислой с маркерами MOB
+			//console.log("[alarmWebSocket open] Имеется режим MOB - передадим его на сервер");
 			sendMOBtoServer(); 	// отдадим данные MOB для передачи на сервер, на всякий случай -- вдруг там не знают
 		}
 		collisionDirectionsCursor.addTo(positionCursor);	// слой с указателями направлений на опасности столкновений
@@ -1663,126 +1704,50 @@ function alarmWebSocketStart(){
 			}
 			return;
 		}
-		byUpdates: for(let update of data.updates){
-			//console.log('update:',update);
-			if(!update.values) continue;	// непонятно, почему может не быть values, но иногда их нет
+		byUpdates: for(let update of data.updates){	// это обновление от одного источника. Обновлений будет столько, сколько источников.
+			//console.log('[alarmWebSocket.onmessage] update:',update);
+			if(!update.values) continue;	// непонятно, почему может не быть values, но иногда их нет. Потому что пришло по обновлению meta
 			for(let value of update.values){	// какое-то обновление данных пришло.
 				//console.log('recieved data',data);
 				switch(value.path){
 				case 'notifications.mob':
+					// Т.е., это notifications.mob, изменённый источником выше? Чёта извращённая логика...
+					// Но notifications.mob глобален, так что пофигу на источник?
+					// Т.е., приходит к нам весь объект MOB со всеми точками, из которого
+					// мы делаем сперва mobMarkerJSON как FeatureCollection точек, 
+					// а потом mobMarker как LayerGroup из FeatureCollection с Marker для каждой точки.
 					// pre MOB -- даже если у нас нет координат, полезно показать маркеры MOB
-					if(value.value === null) { 	// режим MOB надо выключить
+					if((value.value === null) || (value.value.state == 'normal')) { 	// режим MOB надо выключить
 						if(map.hasLayer(mobMarker)){ 	// если показывается мультислой с маркерами MOB
 							MOBclose(); 	// пришло, что режима MOB нет -- завершим его
 						}
 						continue byUpdates;
 					}
-					//console.log('режим MOB есть, пришли новые данные');
-					if(value.value.source == instanceSelf) continue byUpdates;	// это нами же установленный MOB
-					let mobMarkerJSON;
-					if(value.value.position && value.value.position.features){	// Это GeoJSON
-						mobMarkerJSON = value.value.position;	// Это GeoJSON
-					}
-					else{ 
-						let mobPosition; 
-						if(value.value.data && value.value.data.position){
-							// mob as described https://github.com/SignalK/signalk-server/pull/1560
-							// при этом у этих кретинов может быть "position": "No vessel position data."
-							mobPosition = {'longitude': value.value.data.position.longitude,'latitude': value.value.data.position.latitude,'nogeojson': true};
-						}
-						else {
-							if(value.value.position){
-								const s = JSON.stringify(value.value.position);
-								if(s.includes('longitude') && s.includes('latitude')){
-									mobPosition = {'longitude': value.value.position.longitude,'latitude': value.value.position.latitude,'nogeojson': true};
-								}
-								else if(s.includes('lng') && s.includes('lat')){
-									mobPosition = {'longitude': value.value.position.lng,'latitude': value.value.position.lat,'nogeojson': true};
-								}
-								else if(s.includes('lon') && s.includes('lat')){
-									mobPosition = {'longitude': value.value.position.lon,'latitude': value.value.position.lat,'nogeojson': true};
-								}
-								else if(Array.isArray(value.value.position)){
-									mobPosition = {'longitude': value.value.position[0],'latitude': value.value.position[1],'nogeojson': true};
-								};
-							}
-							else{
-								const s = JSON.stringify(value.value);
-								if(s.includes('longitude') && s.includes('latitude')){
-									mobPosition = {'longitude': value.value.longitude,'latitude': value.value.latitude,'nogeojson': true};
-								}
-								else if(s.includes('lng') && s.includes('lat')){
-									mobPosition = {'longitude': value.value.lng,'latitude': value.value.lat,'nogeojson': true};
-								}
-								else if(s.includes('lon') && s.includes('lat')){
-									mobPosition = {'longitude': value.value.lon,'latitude': value.value.lat,'nogeojson': true};
-								}
-								else if(Array.isArray(value.value)){
-									mobPosition = {'longitude': value.value[0],'latitude': value.value[1],'nogeojson': true};
-								};
-							};
-						};
-						if(!mobPosition) continue byUpdates;
-						mobPosition.longitude = parseFloat(mobPosition.longitude);
-						mobPosition.latitude = parseFloat(mobPosition.latitude);
-						if(isNaN(mobPosition.longitude) || isNaN(mobPosition.latitude)) continue byUpdates;
-						mobMarkerJSON = {
-							"type": "FeatureCollection",
-							"features": [
-								{
-									"type": "Feature",
-									"geometry": {
-										"type": "Point",
-										"coordinates": [
-											mobPosition.longitude,
-											mobPosition.latitude
-										]
-									},
-									"properties": {
-										"current": true
-									}
-								}
-							]
+					//console.log('режим MOB есть, пришли новые данные',value);
+					if((value.value.source == instanceSelf) && (mobMarker.feature.properties.timestamp >= Math.round(Date.parse(update.timestamp)/1000))) {	// это нами же установленный MOB, не изменённый никем.
+						//console.log('это нами же установленный MOB, timestamp, пришло',mobMarker.feature.properties.timestamp,Math.round(Date.parse(update.timestamp)/1000));
+						continue byUpdates;
+					};
+					// Почему-то при .onmessage timestamp имеется только один на всё обновление,
+					// когда как через /signalk/v1/api/vessels/self - timestamp свой на каждый path.
+					// Непонятно, к чему относится .onmessage timestamp, но другого у нас нет.
+					let mobMarkerJSON = MOBtoGeoJSON(value.value);
+					//console.log('[alarmWebSocket.onmessage] сделали из новых данных mobMarkerJSON:',mobMarkerJSON);
+					if(!mobMarkerJSON) continue byUpdates;
+					
+					mobMarker.remove(); 	// убрать мультислой-маркер с карты
+					createMOBpointMarker(mobMarkerJSON);	// Восстановим мультислой маркеров из GeoJSON
+					for(const feature of mobMarkerJSON.features){
+						if(feature.geometry.type != 'Point') continue;
+						//console.log('[alarmWebSocket.onmessage] mobMarker feature:',feature);
+						// Если какой-то маркер устанолен нами - включим запись трека
+						if(is_currentMOBmarkerSelf(feature) && (loggingIndicator !== undefined && !loggingSwitch.checked)){
+							loggingSwitch.checked = true;
+							loggingRun(); 	// хотя в loggingSwitch стоит onChange="loggingRun();" изменение loggingSwitch.checked = true; не приводит к срабатыванию обработчика
+							break;
 						};
 					};
-					//console.log('mobMarkerJSON:',mobMarkerJSON);
-					if(!mobMarkerJSON) continue byUpdates;
-					// Восстановим мультислой маркеров из GeoJSON, а потом каждому маркеру в мультислое присвоим иконку, которая в GeoJSON не сохраняется.
-					mobMarker.remove(); 	// убрать мультислой-маркер с карты
-					mobMarker = L.geoJSON(mobMarkerJSON); 	// создадим новый объект
-					let lastMarker;
-					mobMarker.eachLayer(function (layer) {
-						if(layer instanceof L.Marker)	{
-							layer.setIcon(mobIcon);
-							if(!layer.feature.properties) layer.feature.properties = {};
-							layer.on('click', function(ev){
-								currentMOBmarker = ev.target;
-								clearCurrentStatus(); 	// удалим признак current у всех маркеров
-								currentMOBmarker.feature.properties.current = true;
-								sendMOBtoServer(); 	// отдадим данные MOB для передачи на сервер
-							}); 	// текущим будет маркер, по которому кликнули
-							//console.log('Маркеры в полученной информации MOB ',layer);
-							if(layer.feature.properties.current) currentMOBmarker = layer; 	// текущим станет указанный в переданных данных
-							lastMarker = layer;
-						}
-						else mobMarker.removeLayer(layer); 	// Считаем, что это toMOBline, и там больше ничего такого нет
-					});
-					if(!currentMOBmarker) {	// кто-то левый прислал GeoJSON без указания текущей точки. Сделаем текущей последнюю.
-						lastMarker.feature.properties.current = true;
-						currentMOBmarker = lastMarker;
-					}
-					mobMarker.addLayer(toMOBline);
-					mobMarker.addTo(map); 	// покажем мультислой с маркерами MOB
-					mobMarker.eachLayer(function (layer) { 	// сделаем каждый маркер draggable, кроме маркеров AIS SART
-						if(layer instanceof L.Marker && !layer.feature.properties.mmsi)	{	
-							layer.dragging.enable(); 	// переключение возможно, только если маркер на карте
-							layer.on('dragend', function(event){
-								//console.log("New MOB marker from server data dragged end, send to server new coordinates",currentMOBmarker);
-								sendMOBtoServer(); 
-							}); 	// отправим на сервер новые сведения, когда перемещение маркера закончилось. Если просто указать функцию -- в sendMOBtoServer передаётся event. Если в одну строку -- всё равно передаётся event. Что за???
-						}
-					});
-					//console.log(mobMarker);
+					//console.log('[alarmWebSocket.onmessage] mobMarker:',mobMarker);
 					break;
 				case 'notifications.danger.collision':
 					//console.log('recieved collision data',value.value);
