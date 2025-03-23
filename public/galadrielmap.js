@@ -2379,6 +2379,62 @@ Displayed.querySelectorAll('li').forEach(li => {	//
 } // end function chkDisplayedList
 
 
+function hideControlsControl(hideControlPosition){
+/* Создаёт невидимый псевдо-control, по тапу по которому все указанные в controlsList control делаются невидимыми на экране
+На самом деле, тут просто style.display = 'none', потому что штатный control совсем неудобен
+для этой цели, и штатные функции leaflet неудобны в силу общего кретинизма javascript, поэтому всё примитивно.
+*/
+let doit=true;
+switch(hideControlPosition){
+case 'topleft':
+	hideControl.style.top = '0';
+	hideControl.style.left = '0';
+	break;
+case 'topmiddle':
+	hideControl.style.top = '0';
+	hideControl.style.left = 'calc(50vw - var(--control-size)/2)';
+	break;
+case 'topright':
+	hideControl.style.top = '0';
+	hideControl.style.right = '0';
+case 'rightmiddle':
+	hideControl.style.top = 'calc(50vh - var(--control-size)/2)';
+	hideControl.style.right = '0';
+	break;
+case 'bottomright':
+	hideControl.style.bottom = '0';
+	hideControl.style.right = '0';
+	break;
+case 'bottommiddle':
+	hideControl.style.bottom = '0';
+	hideControl.style.left = 'calc(50vw - var(--control-size)/2)';
+	break;
+case 'bottomleft':
+	hideControl.style.bottom = '0';
+	hideControl.style.left = '0';
+	break;
+case 'leftmiddle':
+	hideControl.style.top = 'calc(50vh - var(--control-size)/2)';
+	hideControl.style.left = '0';
+	break;
+default:
+	doit=false;
+};
+if(doit){
+	hideControl.style.display = 'unset';
+	hideControl.addEventListener('click', function(event){
+		//console.log('hideControl click:',event);
+		for(let control of controlsList){
+			//console.log('hideControl click control:',control.getContainer().style.display);
+			//if(control._map) control.remove();	// так оно удаляется из DOM, а у нас везде используются значения полей и переключателей.
+			//else control.addTo(map);
+			if(control.getContainer().style.display == 'none') control.getContainer().style.display = 'unset';
+			else control.getContainer().style.display = 'none';
+		};
+	});
+};
+}; // end function hideControlsControl
+
 
 
 // Общие функции
@@ -2586,6 +2642,7 @@ L.LayerGroup.include({
 		return res;
 	}
 });
+
 
 
 /*////////////////////////// collisionDetector test ///////////////////////////////

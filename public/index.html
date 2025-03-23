@@ -291,7 +291,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"><span id="settingsHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
 			<div style="margin:  0.7em 1em;"> <!-- Следование за курсором -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
-					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="followSwitch" onChange="noFollowToCursor=!noFollowToCursor; CurrnoFollowToCursor=noFollowToCursor;" checked>
+					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="followSwitch" onChange="noFollowToCursor=!noFollowToCursor; CurrnoFollowToCursor=noFollowToCursor; console.log('noFollowToCursor=');" checked>
 					<label class="onoffswitch-label" for="followSwitch">
 						<span class="onoffswitch-inner"></span>
 						<span class="onoffswitch-switch"></span>
@@ -370,6 +370,8 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			</div>
 		</div>
 	</div>
+</div><!-- end sidebar -->
+<div id="hideControl">
 </div>
 <div id="mapid" ></div>
 </body>
@@ -451,6 +453,8 @@ else windSwitch.checked = Boolean(+getCookie('GaladrielWindSwitch')); 	// getCoo
 var lat; 	 	// широта
 var lng; 	 	// долгота, округлённые до 4-х знаков
 
+var controlsList = [];	// список control для сокрытия их с экрана
+
 // MOB
 var currentMOBmarker;
 // main output data
@@ -488,22 +492,21 @@ var map = L.map('mapid', {
 
 // Controls
 // Zoom в правом верхнем углу
-L.control.zoom({
+controlsList.push(L.control.zoom({
      position:'topright'
-}).addTo(map);
+}).addTo(map));
 
 // Версия и пр. в правом нижнем углу
-var info = L.control.attribution({
+controlsList.push(L.control.attribution({
 	prefix: '<a href="https://youtu.be/kwMt4rjgsJs"  target=”_blank”><i>имевший цель, но чуждый смысла</i></a>'
-}).addTo(map);
+}).addTo(map));
 
 // Шкала масштаба
-L.control.scale({
+controlsList.push(L.control.scale({
 	position: 'bottomleft',
 	maxWidth: 200,
 	imperial: false
-}
-).addTo(map);
+}).addTo(map));
 
 // control для записывания в clipboard
 var copyToClipboard = new L.Control.CopyToClipboard({ 	// класс определён в galadrielmap.js
@@ -513,11 +516,11 @@ var copyToClipboard = new L.Control.CopyToClipboard({ 	// класс опред�
 // Добавим копирование содержимого goToPositionField. На него навешивается много обработчиков
 goToPositionField.addEventListener('long-press', function(e){doCopyToClipboard(goToPositionField.value);}); 	// при получении фокуса - прекратить обновление
 
-
 // Панель управления
 var sidebar = L.control.sidebar('sidebar',{
 	container: 'sidebar',
 }).addTo(map);
+controlsList.push(sidebar);
 sidebar.on("content", function(event){ 	// Событие открытия? панели 
 	switch(event.id){ 	// какую вкладку открыли
 	case 'tracks':	// треки
@@ -565,6 +568,9 @@ sidebar.on("closing", function(){
 		routeSaveDescr.value = '';
 	}
 });
+
+// Сокрытие всего
+hideControlsControl(hideControlPosition);	// создаёт как-бы control, делающий невидимыми все control, перечисленные в controlsList
 // end controls
 // Поведение карты
 map.on('movestart zoomstart', function(event) { 	// карту начали двигать руками
@@ -1108,6 +1114,7 @@ function spatialWebSocketStart(){
 			positionCursor.invoke('setLatLng',[gpsdData.lat,gpsdData.lon]); // установим координаты всех маркеров
 			if(!map.hasLayer(positionCursor)) positionCursor.addTo(map); 	// добавить курсор на карту
 		};
+		
 		if(distCirclesSwitch.checked) distCirclesUpdate(distCircles);	// нарисуем круги дистанции
 		let positionTime = new Date(gpsdData.positionTime);
 		let now = new Date();
