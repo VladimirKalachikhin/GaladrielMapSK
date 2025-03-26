@@ -291,7 +291,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"><span id="settingsHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
 			<div style="margin:  0.7em 1em;"> <!-- Следование за курсором -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
-					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="followSwitch" onChange="noFollowToCursor=!noFollowToCursor; CurrnoFollowToCursor=noFollowToCursor; console.log('noFollowToCursor=');" checked>
+					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="followSwitch" onChange="noFollowToCursor=!noFollowToCursor; CurrnoFollowToCursor=noFollowToCursor;');" checked>
 					<label class="onoffswitch-label" for="followSwitch">
 						<span class="onoffswitch-inner"></span>
 						<span class="onoffswitch-switch"></span>
@@ -313,7 +313,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			<br>
 			<div style="margin:  0.7em 1em;"> <!-- Выбранные маршруты всегда показываются -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
-					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="SelectedRoutesSwitch" onChange="">
+					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="SelectedRoutesSwitch" onChange="" checked>
 					<label class="onoffswitch-label" for="SelectedRoutesSwitch">
 						<span class="onoffswitch-inner"></span>
 						<span class="onoffswitch-switch"></span>
@@ -324,7 +324,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			<br>
 			<div style="margin:  0.7em 1em;"> <!-- Показывать окружности дистанции -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
-					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="distCirclesSwitch" onChange="distCirclesToggler();">
+					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="distCirclesSwitch" onChange="distCirclesToggler();" checked>
 					<label class="onoffswitch-label" for="distCirclesSwitch">
 						<span class="onoffswitch-inner"></span>
 						<span class="onoffswitch-switch"></span>
@@ -355,6 +355,31 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 				<span style="font-size:120%;" id="DisplayAIS_TXT"></span>
 			</div>
 			<br>
+			<div style="margin: 3em 1em 0.1em;"> <!-- Сокрытие элементов управления -->
+				<div class="onoffswitch" style="float:right;margin: 0 auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
+					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="hideControlsSwitch" value="onoffswitch" onChange="hideControlsToggler(this);">
+					<label class="onoffswitch-label" for="hideControlsSwitch">
+						<span class="onoffswitch-inner"></span>
+						<span class="onoffswitch-switch"></span>
+					</label>
+				</div>
+				<span style="font-size:120%;" id="hideControlsSwitchTXT">Скрывать элементы управления</span><br><br>
+				<div>
+					<div style="float: right;"> 
+						<input style="width:1em;" type="radio" name="hideControlPosition" value="topleft" disabled onChange="hideControlsToggler(this);">
+						<input style="width:1em;" type="radio" name="hideControlPosition" value="topmiddle" disabled onChange="hideControlsToggler(this);">
+						<input style="width:1em;" type="radio" name="hideControlPosition" value="topright" disabled onChange="hideControlsToggler(this);"><br>
+						<input style="width:1em;" type="radio" name="hideControlPosition" value="leftmiddle" disabled onChange="hideControlsToggler(this);">
+						<input style="width:1em;float:right;" type="radio" name="hideControlPosition" value="rightmiddle" disabled onChange="hideControlsToggler(this);">
+						<span>&nbsp;</span><br>
+						<input style="width:1em;" type="radio" name="hideControlPosition" value="bottomleft" disabled onChange="hideControlsToggler(this);">
+						<input style="width:1em;" type="radio" name="hideControlPosition" value="bottommiddle" checked disabled onChange="hideControlsToggler(this);">
+						<input style="width:1em;" type="radio" name="hideControlPosition" value="bottomright" disabled onChange="hideControlsToggler(this);">
+					</div>
+					<span style="font-size:100%; margin:100% 0 100% 0;" id="hideControlsPositionTXT">Расположение чувствительной зоны на экране</span>
+				</div>
+			</div>
+			<br>
 			<div style="margin: 3em 1em 0.1em;"> <!-- максимальная скорость обновления -->
 				<div style="float:right;margin: 1rem auto;">
 					<input id='minWATCHintervalInput' type="text" pattern="[0-9]*" title="" size='4' style='width:3rem;font-size:175%;'
@@ -379,16 +404,16 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 <script> "use strict";
 // Глобальные переменные
 // Карта
-var showMapsList = JSON.parse(getCookie('GaladrielshowMapsList')) || [];	// массив названий избранных карт
+var showMapsList = storageHandler.restore('showMapsList') || [];	// массив названий избранных карт
 var savedLayers = []; 	// массив для хранения объектов, когда они не на карте
 var additionalTileCachePath = ''; 	// дополнительный кусок пути к тайлам между именем карты и /z/x/y.png Используется в версионном кеше, например, в погоде. Без / в конце, но с / в начале, либо пусто. Присваивается в javascriptOpen в параметрах карты. Или ещё где-нибудь.
-var startCenter = JSON.parse(getCookie('GaladrielMapPosition')); 	// getCookie from galadrielmap.js
+var startCenter = storageHandler.restore('startCenter'); 	// storageHandler from galadrielmap.js
 if(! startCenter) startCenter = L.latLng(defaultCenter); 	// начальная точка из options.js
-var startZoom = JSON.parse(getCookie('GaladrielMapZoom')); 	// getCookie from galadrielmap.js
+var startZoom = storageHandler.restore('startZoom'); 	// storageHandler from galadrielmap.js
 if(! startZoom) startZoom = 12; 	// начальный масштаб
 var userMoveMap = true; 	// флаг для отделения собственных движений карты от пользовательских. Считаем все пользовательскими, и только где надо - выставляем иначе
 // ГПС
-var minWATCHinterval=JSON.parse(getCookie('GaladrielminWATCHinterval'));	// Минимальный интервал, сек., с которым будут приходить данные от gpsdPROXY. Если 0 -- то по мере их получения от датчиков
+var minWATCHinterval = storageHandler.restore('minWATCHinterval');	// Минимальный интервал, сек., с которым будут приходить данные от gpsdPROXY. Если 0 -- то по мере их получения от датчиков
 if(!minWATCHinterval) minWATCHinterval = 0;
 minWATCHintervalInput.value = minWATCHinterval;
 if(PosFreshBefore < (2*minWATCHinterval*1000+1000)) PosFreshBefore = 2*minWATCHinterval*1000+1000;	// PosFreshBefore в options.js
@@ -402,8 +427,7 @@ var savePositionEvery = 10 * 1000; 	// будем сохранять полож�
 var followPaused; 	// объект таймера, который восстанавливает следование курсору
 if(!velocityVectorLengthInMn) velocityVectorLengthInMn = 10; 	// длинной в сколько минут пути рисуется линия скорости
 // Окружности дистанции
-if(getCookie('GaladrielMapdistCirclesSwitch') === null) distCirclesSwitch.checked = true; 	// показывать окружности дистанции
-else distCirclesSwitch.checked = Boolean(+getCookie('GaladrielMapdistCirclesSwitch')); 	// getCookie from galadrielmap.js
+distCirclesSwitch.checked = Boolean(storageHandler.restore('distCirclesSwitch')); 	// показывать окружности дистанции
 // AIS
 var vehicles = []; 	// list of visible by AIS data vehicle objects массив layers с целями
 // Пути и маршруты
@@ -414,11 +438,9 @@ var trackDirURI = 'track'; 	// адрес каталога с треками
 var routeDirURI = 'route'; 	// адрес каталога с маршрутами
 var currentTrackName = ''; 	// имя текущего (пишущегося сейчас) трека
 var updateRouteServerURI = 'checkRoutes'; 	// url службы динамического обновления маршрутов
-if(getCookie('GaladrielcurrTrackSwitch') === null) currTrackSwitch.checked = true; 	// показывать текущий трек вместе с курсором
-else currTrackSwitch.checked = Boolean(+getCookie('GaladrielcurrTrackSwitch')); 	// getCookie from galadrielmap.js
-if(getCookie('GaladrielSelectedRoutesSwitch') === null) SelectedRoutesSwitch.checked = false; 	// показывать выбранные маршруты
-else SelectedRoutesSwitch.checked = Boolean(+getCookie('GaladrielSelectedRoutesSwitch')); 	// getCookie from galadrielmap.js
-loggingSwitch.checked = Boolean(+getCookie('GaladrielloggingSwitch')); 	// getCookie from galadrielmap.js
+currTrackSwitch.checked = Boolean(storageHandler.restore('currTrackSwitch'));
+SelectedRoutesSwitch.checked = Boolean(storageHandler.restore('SelectedRoutesSwitch')); 	// показывать выбранные маршруты
+loggingSwitch.checked = Boolean(storageHandler.restore('loggingSwitch')); 	// storageHandler from galadrielmap.js
 if(loggingSwitch.checked) loggingRun();	// запустим запись трека, если было указано запустить
 var currentRoute; 	// объект Editable, по которому щёлкнули. Типа, текущий.
 var globalCurrentColor = 0xFFFFFF; 	// цвет линий и  значков кластеров после первого набора
@@ -446,26 +468,38 @@ var dravingLines = L.layerGroup();	// слои, в которых, собств�
 dravingLines.properties = {};
 var goToPositionManualFlag = false; 	// флаг, что поле goToPositionField стали редактировать руками, и его не надо обновлять
 var distCircles = [];	// круги дистанции, массив L.circle. Обращение к этому массиву может происходить сразу после инициализации карты.
-if(getCookie('GaladrielWindSwitch') === null) windSwitch.checked = true; 	// показывать символ ветра
-else windSwitch.checked = Boolean(+getCookie('GaladrielWindSwitch')); 	// getCookie from galadrielmap.js
+if(storageHandler.restore('WindSwitch') === null) windSwitch.checked = true; 	// показывать символ ветра
+else windSwitch.checked = Boolean(storageHandler.restore('WindSwitch')); 	// getCookie from galadrielmap.js
 
 // Dashboard
 var lat; 	 	// широта
 var lng; 	 	// долгота, округлённые до 4-х знаков
-
 var controlsList = [];	// список control для сокрытия их с экрана
+// восстановление переключателя сокрытия всего
+hideControlsSwitch.checked = Boolean(storageHandler.restore('hideControlsSwitch'));
+if(storageHandler.restore('hideControlPosition')){
+	for(let radio of settings.querySelectorAll('input[type="radio"][name="hideControlPosition"]')){
+		if(radio.value == storageHandler.restore('hideControlPosition')) {
+			radio.checked = true;
+		}
+		else  radio.checked = false;
+	};
+};
 
 // MOB
 var currentMOBmarker;
 // main output data
 var upData = {};
-var vesselSelf = getCookie('GaladrielvesselSelf');
-var instanceSelf = getCookie('GaladrielMapInstance');	// идентификатор экземпляра программы
+//var vesselSelf = getCookie('GaladrielvesselSelf');
+var vesselSelf = storageHandler.restore('vesselSelf'); 	// storageHandler from galadrielmap.js
+//var instanceSelf = getCookie('GaladrielMapInstance');	// идентификатор экземпляра программы
+var instanceSelf = storageHandler.restore('instanceSelf'); 	// storageHandler from galadrielmap.js
 if(!instanceSelf) {
 	instanceSelf = '-' + generateUUID();	// - в начале - чтобы начало не совпало с mmsi
 	let expires =  new Date();
 	expires.setTime(expires.getTime() + (24*60*60*1000)); 	// протухнет через сутки
-	document.cookie = "GaladrielMapInstance="+instanceSelf+"; expires="+expires+"; path=/; SameSite=Lax;";
+	//document.cookie = "GaladrielMapInstance="+instanceSelf+"; expires="+expires+"; path=/; SameSite=Lax;";
+	storageHandler.save('instanceSelf',instanceSelf);
 }
 
 // Кластеризация точек
@@ -502,11 +536,13 @@ controlsList.push(L.control.attribution({
 }).addTo(map));
 
 // Шкала масштаба
-controlsList.push(L.control.scale({
+//controlsList.push(
+L.control.scale({
 	position: 'bottomleft',
 	maxWidth: 200,
 	imperial: false
-}).addTo(map));
+}).addTo(map)
+//);
 
 // control для записывания в clipboard
 var copyToClipboard = new L.Control.CopyToClipboard({ 	// класс определён в galadrielmap.js
@@ -570,8 +606,9 @@ sidebar.on("closing", function(){
 });
 
 // Сокрытие всего
-hideControlsControl(hideControlPosition);	// создаёт как-бы control, делающий невидимыми все control, перечисленные в controlsList
+hideControlsToggler(hideControlsSwitch);	// создаёт как-бы control, делающий невидимыми все control, перечисленные в controlsList
 // end controls
+
 // Поведение карты
 map.on('movestart zoomstart', function(event) { 	// карту начали двигать руками
 	// функция отменяет следование карты за курсором, и устанавливает таймер, чтобы вернуть
@@ -607,7 +644,8 @@ map.on('moveend',  function(event) {
 //});
 
 // Восстановим слои
-var layers = JSON.parse(getCookie('GaladrielMaps')); 	// getCookie from galadrielmap.js
+//var layers = JSON.parse(getCookie('GaladrielMaps')); 	// getCookie from galadrielmap.js
+var layers = storageHandler.restore('layers'); 	// storageHandler from galadrielmap.js
 // Занесём слои на карту
 if(layers) layers.reverse().forEach(function(layerid){ 	// потому что они там были для красоты последним слоем вверх
 		for (var i = 0; i < mapList.children.length; i++) { 	// для каждого потомка списка mapList
@@ -697,7 +735,7 @@ for (let n=0; n<4; n++) {
 		pane: 'overlayPane',
 		zIndexOffset: -503
 	}));
-	distCircles.push(	L.circle([], {
+	distCircles.push(L.circle([0,0], {	// указать координаты необходимо, потому что Leaflet обламывается при добавлении круга в мультислой, если у круга нет координат
 		color: '#FD00DB',
 		weight: 1,
 		opacity: 0.3,
@@ -841,7 +879,8 @@ var toMOBline = L.polyline([], {
 })
 
 // восстановим маркеры
-var mobMarker = getCookie('GaladrielMapMOB'); 	// getCookie from galadrielmap.js
+//var mobMarker = getCookie('GaladrielMapMOB'); 	// getCookie from galadrielmap.js
+var mobMarker = storageHandler.restore('mobMarker'); 	// storageHandler from galadrielmap.js
 //console.log('Восстановление MOB: mobMarker',mobMarker);
 if(mobMarker) {
 	let mobMarkerJSON;
@@ -849,7 +888,7 @@ if(mobMarker) {
 		mobMarkerJSON = JSON.parse(mobMarker);
 	}
 	catch(err){
-		console.log('GaladrielMapMOB cookie is bad, JSON.parse error:',err.text);
+		console.log('saved MOB is bad, JSON.parse error:',err.text);
 	};
 	//console.log('from cookie:',JSON.stringify(mobMarkerJSON));	// L.geoJSON не сохраняет левые поля из geoJSON
 	if((typeof mobMarkerJSON === "object") && mobMarkerJSON.features && (typeof mobMarkerJSON.features === "object")){
@@ -1900,7 +1939,8 @@ for(const name of changedRouteNames){
 // покажет положение даже при отсутствии сервиса координат.
 
 // Установим переключатель в сохранённое состояние
-loggingSwitch.checked = Boolean(+getCookie('GaladrielloggingSwitch')); 	// getCookie from galadrielmap.js
+//loggingSwitch.checked = Boolean(+getCookie('GaladrielloggingSwitch')); 	// getCookie from galadrielmap.js
+loggingSwitch.checked = Boolean(storageHandler.restore('loggingSwitch')); 	// storageHandler from galadrielmap.js
 
 var currentTrackShowedFlag = false; 	// флаг, не показывается ли текущий путь. Если об этом спрашивать у Leaflet, то пока загружается трек, можно запустить его загрузку ещё раз пять.
 var currentWaitTrackUpdateProcess;	// процесс ослеживания наличия текущего (пишущегося) трека

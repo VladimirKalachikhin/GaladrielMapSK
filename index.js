@@ -86,23 +86,6 @@ plugin.schema = {
 					title: 'Display AIS MOB and AIS EPIRB as MOB',
 					description: 'Shows AIS  MOB and AIS EPIRB targets as mobs, not as vessels. If there are such targets, the MOB alarm is triggered.',
 					default: true
-				},
-				hideControls:{
-					type: 'string',
-					title: 'Hide controls from the screen:',
-					description:'An invisible zone that, when tapped, makes all controls disappear from the screen. Reload the GaladrielMap window after change.',
-					enum: [
-						'no',
-						'topleft',
-						'topmiddle',
-						'topright',
-						'rightmiddle',
-						'bottomright',
-						'bottommiddle',
-						'bottomleft',
-						'leftmiddle',
-					],
-					default: 'no'
 				}
 			}
 		},
@@ -634,7 +617,6 @@ const useSystemTimeouts = ${options.timeouts.useSystem};	// пытаться и�
 const depthInData = ${JSON.stringify(options.depthInData)};	// параметры того, как показывать глубину в gpx
 const useTrueWind = ${options.options.windProp};	// используется ли истинный или вымпельный ветер
 const AISasMOB = ${options.options.AISasMOB};	// показывать AIS MOB и AIS EPIRB как MOB
-const hideControlPosition = "${options.options.hideControls}";	// скрывать ли controls 
 const TPVsubscribe = {
 	"context": "vessels.self",
 	"subscribe": [
