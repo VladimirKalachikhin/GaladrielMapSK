@@ -158,6 +158,8 @@
 		"settingsdistCirclesTXT" : "Показывать окружности дистанции",
 		"settingsdistWindTXT" : "Показывать символ ветра",
 	 	"DisplayAIS_TXT" : "Отображение AIS",
+	 	"hideControlsSwitchTXT" : "Скрывать элементы управления",
+	 	"hideControlsPositionTXT" : "Расположение чувствительной зоны на экране",
 	 	"minWATCHintervalTXT" : "Обновлять положение не чаще, чем раз в, сек. ",
 
 	 	"mobTXT" : "Человек за бортом!",

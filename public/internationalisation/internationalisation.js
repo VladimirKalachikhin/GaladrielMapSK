@@ -42,6 +42,7 @@ let i18nFileNames = navigator.language.split(',').map((l)=>l.split(';')[0]);
 i18nFileNames = Array.from(new Set(i18nFileNames.map((l)=>l.split('-')[0].toLowerCase())));	// unique через set
 //console.log('[internalisationApply] navigator.language=',navigator.language,'i18nFileNames:',i18nFileNames);
 //i18nFileNames = ['en'];
+//i18nFileNames = ['no'];
 for(const i18nFileName of i18nFileNames){
 	i18n = getI18nData(i18nFileName+'.json');
 	if(i18n) break;
