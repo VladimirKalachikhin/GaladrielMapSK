@@ -2706,47 +2706,61 @@ L.LayerGroup.include({
 
 
 const storageHandler = {
-	store: {'empty':true},	// типа, флаг, что ещё не считывали из хранилища. Так проще и быстрей в этом кривом языке.
-	storage: false,
+	_storageName : 'GaladrielMapOptions',
+	_store: {'empty':true},	// типа, флаг, что ещё не считывали из хранилища. Так проще и быстрей в этом кривом языке.
+	storage: false,	// теоретически, можно указать, куда именно записывать? Но только мимо проверки доступности.
 	//storage: 'cookie',
+	//storage: 'storage',
 	save: function(key,value=null){
-	/* сохраняет key->value, но можно передать список пар одним параметром*/
+		/* сохраняет key->value, но можно передать список пар одним параметром 
+		или просто строку с именем переменной */
 		let values = {};
-		if(typeof key == 'object') {
+		if(arguments.length == 2){	// два аргумента - это key->value
+			values[key] = value;
+		}
+		else if(typeof key == 'object') {	// один, но список key->value
 			values = key;
 		}
-		else values[key] = value;
-		//console.log('[storageHandler] save',values,'to storage:',this.storage,'store:',this.store);
-		for(let key in values){
-			this.store[key] = values[key];
+		else {	// один, тогда это строка - имя переменной
+			//values[key] = window[key];	// это обломается, если key - не глобальная переменная, объявленная через var
+			// поэтому нижесказанное - единственный способ получить значение объекта по его имени.
+			// Он сработает и с локальным объектом, и с объектами, объявленными через let и const
+			values[key] = eval(key);
+			//console.log('[storageHandler] save key=',key,window[key]);
 		};
-		this.store.empty = false;
+		//console.log('[storageHandler] save',values,'to storage:',this.storage,'store:',this._store);
+		for(let key in values){
+			this._store[key] = values[key];
+		};
+		this._store.empty = false;
 		this._saveStore();
 	},
 	restore: function(key){
-		if(this.store.empty){
+		//alert('[storageHandler] restore '+key);
+		if(this._store.empty){
 			this._restoreStore();
-			this.store.empty = false;
+			this._store.empty = false;
 		};
-		return this.store[key.trim()];
+		return this._store[key.trim()];
 	},
 	restoreAll: function(){
-		if(this.store.empty){
+		if(this._store.empty){
 			this._restoreStore();
-			this.store.empty = false;
+			this._store.empty = false;
 		};
-		delete this.store.empty;
-		for(let varName in this.store){
-			window[varName] = this.store[varName];	// window[varName] - создаётся глобальная переменная с именем, являющимся значением varName
+		delete this._store.empty;
+		for(let varName in this._store){
+			window[varName] = this._store[varName];	// window[varName] - создаётся глобальная переменная с именем, являющимся значением varName
 		};
-		this.store.empty = false;
+		this._store.empty = false;
 	},
 	del: function(key){
-		if(this.store.empty){
+		if(this._store.empty){
 			this._restoreStore();
-			this.store.empty = false;
+			this._store.empty = false;
 		};
-		delete this.store[key.trim()];
+		delete this._store[key.trim()];
+		this._saveStore();
 	},
 	_findStorage: function(){
 		try {
@@ -2762,12 +2776,13 @@ const storageHandler = {
 		if(!this.storage) this._findStorage();
 		switch(this.storage){
 		case 'storage':
-			window.localStorage.setItem("GaladrielMapOptions", JSON.stringify(this.store));
+			//console.log('_saveStore:',JSON.stringify(this._store));
+			window.localStorage.setItem(this._storageName, JSON.stringify(this._store));
 			break;
 		case 'cookie':
 			let expires = new Date(Date.now() + (60*24*60*60*1000));	// протухнет через два месяца
 			expires = expires.toUTCString();
-			document.cookie = "GaladrielMapOptions="+JSON.stringify(this.store)+"; expires="+expires+"; path=/; SameSite=Lax;";
+			document.cookie = this._storageName+"="+JSON.stringify(this._store)+"; expires="+expires+"; path=/; SameSite=Lax;";
 			break;
 		default:
 			console.log('storageHandler: the parameters are not saved, there is nowhere');
@@ -2777,14 +2792,15 @@ const storageHandler = {
 		if(!this.storage) this._findStorage();
 		switch(this.storage){
 		case 'storage':
-			this.store = JSON.parse(window.localStorage.getItem("GaladrielMapOptions"));
-			if(!this.store)	this.store = {'empty':true};
+			this._store = JSON.parse(window.localStorage.getItem(this._storageName));
+			//console.log('_restoreStore:',JSON.stringify(this._store));
+			if(!this._store) this._store = {'empty':true};
 			break;
 		case 'cookie':
-			this.store = JSON.parse(document.cookie.match(new RegExp(
-				"(?:^|; )" + "GaladrielMapOptions".replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
-			)));
-			if(!this.store)	this.store = {'empty':true};
+			this._store = JSON.parse(document.cookie.match(new RegExp(
+				"(?:^|; )" + this._storageName.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+			))[1]);
+			if(!this._store) this._store = {'empty':true};
 			break;
 		default:
 			console.log('storageHandler: no saved parameters, there is nowhere');
