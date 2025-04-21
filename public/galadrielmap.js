@@ -2475,7 +2475,7 @@ function hideControlsToggler(target){
 if(target.value == 'onoffswitch') {
 	if(target.checked){	// возможность сокрытия включили
 		for(let radio of settings.querySelectorAll('input[type="radio"][name="hideControlPosition"]')){
-			console.log('[hideControlsToggler] radio:',radio);
+			//console.log('[hideControlsToggler] radio:',radio);
 			radio.disabled = false;
 			if(radio.checked) hideControlsControl(radio.value);
 		};
@@ -2706,7 +2706,7 @@ L.LayerGroup.include({
 
 
 const storageHandler = {
-	_storageName : 'GaladrielMapOptions',
+	_storageName : 'GaladrielMapSKOptions',
 	_store: {'empty':true},	// типа, флаг, что ещё не считывали из хранилища. Так проще и быстрей в этом кривом языке.
 	storage: false,	// теоретически, можно указать, куда именно записывать? Но только мимо проверки доступности.
 	//storage: 'cookie',

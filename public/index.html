@@ -1,4 +1,4 @@
-<!DOCTYPE html >
+<!DOCTYPE html>
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -291,7 +291,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"><span id="settingsHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
 			<div style="margin:  0.7em 1em;"> <!-- Следование за курсором -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
-					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="followSwitch" onChange="noFollowToCursor=!noFollowToCursor; CurrnoFollowToCursor=noFollowToCursor;');" checked>
+					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="followSwitch" onChange="noFollowToCursor=!noFollowToCursor; CurrnoFollowToCursor=noFollowToCursor;" checked>
 					<label class="onoffswitch-label" for="followSwitch">
 						<span class="onoffswitch-inner"></span>
 						<span class="onoffswitch-switch"></span>
@@ -1042,7 +1042,9 @@ function spatialWebSocketStart(){
 					TPVdata.windTime = update.timestamp;
 					break;
 				case 'environment.wind.angleApparent':	// Вымпельный ветер. Apparent wind angle, negative to port
+					//console.log('environment.wind.angleApparent=',value.value*180/Math.PI);
 					if(TPVdata.heading){	// приведём к абсолютному значению в соответствии с курсом
+						//console.log('TPVdata.heading=',TPVdata.heading);
 						TPVdata.wangler = TPVdata.heading+value.value*180/Math.PI;
 						if(TPVdata.wangler >= 360) TPVdata.wangler -= 360;
 						else if(TPVdata.wangler<0) TPVdata.wangler += 360;
@@ -1054,6 +1056,7 @@ function spatialWebSocketStart(){
 						else if(TPVdata.wangler<0) TPVdata.wangler += 360;
 						TPVdata.windTime = update.timestamp;
 					};
+					//console.log('TPVdata.wangler=',TPVdata.wangler);
 					break;
 				case 'environment.wind.angleTrueWater':	// Истинный ветер. True wind angle based on speed through water, negative to port
 					if(TPVdata.heading){	// истинный ветер, но приведём к курсу
