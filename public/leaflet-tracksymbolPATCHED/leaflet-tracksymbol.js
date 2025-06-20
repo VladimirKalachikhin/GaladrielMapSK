@@ -270,7 +270,7 @@ M ${center.x-4} ${center.y} L ${center.x+4} ${center.y} `;
 		<span style='font-size:110%;'>${this.options.safety_related_text||''} ${statusText||''}</span><br>
 	</div>
 	<div style='width:100%;'>
-		<div style='width:40%;float:right;text-align:right;'>${speedKMH}</div>
+		<div style='width:45%;float:right;text-align:right;'>${speedKMH}</div>
 		<span >${this.options.destination||''}</span>
 	</div>
 ${this.options.hazard_text||''} ${this.options.loaded_text||''}<br>`;

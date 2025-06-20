@@ -931,9 +931,7 @@ toSave = toGPX(toSave); 	// сделаем gpx
 toSave = utoa(toSave);	// кодируем в Base64, потому что xml нельза сохранить в куке
 
 // если expires осталась сейчас -- кука удалится, иначе -- поставится.
-//document.cookie = "GaladrielMapMeasuredPaths="+toSave+"; expires="+expires+"; path=/; SameSite=Lax;"; 	// если сечас и нет, чего сохранять - грохнем куки
 storageHandler.save('RestoreMeasuredPaths',toSave);
-//console.log('[doSaveMeasuredPaths] document.cookie:',document.cookie);
 } 	// end function doSaveMeasuredPaths
 
 function doRestoreMeasuredPaths() {
@@ -2015,18 +2013,9 @@ if(!mobMarkerJSON.properties){	// вообще-то, toGeoJSON должна со
 	mobMarkerJSON.properties = {"timestamp": Math.round(new Date().getTime()/1000)};
 };
 if(mobMarker.feature.properties.timestamp) mobMarkerJSON.properties.timestamp = mobMarker.feature.properties.timestamp;
-if(status){
-	//console.log('[sendMOBtoServer] Посадим куку MOB',JSON.stringify(mobMarkerJSON));
-	//let str = JSON.stringify(mobMarkerJSON);
-	//const expires =  new Date();
-	//expires.setTime(expires.getTime() + (30*24*60*60*1000)); 	// протухнет через месяц
-	//document.cookie = "GaladrielMapMOB="+str+"; expires="+expires+"; path=/; SameSite=Lax"; 	// 
-	storageHandler.save('mobMarker',mobMarkerJSON);
-}
-else {
-	//document.cookie = 'GaladrielMapMOB=; expires=0; path=/;'; 	// удалим куку
-	storageHandler.del('mobMarker');
-};
+if(status) storageHandler.save('mobMarker',mobMarkerJSON);
+else storageHandler.del('mobMarker');
+
 //console.log('Sending to server mobMarkerJSON',JSON.stringify(mobMarkerJSON));
 let delta = GeoJSONtoMOB(mobMarkerJSON,status);	// приведение к формату gpsdPROXY
 //console.log('[sendMOBtoServer] Sending to server upData.MOB:',delta);
@@ -2230,18 +2219,10 @@ function distCirclesToggler() {
 /* включает/выключает показ окружностей дистанции по переключателю в интерфейсе */
 if(distCirclesSwitch.checked) {
 	distCircles.forEach(circle => { circle.addTo(positionCursor);});
-	// Посадим куку
-	//const expires =  new Date();
-	//expires.setTime(expires.getTime() + (30*24*60*60*1000)); 	// протухнет через месяц
-	//document.cookie = 'GaladrielMapdistCirclesSwitch=1; expires='+expires+"; path=/; samesite=Lax"; 	// 
 	storageHandler.save('distCirclesSwitch',true);
 }
 else {
 	distCircles.forEach(circle => circle.removeFrom(positionCursor));
-	// Посадим куку
-	//const expires =  new Date();
-	//expires.setTime(expires.getTime() + (30*24*60*60*1000)); 	// протухнет через месяц
-	//document.cookie = 'GaladrielMapdistCirclesSwitch=0; expires='+expires+"; path=/; samesite=Lax"; 	// 
 	storageHandler.save('distCirclesSwitch',false);
 };
 }; // end function distCirclesToggler
@@ -2252,18 +2233,10 @@ function windSwitchToggler() {
 if(windSwitch.checked) {
 	windSymbolMarker.setLatLng(cursor.getLatLng());	// хотя его может и не быть. Но если не установить координаты, может происходить ошибка в leaflet, если символ показывается до очередного обновления координат, когда они устанавливаюся для всех слоёв, включая символ ветра.
 	if(!positionCursor.hasLayer(windSymbolMarker)) windSymbolMarker.addTo(positionCursor);
-	// Посадим куку
-	//const expires =  new Date();
-	//expires.setTime(expires.getTime() + (30*24*60*60*1000)); 	// протухнет через месяц
-	//document.cookie = "GaladrielWindSwitch=1; expires="+expires+"; path=/; SameSite=Lax;";
 	storageHandler.save('WindSwitch',true);
 }
 else {
 	windSymbolMarker.removeFrom(positionCursor);
-	// Посадим куку
-	//const expires =  new Date();
-	//expires.setTime(expires.getTime() + (30*24*60*60*1000)); 	// протухнет через месяц
-	//document.cookie = 'GaladrielWindSwitch=0; expires='+expires+"; path=/; samesite=Lax"; 	// 
 	storageHandler.save('WindSwitch',false);
 }
 } // end function windSwitchToggler

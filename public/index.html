@@ -213,9 +213,10 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			<!-- Поиск места -->
 			<div style="width:95%;">
 				<div style="margin:0;padding:0;">
-					<button onClick='goToPositionField.value += "°";goToPositionField.focus();' style="width:2rem;height:1.5rem;margin:0 0.7rem 0 0;"><span style="font-weight: bold; font-size:150%;">°</span></button>
-					<button onClick='goToPositionField.value += "′";goToPositionField.focus();' style="width:2rem;height:1.5rem;margin:0 0.7rem 0 0;"><span style="font-weight: bold; font-size:150%;">′</span></button>
-					<button onClick='goToPositionField.value += "″";goToPositionField.focus();' style="width:2rem;height:1.5rem;margin:0 0rem 0 0;"><span style="font-weight: bold; font-size:150%;">″</span></button><br>
+					<button onClick='goToPositionField.value = "";goToPositionField.focus();' style="width:2rem;height:1rem;margin:0 0.7rem 0 0;float:right;"><img src="img/no.svg" title="Clear" alt="Clear" width="8px" style="vertical-align:top;"></button>
+					<button onClick='goToPositionField.value += "°";goToPositionField.focus();' style="width:2rem;height:1rem;margin:0 0.7rem 0 0;"><span style="font-weight: bold; font-size:150%;">°</span></button>
+					<button onClick='goToPositionField.value += "′";goToPositionField.focus();' style="width:2rem;height:1rem;margin:0 0.7rem 0 0;"><span style="font-weight: bold; font-size:150%;">′</span></button>
+					<button onClick='goToPositionField.value += "″";goToPositionField.focus();' style="width:2rem;height:1rem;margin:0 0rem 0 0;"><span style="font-weight: bold; font-size:150%;">″</span></button><br>
 				</div>
 				<span id="routePosTXT"></span><br>
 				<input id='goToPositionField' type="text" title="" size='12' style='width:70%;font-size:150%;'>			
@@ -235,8 +236,8 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 					//currentRoute = null;
 					//routeSaveName.value = '';
 					//routeSaveDescr.value = '';" 
-				" type='submit'  class='okButton' style="float:right;"><img src="img/ok.svg" alt="Ok" width="16px"></button>
-				<button onClick='routeSaveName.value=""; routeSaveDescr.value="";' type='reset' class='okButton' style="float:left;"><img src="img/no.svg" alt="clear" width="16px"></button>
+					type='submit' class='okButton' style="float:right;"><img src="img/ok.svg" title="Ok" alt="Ok" width="16px"></button>
+				<button onClick='routeSaveName.value=""; routeSaveDescr.value="";' type='reset' class='okButton' style="float:left;"><img src="img/no.svg" title="<?php echo $clearTXT;?>" alt="<?php echo $clearTXT;?>" width="16px"></button>
 				<div id='routeSaveMessage' style='margin: 1rem;'></div>
 			</div>			
 		</div>
@@ -938,6 +939,7 @@ function spatialWebSocketStart(){
 		TPVsubscribe.subscribe.forEach(subscribe => subscribe.minPeriod = minWATCHinterval);	//  signalKsubscribe в options.js
 		event.target.send(JSON.stringify(TPVsubscribe));	// подписываемся на получение данных
 		console.log("[spatialWebSocket open] Subscribe sended");
+		//console.log("[spatialWebSocket open] Subscribed to",TPVsubscribe);
 		// Хоть какая-то проверка актуальности координат -- за отсутствием чего-то такого в SignalK
 		if(useSystemTimeouts){	// options.js
 			// Попытка сделать минимально правильно в этом кривом SignalK
@@ -988,7 +990,7 @@ function spatialWebSocketStart(){
 			//console.log('update:',update);
 			if(!update.values) continue;	// непонятно, почему может не быть values, но иногда их нет
 			for(let value of update.values){	// какое-то обновление данных пришло.
-				//console.log('[spatialWebSocket.onmessage] recieved data:',data);
+				//console.log('[spatialWebSocket.onmessage] recieved value:',value);
 				lastDataUpdate = Date.now();
 				switch(value.path){
 				case 'navigation.position':
@@ -1006,6 +1008,7 @@ function spatialWebSocketStart(){
 				case 'navigation.headingTrue':
 					TPVdata.heading = value.value*180/Math.PI;
 					TPVdata.headingTime = update.timestamp;
+					//console.log('[spatialWebSocket.onmessage] headingTrue=',TPVdata.heading)
 					break;
 				// в принципе, может быть и navigation.headingMagnetic и navigation.headingCompass
 				// причём разные (с учётом navigation.magneticDeviation)
