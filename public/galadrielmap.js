@@ -559,6 +559,11 @@ else {
 	switch(routeType) {
 	case 'gpx':
 		savedLayers[routeName] = omnivore.gpx(routeDirURI+'/'+routeName,options);
+		if(! updateRoutesInterval) {
+			// Запуск динамического обновления показываемых маршрутов,
+			// если ещё не запущен и есть адрес обновлялки
+			if(updateRouteServerURI) updateRoutesInterval = setInterval(realtime,3000,updateRouteServerURI,routeUpdate);
+		};
 		break;
 	case 'kml':
 		savedLayers[routeName] = omnivore.kml(routeDirURI+'/'+routeName,options);
