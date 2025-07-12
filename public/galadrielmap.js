@@ -61,6 +61,7 @@ loggingRun() запускает/останавливает запись трек
 loggingCheck(logging='   ')
 
 MOBalarm()
+MOBtabHighLight(on=false)
 setMOBpopup(layer)
 createMOBpointMarker(mobMarkerJSON)
 clearCurrentStatus()
@@ -1692,6 +1693,7 @@ return;
 }; // end xhr.onreadystatechange
 }; // end function loggingCheck
 
+
 function MOBalarm(latlng=null,MOBmarkerInfo={}) {
 /* Устанавливает маркер одной точки MOB, с дополнительной информацией, 
 в текущих или указанных координатах, делая видимым весь мультислой mobMarker,
@@ -1765,6 +1767,14 @@ if(!sart && (loggingIndicator !== undefined && !loggingSwitch.checked)) {	// в�
 sendMOBtoServer(); 	// отдадим данные MOB для передачи на сервер
 return true;
 } // end function MOBalarm
+
+
+function MOBtabHighLight(on=false){
+/* Посветка кнопки MOB */
+if(on) MOBtab.style.backgroundColor = 'red';
+else MOBtab.style.backgroundColor = 'inherit';
+}; // end function MOBtabHighLight
+
 
 function setMOBpopup(layer){
 let dataStamp = '';
@@ -1884,6 +1894,7 @@ directionMOBdisplay.innerHTML = '&nbsp;';
 locationMOBdisplay.innerHTML = '&nbsp;';
 delMOBmarkerButton.disabled = true;
 //centerMarkOff(); 	// выключить крестик в середине -- не надо, ибо при закрытии панели оно уже вызывается
+MOBtabHighLight(false);	// убрать подсветку кнопки
 sidebar.close();	// закрыть панель
 } // end function MOBclose
 

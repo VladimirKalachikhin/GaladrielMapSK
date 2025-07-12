@@ -588,7 +588,10 @@ sidebar.on("content", function(event){ 	// Событие открытия? па
 		});
 		break;
 	case 'MOB': 	// человек за бортом
-		if(!map.hasLayer(mobMarker)) MOBalarm();
+		if(!map.hasLayer(mobMarker)) {
+			MOBalarm();
+			MOBtabHighLight(true);	// Подсветим кнопку
+		}
 		else if(!map.hasLayer(cursor)) centerMarkOn(); 	// включить крестик в середине
 		break;
 	}
@@ -1800,6 +1803,7 @@ function alarmWebSocketStart(){
 						};
 					};
 					//console.log('[alarmWebSocket.onmessage] mobMarker:',mobMarker);
+					MOBtabHighLight(true);	// Подсветим кнопку
 					break;
 				case 'notifications.danger.collision':
 					//console.log('recieved collision data',value.value);
