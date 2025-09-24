@@ -3,39 +3,46 @@
 onBodyLoad()
 mapListPopulate()
 
-listPopulate()
+listPopulate(listObject,dirURI,chkCurrent=false,withExt=true,onComplete=undefined) Заполняет ul путей или маршрутов li с именами файлов
+ulDiff(listObjectIn,listObjectFrom)	Удаляет из ul listObjectFrom li, присутствующие в listObjectIn
+getCookie(name)		возвращает cookie с именем name, если есть, если нет, то undefined
+doSavePosition() 	Сохранение положения, списка показываемых карт, маршрутов и используемых параметров
 
-getCookie(name)
-doSavePosition() 	Сохранение положения
-
+// Функции выбора - удаления карт
 selectMap(node) 	Выбор карты из списка имеющихся
 deSelectMap(node) 	Прекращение показа карты, и возврат её в список имеющихся.
 displayMap(mapname) Создаёт leaflet lauer с именем, содержащемся в mapname, и заносит его на карту
 removeMap(mapname)
 showMapsToggle()	переключает показ всех или выбранных карт в списке карт
 
+// Функции выбора - удаления треков
 selectTrack()		Выбор трека из списка имеющихся. 
 deSelectTrack()		Прекращение показа трека, и возврат его в список имеющихся.
 displayTrack()		рисует трек с именем в trackNameNode
 displayRoute(routeNameNode)	рисует маршрут или места с именем routeName 
 updateCurrTrack()
 
+// Функции рисования маршрутов
 routeControlsDeSelect()
 pointsControlsDisable()
 pointsControlsEnable()
 getGPXicon(gpxtype)
 delShapes(realy,inLayer=null)	Удаляет полилинии в состоянии редактирования, если realy = true
-tooggleEditRoute(e)
+tooggleEditRoute(e,flavor=null)
 createEditableMarker(Icon)
 doSaveMeasuredPaths()
 doRestoreMeasuredPaths()
 bindPopUptoEditable(layer)
+eraseEditable()
+startEditing()
+cancelEditing()
+resetRouteButtons()
 
-saveGPX() 			Сохраняет на сервере маршрут из объекта currentRoute
+saveGPX(byLoadAction=undefined) 			Сохраняет на сервере маршрут из объекта currentRoute
+DOsaveGPX(byLoadAction=undefined)
 toGPX(geoJSON,createTrk) Create gpx route or track (createTrk==true) from geoJSON object
 
-String.prototype.encodeHTML = function ()
-
+// Кластеризация точек
 createSuperclaster(geoJSONpoints)
 removeFromSuperclaster(superclasterLayer,point)
 updateClasters()
@@ -44,7 +51,8 @@ realUpdClaster(layer)
 
 nextColor(color,step)
 
-centerMarkPosition() // Показ координат центра и переход по введённым
+// Показ координат центра и переход по введённым
+centerMarkPosition() 
 centerMarkUpdate()
 centerMarkOn
 centerMarkOff
@@ -60,48 +68,75 @@ loggingWait()		запускает/останавливает слежение з
 loggingRun() запускает/останавливает запись трека
 loggingCheck(logging='   ')
 
+// MOB
 MOBalarm()
 MOBtabHighLight(on=false)
 setMOBpopup(layer)
 createMOBpointMarker(mobMarkerJSON)
-clearCurrentStatus()
 MOBclose()
 realMOBclose()
 delMOBmarker()
+makeMOBmarkerCurrent(LMarker)
+clearCurrentStatus()	удаляет признак "текущий маркер" у всех маркеров мультислоя mobMarker
+is_currentMOBmarkerSelf(marker)
+checkSelfMOBmarkerScount()
 mobMarkerDragendFunction(event)
 mobMarkerClickFunction(event)
 sendMOBtoServer()
 MOBtoGeoJSON(MOBdata)
 GeoJSONtoMOB(mobMarkerJSON,status,label)
 
+// Круги дистанции
 distCirclesUpdate()	Устанавливает диаметр и подписи кругов дистанции
 distCirclesToggler() включает/выключает показ окружностей дистанции по переключателю в интерфейсе
  
+// Ветер
 windSwitchToggler()
 windSymbolUpdate()
 realWindSymbolUpdate(direction=0,speed=0)
 
 restoreDisplayedRoutes()
+
 chkDisplayedList(List,Displayed)	Проверим соответствие списков 
-currentTrackUpdate()	загружает трек, делает его показываемым и обновляет по мере записи
+
+hideControlsControl(hideControlPosition)	Создаёт невидимый псевдо-control, по тапу по которому все указанные в controlsList control делаются невидимыми на экране
+hideControlEventListener(event)
+hideControlsToggler(target)
+
+// Функции маршрутной точки
+nextWPT()
+prevWPT()
+cancelFollowing()
+startFollowing()
+WPTbuttonsON()
+WPTbuttonsReady()
+WPTbuttonsOFF()
+WPTbuttonsNotReady()
+
+				currentTrackUpdate()	загружает трек, делает его показываемым и обновляет по мере записи
 
 loadScriptSync(scriptURL)	Синхронная загрузка javascript
 
 bearing(latlng1, latlng2)
+tileNum2degree(zoom,xtile,ytile) Tile numbers to lon./lat. left top corner
 
 atou(b64)		ASCII to Unicode (decode Base64 to original data)
 utoa(data)		Unicode to ASCII (encode data to Base64)
 
 generateUUID()
-arrayHasOnly
-getSelfPathC			Получает с сервера path, синхронно
+arrayHasOnly(array,value=null)
+getSelfPathC(path='')			Получает с сервера path, синхронно
 
 realtime(dataUrl,fUpdate)
 
 Классы
+String.prototype.encodeHTML = function ()
 L.Control.CopyToClipboard
-hasLayerRecursive(what)
 eachLayerRecursive()
+hasLayerRecursive(what)
+getLayerRecursive(what)
+
+storageHandler
 
 /////////////////////////// collisionDetector test ///////////////////////////////
 displayCollisionAreas()
@@ -235,6 +270,26 @@ fetch(dirURI)	// запросим список файлов route
 	console.log(`Error get ${dirURI} files list:`,err.message);
 });
 } // end function listPopulate
+
+
+function ulDiff(listObjectIn,listObjectFrom){
+/* Удаляет из ul listObjectFrom li, присутствующие в listObjectIn
+Может быть использована в listPopulate в качестве функции onComplete для
+удаления из созданного списка имеющихся списка показываемых. 
+Например, из routeList (listObjectFrom) удалить routeDisplayed (listObjectIn)
+*/
+const listObjectFromLiS = listObjectFrom.querySelectorAll('li');	// список всех li в listObjectFrom
+listObjectIn.querySelectorAll('li').forEach(function (displayedLi){	// для каждого элемента списка всех li из listObjectIn
+	//console.log('displayedLi:',displayedLi.id);
+	for(const li of listObjectFromLiS){	// прокрутим список всех li в listObjectFrom
+		//console.log('\trouteList li',li.id);
+		if(displayedLi.id==li.id){	// если элемент из списка listObjectFrom есть в списке элементов listObjectIn
+			li.remove();	// method removes the element from the DOM. Объект остаётся в коллекции routeListLi? Похоже, да, хотя не должен?
+			break;
+		};
+	};
+});
+}; // end function ulDiff
 
 
 function getCookie(name) {
@@ -545,16 +600,19 @@ else {
 }
 } // end function displayTrack
 
-function displayRoute(routeNameNode) {
+function displayRoute(routeNameNode,changed=false) {
 /* рисует маршрут или места с именем routeName 
 global routeDirURI map window
 */
 var routeName = routeNameNode.innerText.trim();
 var options = {featureNameNode : routeNameNode};
-if( savedLayers[routeName]) {
+if(!changed && savedLayers[routeName]) {
 	savedLayers[routeName].addTo(map); 	// нарисуем его на карте. 
 }
 else {
+	// удалим с карты объект с этим именем, потому что дальше с этим именем
+	// будет другой объект
+	if(savedLayers[routeName]) savedLayers[routeName].remove();	
 	var routeType =  routeName.slice((routeName.lastIndexOf(".") - 1 >>> 0) + 2).toLowerCase(); 	// https://www.jstips.co/en/javascript/get-file-extension/ потому что там нет естественного пути
 	//console.log(routeType);
 	switch(routeType) {
@@ -629,7 +687,7 @@ xhr.onreadystatechange = function() { //
 	else { 	// лог не пишется
 		if(typeof loggingIndicator != 'undefined'){
 			// лампочка и переключатель в интерфейсе
-			if(loggingSwitch.checked){ 	// этот клиент сказал писать трек, состояние loggingSwitch восстанавливается из куки в index.php
+			if(loggingSwitch.checked){ 	// этот клиент сказал писать трек, состояние loggingSwitch восстанавливается из куки в index
 				loggingIndicator.style.color='red';
 				loggingIndicator.innerText='\u2B24';
 				loggingRun();	// попытаемся запустить запись трека
@@ -657,14 +715,16 @@ function routeControlsDeSelect() {
 for(let element of document.getElementsByName('routeControl')){
 	element.checked=false;
 	element.disabled=true;
-}   
-} // end function routeControlsDeSelect
+};   
+}; // end function routeControlsDeSelect
+
 
 function pointsControlsDisable(){
 for(let button of pointsButtons.querySelectorAll('button')){	// кнопки установки маркеров
 	button.disabled = true;
 };
 }; // end function pointsControlsDisable
+
 
 function pointsControlsEnable(){
 for(let button of pointsButtons.querySelectorAll('button')){	// кнопки установки маркеров
@@ -675,11 +735,13 @@ for(let button of pointsButtons.querySelectorAll('button')){	// кнопки у�
 };
 }; // end function pointsControlsEnable
 
+
 function getGPXicon(gpxtype){
 /* вообще-то, здесь должно быть обращение к iconServer из leaflet-omnivore, но пока так*/
 let iconName = gpxtype+'Icon';
 return window[iconName];
-} // end function getGPXicon
+}; // end function getGPXicon
+
 
 function delShapes(realy,inLayer=null) {
 /* Удаляет полилинии в состоянии редактирования, если realy = true
@@ -720,12 +782,16 @@ for(let layer of inLayer.getLayers()){
 //console.log('[delShapes] needUpdateSuperclaster:',needUpdateSuperclaster);
 if(needUpdateSuperclaster) updClaster(inLayer);	// обновим один раз за все удаления
 return edEnShapesCntr;
-}	// end function delShapes
+};	// end function delShapes
 
 
-function tooggleEditRoute(e) {
+function tooggleEditRoute(e,flavor=null) {
 /* Переключает режим редактирования
 Обычно обработчик клика по линии
+flavor == true - включить редактирование
+flavor == false - выключить редактирование
+flavor == null - переключить редактирование
+
 */
 //console.log('tooggleEditRoute start by anymore',e);
 // Щёлкнуть могли либо по нарисованному локально объекту (в том числе -- и по восстановленному из куки)
@@ -737,33 +803,59 @@ if(editorEnabled===false) {
 let target;
 if(e.target) target = e.target;	// вызвали как обработчик события. В этом языке this почему-то currentTarget (текущий обработчик события в процессе всплытия), а не current (тот, кто инициировал событие). Поэтому лучше явно.
 else target = e;	// вызвали просто как функцию
+// Это нужно делать до переноса target в другой слой, иначе у Leaflet.Editable съезжает крыша.
+switch(flavor){
+case true:
+	target.enableEdit();
+	break;
+case false:
+	target.disableEdit();
+	break;
+default:
+	target.toggleEdit();	// оно Leaflet.Editable. Собственно, это и есть переключение состояния.
+};
 let layerName = '';
-currentRoute = null;
 //console.log('[tooggleEditRoute] target',target);
+//console.log('[tooggleEditRoute] target.feature:',JSON.stringify(target.feature));
 //console.log('[tooggleEditRoute] savedLayers:',savedLayers);
-if(dravingLines.hasLayerRecursive(target)){	// Щёлкнули по одному из нарисованных объектов. hasLayerRecursive потому что omnivore импортирует gpx как L.LayerGroup с двумя слоями: точки и всё остальное
-	//console.log('[tooggleEditRoute] Щёлкнули на объекте',target._leaflet_id,target,'в dravingLines',dravingLines._leaflet_id,dravingLines);
-	currentRoute = dravingLines;
-	layerName = new Date().toJSON(); 	// запишем в поле ввода имени дату
+if(dravingLines && dravingLines.hasLayerRecursive(target)){	// Щёлкнули по одному из нарисованных объектов. hasLayerRecursive потому что omnivore импортирует gpx как L.LayerGroup с двумя слоями: точки и всё остальное
+	//console.log('[tooggleEditRoute] Щёлкнули на нарисованном объекте',target._leaflet_id,target,'в dravingLines',dravingLines._leaflet_id,dravingLines);
+	if(currentRoute && (currentRoute !== dravingLines)){
+		//console.log('[tooggleEditRoute] currentRoute есть, добавляем dravingLines в currentRoute')
+		//if(!currentRoute.hasLayerRecursive(dravingLines)) currentRoute.addLayer(dravingLines);	// if не обязательно - addLayer проверяет. Но не рекурсивно!
+		//currentRoute.addLayer(dravingLines);	// if не обязательно - addLayer проверяет. Но не рекурсивно!
+		//console.log('[tooggleEditRoute] currentRoute есть, переносим объект, по которому щёлкнули, в currentRoute');
+		currentRoute.addLayer(target);	// if не обязательно - addLayer проверяет. Но не рекурсивно!
+		dravingLines.removeLayer(target);
+	}
+	else {
+		//console.log('[tooggleEditRoute] currentRoute нет, или currentRoute===dravingLines, объектом currentRoute становится объект dravingLines')
+		currentRoute = dravingLines;
+		layerName = new Date().toJSON(); 	// 
+	};
 }
 else {
 	for (layerName in savedLayers) {	// нет способа определить, в какой layerGroup находится layer, но у нас все показываемые слои хранятся в массиве savedLayers
-		//console.log('[tooggleEditRoute] layerName=',layerName);
-		if((savedLayers[layerName] instanceof L.LayerGroup) && savedLayers[layerName].hasLayerRecursive(target)){
-			//console.log('[tooggleEditRoute] Щёлкнули на объекте',target._leaflet_id,target,'в',savedLayers[layerName]._leaflet_id,layerName,savedLayers[layerName]);
-			currentRoute = savedLayers[layerName];
-			routeSaveName.value = layerName; 	// запишем в поле ввода имени имя загруженного файла
-			break;
+		if(!(savedLayers[layerName] instanceof L.LayerGroup) || !savedLayers[layerName].hasLayerRecursive(target)) continue;
+		//console.log('[tooggleEditRoute] Щёлкнули на загруженном объекте',target._leaflet_id,target,'в',savedLayers[layerName]._leaflet_id,layerName,savedLayers[layerName]);
+		//if(currentRoute && (currentRoute !== savedLayers[layerName])){
+		if(currentRoute && (currentRoute._leaflet_id != savedLayers[layerName]._leaflet_id)){
+			//console.log('[tooggleEditRoute] currentRoute есть, добавляем savedLayers[',layerName,'] в currentRoute')
+			//if(!currentRoute.hasLayerRecursive(savedLayers[layerName])) currentRoute.addLayer(savedLayers[layerName]);
+			//currentRoute.addLayer(savedLayers[layerName]);
+			//console.log('[tooggleEditRoute] currentRoute есть, и это не тот же слой, в котором объект, по токорому щёлкнули. Копируем объект, по которому щёлкнули, в currentRoute')
+			currentRoute.addLayer(target);
 		}
-	}
-}
-if(!currentRoute) {
-	console.log('[tooggleEditRoute] Не удалось определить currentRoute, облом.');
-	return;
-}
+		else {
+			//console.log('[tooggleEditRoute] currentRoute нет, или currentRoute===savedLayers[',layerName,'], объектом currentRoute становится объект savedLayers[',layerName,']')
+			currentRoute = savedLayers[layerName];
+		};
+		routeSaveName.value = layerName; 	// запишем в поле ввода имени имя загруженного файла
+		break;
+	};
+};
 
-//console.log('[tooggleEditRoute] target:',target,'currentRoute:',currentRoute,'dravingLines:',dravingLines)
-target.toggleEdit();	// оно Leaflet.Editable
+//console.log('[tooggleEditRoute] currentRoute:',currentRoute._leaflet_id,currentRoute,'dravingLines:',dravingLines._leaflet_id,dravingLines)
 if(target.editEnabled()) { 	//  если включено редактирование
 	//console.log('[tooggleEditRoute] Редактирование включили');
 	routeEraseButton.disabled=false; 	// - сделать доступной кнопку Удалить
@@ -779,6 +871,7 @@ if(target.editEnabled()) { 	//  если включено редактирова
 	if((!routeSaveDescr.value) && currentRoute.properties && currentRoute.properties.desc) routeSaveDescr.value = currentRoute.properties.desc;
 	if(target.feature && target.feature.properties && target.feature.properties.name) editableObjectName.value = target.feature.properties.name;
 	if(target.feature && target.feature.properties && target.feature.properties.desc) editableObjectDescr.value = target.feature.properties.desc;
+	editableObjectLeafletID.value = currentRoute.getLayerId(target);	// в общем-то, оно просто возвращает target._leaflet_id, но так сложно - зачем-то нужно. Например, чтобы оно было только для LayerGroup, тогда getLayer - это просто return this._layers[id]; 
 	if(target instanceof L.Marker){
 		//console.log('[tooggleEditRoute] target is instanceof L.Marker',target);
 		routeCreateButton.disabled=true; 	// - сделать недоступной кнопку Начать
@@ -796,16 +889,18 @@ if(target.editEnabled()) { 	//  если включено редактирова
 					tooggleEditRoute(target);
 					button.onclick = function (event) {createEditableMarker(target.getIcon());};
 				};
-			}
-		}
+			};
+		};
 	}
 	else {
-		pointsControlsDisable();	// отключить кнопки точек
+		//pointsControlsDisable();	// отключить кнопки точек
 		routeContinueButton.disabled=false; 	// - сделать доступной кнопку Продолжить
-	}
+	};
+	WPTbuttonsReady();	// Включает кнопку следования по маршруту
 }
 else {
 	//console.log('[tooggleEditRoute] Редактирование выключили');
+	if(currentRoute==dravingLines)	doSaveMeasuredPaths();	// Сохраним локально, если оно рисовано от руки
 	editableObjectDescr.onchange = null;
 	if(delShapes(false))  routeEraseButton.disabled=false; 	// если есть редактируемые слои в currentRoute
 	else {	// 
@@ -815,30 +910,9 @@ else {
 		target.feature.properties.name = editableObjectName.value;
 		target.feature.properties.desc = editableObjectDescr.value;
 		bindPopUptoEditable(target);
-
-		// Автоматическое сохранение ранее загруженного gpx по прекращению редактирования.
-		// в результате поведение редактирования файла с сервера такое же, как и редактирование локального.
-		// Раз уж они выглядят одинаково.
-		// А хорошая ли это идея?
-		if(currentRoute.properties && (routeSaveName.value == currentRoute.properties.fileName)){	// мы редактировали ранее загруженный файл
-			//console.log('[tooggleEditRoute] Сохраняется файл',currentRoute.properties.fileName);
-			//saveGPX();
-		}
-		else {
-			//console.log('[tooggleEditRoute] Сохраняется кука');
-			doSaveMeasuredPaths();
-		};
-
-		routeCreateButton.disabled=false; 	// - сделать доступной кнопку Начать
-		routeEraseButton.disabled=true; 	// - сделать недоступной кнопку Удалить
-		routeContinueButton.disabled=true; 	//  - сделать недоступной кнопку Продолжить
+		resetRouteButtons();	// вернём кнопки в исходное состояние
 		if(editorEnabled==='maybe') editorEnabled=false;	// панель закрыли во время редактирования, потом редактирование завершили
-		//currentRoute = null;	// иначе saveGPX не сработает
-		//routeSaveName.value = '';	// если нет автоматического сохранения gpx, то надо оставить
-		//routeSaveDescr.value = '';
-		editableObjectName.value = '';
-		editableObjectDescr.value = '';
-	}
+	};
 	if(target instanceof L.Marker){
 		//console.log('[tooggleEditRoute] target is instanceof L.Marker');
 		target.setOpacity(0.7);
@@ -852,8 +926,17 @@ else {
 		};
 	}
 	else pointsControlsEnable();
-}
-} // end function tooggleEditRoute
+	//console.log('Завершили редактирование, в currentRoute имеется',delShapes(false),'редактирующихся слоёв.');
+	//
+	if(!delShapes(false)) {
+		currentRoute = undefined;	// если нет редактирумых слоёв в currentRoute - нет currentRoute.
+		routeSaveName.value = '';	// очистим имя файла, всё равно currentRoute нет, и сохранить отредактированное не получится.
+		routeSaveDescr.value = '';
+	};
+	//
+};
+}; // end function tooggleEditRoute
+
 
 function createEditableMarker(Icon){
 if(!currentRoute) currentRoute = dravingLines; 	// 
@@ -901,6 +984,7 @@ routeEraseButton.disabled=false;	// включим кнопку Стереть
 if(!routeSaveName.value) routeSaveName.value = new Date().toJSON(); 	// запишем в поле ввода имени дату, если там ничего не было
 } // end function createEditableMarker
 
+
 function doSaveMeasuredPaths() {
 /* сохранение в cookie отображаемых на карте маршрутов
 Сохраняются только маршруты, не находящиеся в состоянии редактирования.
@@ -922,50 +1006,52 @@ function findEditDisabled(layer){
 				gj.type = 'Feature';
 			}
 			toSave.addData(gj);
-			expires.setTime(expires.getTime() + (60*24*60*60*1000)); 	// протухнет через два месяца
 		}
 	}
-} // end function findEditDisabled
+}; // end function findEditDisabled
 //console.log('[doSaveMeasuredPaths] toSave original:',toSave);
 dravingLines.eachLayer(findEditDisabled);
 toSave = toSave.toGeoJSON();	// здесь я реально не понял. А оно не geoJSON? Оно не GeoJSON. Оно LayerGroup
 toSave.properties = dravingLines.properties;	// на самом деле -- чисто чтобы там было properties, оно нигде не используется
 //console.log('[doSaveMeasuredPaths] toSave:',toSave);
-
-toSave = toGPX(toSave); 	// сделаем gpx 
-//console.log('[doSaveMeasuredPaths] Save to cookie GaladrielMapMeasuredPaths',toSave,expires.getTime()-Date.now());
-toSave = utoa(toSave);	// кодируем в Base64, потому что xml нельза сохранить в куке
-
-// если expires осталась сейчас -- кука удалится, иначе -- поставится.
+if(toSave.features.length){
+	toSave = toGPX(toSave); 	// сделаем gpx 
+	//console.log('[doSaveMeasuredPaths] Save to cookie GaladrielMapMeasuredPaths',toSave);
+	toSave = utoa(toSave);	// кодируем в Base64, потому что xml нельза сохранить в куке
+}
+else toSave = null;	// не нужно сохранять пустой gpx, а главное - не надо его потом показывать
 storageHandler.save('RestoreMeasuredPaths',toSave);
-} 	// end function doSaveMeasuredPaths
+}; 	// end function doSaveMeasuredPaths
+
 
 function doRestoreMeasuredPaths() {
-/*Global drivedPolyLineOptions*/
-//let RestoreMeasuredPaths = getCookie('GaladrielMapMeasuredPaths');
+/* Восстанавливает локально сохранённые слои как dravingLines
+Global drivedPolyLineOptions
+*/
 let RestoreMeasuredPaths = storageHandler.restore('RestoreMeasuredPaths'); 	// storageHandler from galadrielmap.js
 //console.log('[doRestoreMeasuredPaths] RestoreMeasuredPaths=',RestoreMeasuredPaths);
-if(RestoreMeasuredPaths) {
-	try {	// в принципе, там может быть фигня, но главное -- та же кука от старой версии приведёт к облому
-		RestoreMeasuredPaths = atou(RestoreMeasuredPaths);	// восстановим из base64
-	}
-	catch {
-		return;
-	}
-	//console.log('[doRestoreMeasuredPaths] Restore from cookie',RestoreMeasuredPaths);
-	
-	dravingLines.clearLayers();
-	dravingLines = omnivore.gpx.parse(RestoreMeasuredPaths);	// leaflet-omnivore.js
-	//console.log('[doRestoreMeasuredPaths] dravingLines',dravingLines);
-	dravingLines.eachLayerRecursive(function (layer){
-		//console.log('[doRestoreMeasuredPaths] layer',layer);
-		if(layer.feature && (layer.feature.geometry.type == 'LineString' || layer.feature.geometry.type == 'Line')){
-			layer.options.color = '#FDFF00';
-		}
-	});
-	dravingLines.addTo(map);
+if(!RestoreMeasuredPaths) return;
+
+try {	// в принципе, там может быть фигня, но главное -- та же кука от старой версии приведёт к облому
+	RestoreMeasuredPaths = atou(RestoreMeasuredPaths);	// восстановим из base64
 }
-}	// end function doRestoreMeasuredPaths
+catch {
+	return;
+}
+//console.log('[doRestoreMeasuredPaths] Restore from cookie',RestoreMeasuredPaths);
+
+dravingLines.clearLayers();
+dravingLines = omnivore.gpx.parse(RestoreMeasuredPaths);	// leaflet-omnivore.js
+//console.log('[doRestoreMeasuredPaths] dravingLines',dravingLines);
+dravingLines.eachLayerRecursive(function (layer){
+	//console.log('[doRestoreMeasuredPaths] layer',layer);
+	if(layer.feature && (layer.feature.geometry.type == 'LineString' || layer.feature.geometry.type == 'Line')){
+		//layer.options.color = '#FDFF00';
+	}
+});
+dravingLines.addTo(map);
+};	// end function doRestoreMeasuredPaths
+
 
 function bindPopUptoEditable(layer){
 // Подпись - Tooltip
@@ -1010,11 +1096,99 @@ layer.unbindPopup();	// если, допустим, описание было, �
 if(popUpHTML) {
 	//console.log('[bindPopUptoEditable] binding popup',popUpHTML);
 	layer.bindPopup(popUpHTML+'<br>');
+};
+}; // end function bindPopUptoEditable
+
+
+function eraseEditable(){
+/* Удаляет все редактируемые слои в currentRoute, и возвращает кнопки в начальное состояние
+dravingLines - L.layerGroup, слои, в которых, собственно, рисуются маршруты и путевые точки
+
+В отличии от cancelEditing, где редактируемые объекты становятся? не редактируемыми, здесь они удаляются.
+*/
+let cnt=delShapes(true);	// удалим все редактируемые объекты
+//console.log('[eraseEditable] Удалено ',$cnt,'редактируемых слоёв.');
+resetRouteButtons();	// выставим кнопки в начальное состояние
+if(currentRoute==dravingLines)	{
+	doSaveMeasuredPaths();	// Сохраним локально, если оно рисовано от руки
+	if(!dravingLines.getLayers().length){	// если больше ничего не рисуем, dravingLines пуст
+		currentRoute = undefined;	// раз не осталось редактируемых объектов, редактирование завершено.
+		routeSaveName.value = '';	// очистим имя файла
+		routeSaveDescr.value = '';
+	};
+};
+//console.log('[eraseEditable] currentRoute:',currentRoute._leaflet_id,currentRoute);
+//console.log('[eraseEditable] dravingLines:',dravingLines._leaflet_id,dravingLines);
+}; // end function eraseEditable()
+
+
+function startEditing(){
+/* Начинаем рисовать новую линию */
+// Если currentRoute уже есть - мы, вероятно, пририсовываем что-то к существующему.
+// При этом, сужествующее может быть как dravingLines - т.е., рисуемое от руки, так и
+// какой-нибудь savedLayers[layerName] в состоянии редактирования, т.е., слой, загруженный из файла.
+// Если уже есть currentRoute, рисуемое добавляется к нему.
+if(currentRoute && (currentRoute !== dravingLines)) {
+	//console.log('[Кнопка Начать] currentRoute есть и currentRoute не является dravingLines - добавим создаваемый слой в currentRoute');
+	currentRoute.addLayer(dravingLines);	// addLayer не добавляет, если уже есть
 }
-} // end function bindPopUptoEditable
+else {
+	//console.log('[Кнопка Начать] currentRoute нет или currentRoute==dravingLines - сделаем слой dravingLines объектом currentRoute');
+	currentRoute = dravingLines;
+};
+pointsControlsDisable();	// отключить кнопки точек
+//console.log('[Кнопка Начать] currentRoute:',currentRoute._leaflet_id,'dravingLines:',dravingLines._leaflet_id);
+// Поскольку в этом говёном Javascript объекты передаются по ссылке на их значение,
+// map.editTools.startPolyline(null,drivedPolyLineOptions.options) приведёт к тому, что
+// объект, обозначенный как drivedPolyLineOptions, будет один на все layer.
+// Поэтому для каждого создаваемого layer будем делать новый объект drivedPolyLineOptions
+let drivedPolyLineOptionsNEW = JSON.parse(JSON.stringify(drivedPolyLineOptions));	
+let layer = map.editTools.startPolyline(null,drivedPolyLineOptionsNEW.options);
+layer.options.color = '#FDFF00';
+layer.feature = drivedPolyLineOptionsNEW.feature;
+layer.on('editable:editing', function (event){event.target.updateMeasurements();});	// обновлять расстояния при редактировании
+//layer.on('click', L.DomEvent.stop).on('click', tooggleEditRoute);
+layer.on('click',tooggleEditRoute);
+layer.addTo(dravingLines);
+editableObjectLeafletID.value = dravingLines.getLayerId(layer);	// в общем-то, оно просто возвращает target._leaflet_id, но так сложно - зачем-то нужно. Например, чтобы оно было только для LayerGroup, тогда getLayer - это просто return this._layers[id]; 
+//console.log('[Кнопка Начать] editableObjectLeafletID.value=',editableObjectLeafletID.value);
+routeEraseButton.disabled=false;
+//if(!routeSaveName.value || Date.parse(routeSaveName.value)) routeSaveName.value = new Date().toJSON(); 	// запишем в поле ввода имени дату, если там ничего не было или была дата
+if(!routeSaveName.value) routeSaveName.value = new Date().toJSON(); 	// запишем в поле ввода имени дату, если там ничего не было
+//console.log('[Кнопка Начать] currentRoute:',currentRoute._leaflet_id,currentRoute);
+//console.log('[Кнопка Начать] dravingLines:',dravingLines._leaflet_id,dravingLines);
+}; // end function startEditing
 
 
-function saveGPX() {
+function cancelEditing(){
+/* Прекратим редактирование слоя ?
+*/
+dravingLines.eachLayerRecursive(function(layer){tooggleEditRoute(layer,false);})	// переключим все слои в состоянии редактирования в состояние не редактирования
+if(currentRoute) currentRoute.eachLayerRecursive(function(layer){tooggleEditRoute(layer,false);})	// currentRoute может быть savedLayers[layerName], который остаётся
+currentRoute = undefined;
+routeSaveName.value = '';	// очистим имя файла
+routeSaveDescr.value = '';
+resetRouteButtons();	// вернём кнопки в исходное состояние
+}; // end function cancelEditing
+
+
+function resetRouteButtons(){
+/* Устанавливает кнопки и поля редактора маршрутов в начальное состояние, кроме 
+полей имени и описания сохраняемого файла routeSaveName.value и routeSaveDescr.value
+*/
+editableObjectName.value = '';	// уберём название и описание объекта
+editableObjectDescr.value = '';
+editableObjectLeafletID.value = '';
+routeControlsDeSelect();	// сделаем невыбранными кнопки управления рисованием маршрута
+routeCreateButton.disabled=false; 	// - сделать доступной кнопку Начать
+pointsControlsEnable();	// включим кнопки точек
+routeEraseButton.disabled=true;
+routeContinueButton.disabled=true;
+WPTbuttonsNotReady();	// Выключает кнопку следования по маршруту
+}; // end function resetRouteButtons
+
+
+function saveGPX(byLoadAction=undefined) {
 /* Сохраняет на сервере маршрут из объекта currentRoute. currentRoute -- это или нарисованный
 локально объект, или отредактированный gpx
 */
@@ -1041,9 +1215,11 @@ if(!currentRoute) { 	// глобальная переменная, присва�
 	} // end function collectSuperclasterPoints
 
 
-let fileName = routeSaveName.value; 	// имя файла для сохранения, поле в интерфейсе
+let fileName = routeSaveName.value.trim(); 	// имя файла для сохранения, поле в интерфейсе
+
+if(!fileName.endsWith('.gpx')) fileName += '.gpx';
 if(! fileName) { 	// внезапно имени нет, хотя в index поле заполняется
-	fileName = new Date().toJSON();
+	fileName = new Date().toJSON()+'.gpx';
 	routeSaveName.value = fileName;
 }
 
@@ -1056,45 +1232,51 @@ let pointsFeatureCollection = collectSuperclasterPoints(currentRoute); 	//
 //console.log('[saveGPX] pointsFeatureCollection:',pointsFeatureCollection);
 
 let route = currentRoute.toGeoJSON(); 	// сделаем объект geoJSON. Очевидно, это новый объект?
-if(!('properties' in route)) route.properties = {};
-//route.properties.fileName = fileName;	// имя файла. А нафига?
-if(routeSaveDescr.value.trim()) route.properties.desc = routeSaveDescr.value;	// общий комментарий
-route.properties.time = new Date().toISOString();
-route.properties.xmlns = "http://www.topografix.com/GPX/1/1";
-route.properties['xmlns:gpxx'] = "http://www8.garmin.com/xmlschemas/GpxExtensions/v3";
-route.properties['xmlns:xsi'] = "http://www.w3.org/2001/XMLSchema-instance";
-route.properties['xsi:schemaLocation'] = "http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd https://www8.garmin.com/xmlschemas/GpxExtensions/v3 https://www8.garmin.com/xmlschemas/GpxExtensions/v3/GpxExtensionsv3.xsd";
-for(let key in currentRoute.properties) {	//
-	if(typeof route.properties[key] === 'undefined') route.properties[key] = currentRoute.properties[key];
-}
-//console.log('[saveGPX] currentRoute:',currentRoute);
-//console.log('[saveGPX] route as geoJSON:',route);
+//console.log('[saveGPX] route:',route);
+if(route.features.length){	// какие-то объекты есть
+	if(!('properties' in route)) route.properties = {};
+	//route.properties.fileName = fileName;	// имя файла. А нафига?
+	if(routeSaveDescr.value.trim()) route.properties.desc = routeSaveDescr.value;	// общий комментарий
+	route.properties.time = new Date().toISOString();
+	route.properties.xmlns = "http://www.topografix.com/GPX/1/1";
+	route.properties['xmlns:gpxx'] = "http://www8.garmin.com/xmlschemas/GpxExtensions/v3";
+	route.properties['xmlns:xsi'] = "http://www.w3.org/2001/XMLSchema-instance";
+	route.properties['xsi:schemaLocation'] = "http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd https://www8.garmin.com/xmlschemas/GpxExtensions/v3 https://www8.garmin.com/xmlschemas/GpxExtensions/v3/GpxExtensionsv3.xsd";
+	for(let key in currentRoute.properties) {	//
+		if(typeof route.properties[key] === 'undefined') route.properties[key] = currentRoute.properties[key];
+	};
+	//console.log('[saveGPX] currentRoute:',currentRoute);
+	//console.log('[saveGPX] route as geoJSON:',route);
 
-// теперь выкинем точки, которые есть в supercluster, а потом добавим все точки из supercluster
-// потому что при текущем масштабе некоторые точки из supercluster могли отображаться как точки,
-// а не как значки supercluster
-if(pointsFeatureCollection.length) { 	// это был supercluster, поэтому в geoJSON неизвестно, сколько оригинальных точек, а не все. Но у нас с собой было...
-	// выкинем все точки, присутствующие в pointsFeatureCollection
-	let pointsFeatureCollectionStrings = pointsFeatureCollection.map(function (point){
-																		// а вот тут убъём все сохранённые маркеры
-																		// из-за того, что JSON.stringify нельзя
-																		// заставить что-то сделать с циклической структурой
-																		point.properties.marker = undefined;
-																		return JSON.stringify(point);
-																	});
-	route.features = route.features.filter(function(feature){	
-		// не сами кластеры, не точки, и точки, не входящие в pointsFeatureCollection
-		return (!feature.properties.cluster) && ((feature.geometry.type !== 'Point') || (! pointsFeatureCollectionStrings.includes(JSON.stringify(feature))));
-	});
-	//console.log('[saveGPX] JSON.stringify(route.features)',JSON.stringify(route.features));
-	// нифига не понятно, почему layer.supercluster.points -- это geoJSON? Видимо, потому, что
-	// в supercluster исходно загружаются не объекты leaflet, а GeoJSON Feature objects. 
-	route.features = route.features.concat(pointsFeatureCollection); 	// теперь положим туда точки, ранее взятые в superclaster'е
-}
-//console.log('[saveGPX] route as geoJSON after:',route);
+	// теперь выкинем точки, которые есть в supercluster, а потом добавим все точки из supercluster
+	// потому что при текущем масштабе некоторые точки из supercluster могли отображаться как точки,
+	// а не как значки supercluster
+	if(pointsFeatureCollection.length) { 	// это был supercluster, поэтому в geoJSON неизвестно, сколько оригинальных точек, а не все. Но у нас с собой было...
+		// выкинем все точки, присутствующие в pointsFeatureCollection
+		let pointsFeatureCollectionStrings = pointsFeatureCollection.map(function (point){
+																			// а вот тут убъём все сохранённые маркеры
+																			// из-за того, что JSON.stringify нельзя
+																			// заставить что-то сделать с циклической структурой
+																			point.properties.marker = undefined;
+																			return JSON.stringify(point);
+																		});
+		route.features = route.features.filter(function(feature){	
+			// не сами кластеры, не точки, и точки, не входящие в pointsFeatureCollection
+			return (!feature.properties.cluster) && ((feature.geometry.type !== 'Point') || (! pointsFeatureCollectionStrings.includes(JSON.stringify(feature))));
+		});
+		//console.log('[saveGPX] JSON.stringify(route.features)',JSON.stringify(route.features));
+		// нифига не понятно, почему layer.supercluster.points -- это geoJSON? Видимо, потому, что
+		// в supercluster исходно загружаются не объекты leaflet, а GeoJSON Feature objects. 
+		route.features = route.features.concat(pointsFeatureCollection); 	// теперь положим туда точки, ранее взятые в superclaster'е
+	};
+	//console.log('[saveGPX] route as geoJSON after:',route);
 
-route = toGPX(route); 	// сделаем gpx 
-//console.log('[saveGPX] route as gpx:',route);
+	route = toGPX(route); 	// сделаем gpx 
+	//console.log('[saveGPX] route as gpx:',route);
+}
+else {	// никаких объектов нет
+	route = '';
+};
 
 var xhr = new XMLHttpRequest();
 // В SignalK нельзя сделать сервер POST запросов, потому что нельзя устроить декодирование
@@ -1111,12 +1293,68 @@ xhr.send();
 xhr.onreadystatechange = function() { // 
 	if (this.readyState != 4) return; 	// запрос ещё не завершился
 	if (this.status != 200) return; 	// что-то не то с сервером
-	//console.log('[saveGPX] this.responseText=',this.responseText);
 	const res = JSON.parse(this.responseText);
 	routeSaveMessage.innerHTML = res[1];
-	if(!res[0]) listPopulate(routeList,routeDirURI,false,true,function(){chkDisplayedList(routeList,routeDisplayed);});	// список маршрутов, асинхронно
-}
-} // end function saveGPX()
+	// Теперь надо выполнить функцию по окончанию загрузки.
+	//console.log('[saveGPX] Сохранён файл',fileName);
+	if(byLoadAction) byLoadAction(fileName);
+};
+
+}; // end function saveGPX()
+
+
+function DOsaveGPX(byLoadAction=undefined){
+/**/
+saveGPX(function (fileName){
+	//console.log('[DOsaveGPX] Сохранён файл',fileName);
+	// Покажем сохранённый объект на карте естественным путём - т.е., так, как если бы
+	// он был открыт по щелчку в списке route
+	const routeDisplayedLi = [... routeDisplayed.querySelectorAll('li')].filter(el => el.textContent == fileName)[0];
+	if(routeDisplayedLi){	// слой с этим именем уже есть в списке routeDisplayed, т.е., маршрут показывается
+		//console.log('[DOsaveGPX] Файл',fileName,'имеется в routeDisplayed');
+		// currentRoute в этом случае не меняется. Потому что есть мнение, что должно остаться,
+		// чтобы можно было добавлять рисуемое.
+		// Но после сохранения объект будет перезагружен следилкой, в результате
+		// currentRoute и сохранённый объект станут разными объектами, и добавить рисуемое
+		// к сохранённому объекту не получится.
+		// Поэтому просто cancelEditing()
+		if(currentRoute.hasLayer(dravingLines)){
+			// очистим вообще слой рисования, фактически - это удаление рисуемого с карты.
+			// Делать dravingLines.remove() не следует: слои добавляются на карту в Leaflet.Editable,
+			// и в результате .remove() dravingLines просто просто теряет связь с этими слоями,
+			// а на карте они всё равно остаются.
+			// Кроме того, dravingLines добавляется на карту вообще только при старте страницы
+			// (и при локальном восстановлении, что дублирование.) Поэтому если здесь сделать .remove()
+			// и потом нигде не сделать addTo - будет забавно. Слой, созданный Leaflet.Editable будет
+			// видим, потому что там есть addTo(map), но dravingLines видим на будет, хотя будет
+			// этот слой содержать. В результате .clearLayers() очистит dravingLines, но слой
+			// на карте останется.
+			//console.log('[DOsaveGPX] dravingLines нет в currentRoute',dravingLines);
+			dravingLines.clearLayers();	
+		};
+	}
+	else {	// слоя нет, т.е., мы сохранили новый файл (иначе он был бы в routeDisplayed)
+		//console.log('[DOsaveGPX] Файла',fileName,'нет в routeDisplayed');
+		// Сперва удалим рисуемое - вместо него будет сохранённое
+		dravingLines.clearLayers();	// очистим вообще слой рисования
+		// обновим список routeList. Оно асинхронно.
+		listPopulate(routeList,routeDirURI,false,true,function(){	// заполним список routeList
+			ulDiff(routeDisplayed,routeList);	// удалим из routeList то, что есть в routeDisplayed
+			// найдёи в routeList li с именем fileName
+			const routeListLi = [... routeList.querySelectorAll('li')].filter(el => el.textContent == fileName)[0];
+			// покажем этот li
+			//console.log('[DOsaveGPX] Показываем',routeListLi);
+			if(routeListLi){	// ну мало ли...
+				selectTrack(routeListLi,routeList,routeDisplayed,displayRoute);
+			};
+		}); // end function
+	};
+	// В это время ещё выполняется listPopulate
+	doSaveMeasuredPaths();	// Очистим локальное хранилище
+	cancelEditing();
+	if(byLoadAction) byLoadAction(fileName);
+}); // end function
+}; // end function DOsaveGPX
 
 
 function toGPX(geoJSON) {
@@ -1212,15 +1450,6 @@ return gpxtrack;
 		}
 	}
 } // end function toGPX
-
-
-String.prototype.encodeHTML = function () {
-    return this.replace(/&/g, '&amp;')
-               .replace(/</g, '&lt;')
-               .replace(/>/g, '&gt;')
-               .replace(/"/g, '&quot;')
-               .replace(/'/g, '&apos;');
-};
 
 
 // Кластеризация точек
@@ -1450,15 +1679,88 @@ function flyByString(stringPos){
 /* Получает строку предположительно с координатами, и перемещает туда центр карты */
 //console.log('goToPositionButton',goToPositionButton.value,'goToPositionField',goToPositionField.value);
 if(!stringPos) stringPos = map.getCenter().lat+' '+map.getCenter().lng; 	// map -- глобально определённая карта
-//console.log('stringPos',stringPos);
-let error;
+//console.log('[flyByString] stringPos=',stringPos);
+	// Это написал GigaChat, я так и ниасилил регулярные выражения
+	function extractNumberAfterKeyword(str, keyword) {
+		// Используем экранирование специальных символов регулярного выражения внутри keywor'd'
+		const escapedKeyword = keyword.replace(/[-/\\^$*+?.()|[$${}]/g, '\\$&');
+		// Регулярное выражение теперь включает аргумент keyword
+		const regex = new RegExp(`${escapedKeyword}[^0-9]*([+-]?\\d*\\.?\\d+)`, 'i');
+		// Выполняем поиск соответствия регулярному выражению
+		const match = str.match(regex);
+		if (match && match.length > 1) { // Если найдено совпадение и оно имеет значение
+		    return parseFloat(match[1]); // Возвращаем найденное число
+		};
+		return null; // Если ничего не нашли — возвращаем null
+	};
+
+let error,lat,lon;
 try {
-    var position = new Coordinates(stringPos); 	// https://github.com/otto-dev/coordinate-parser
-	//console.log(position);
-	const lat=position.getLatitude();
-	const lon=position.getLongitude();
+    // Разберём строку как координаты https://github.com/otto-dev/coordinate-parser
+    // Писал это дело законченный мудак, и там, кроме кучи бессмысленных объектных наворотов,
+    // совершенно шизоидная логика. Исправить её невозможно - проще написать снова. Поэтому
+    // проще то, что в этом парсере не предусмотрено, отдельно привести к виду, парсером
+    // понимаемому.
+    var position = new Coordinates(stringPos); 	
+	//console.log('[flyByString] position:',position);
+	lat=position.getLatitude();
+	lon=position.getLongitude();
+} 
+catch (error) { 	// coordinate-parser обломался, строка - не координаты.
+	//console.log('[flyByString] stringPos=',stringPos,error);
+	// это возможно, строка с lon lat
+	lon = extractNumberAfterKeyword(stringPos, 'lon');
+	lat = extractNumberAfterKeyword(stringPos, 'lat');
+	if((lon == null) || (lat == null) || (lon == lat)){
+		lon = extractNumberAfterKeyword(stringPos, 'lng');
+		lat = extractNumberAfterKeyword(stringPos, 'lat');
+		if((lon == null) || (lat == null) || (lon == lat)){
+			lon = extractNumberAfterKeyword(stringPos, 'longitude');
+			lat = extractNumberAfterKeyword(stringPos, 'latitude');
+		};
+	};
+};
+
+if((lon == null) || (lat == null) || (lon == lat)){	// координат так и не нашли
+	// А не номер тайла ли там?
+	//const digits = stringPos.trim().match(new RegExp("/(?<!-|\.)\d+(?!\.)/g"));	// вытащим неотрицательные целые числа из строки. Выражение неправильное, оно возвращает вторые и далеее цифры после запятой. Но так бывает редко ;-)
+	const digits = stringPos.trim().match(/\d+/g);	// вытащим неотрицательные целые числа из строки. Выражение неправильное, оно возвращает вторые и далеее цифры после запятой. Но так бывает редко ;-)
+	//console.log('[flyByString] digits:',digits);
+	let x,y,z;
+	if (digits && digits.length == 3 && ((digits.join().length+11) > stringPos.trim().length)) {	// если чисел три, и добавление разумного количества разделителей и пробелов делает строку результата больше исходной. А иначе - это адрес с цифрами.
+		digits.map(Number);	// преобразуем строки в числа (оно и так, но так модно и прилично. Так ChatGPT говорит.)
+		[z,x,y] = digits;
+		let maxTileNum = Math.pow(2, z) - 1;
+		if (x > maxTileNum || y > maxTileNum) {
+			[x,y,z] = digits;
+			maxTileNum = Math.pow(2, z) - 1;
+			if (x > maxTileNum || y > maxTileNum) [z,x,y] = [null,null,null];
+		};
+	};
+	if(z && x && y){	// это похоже на номер тайла, переместимся к этому тайлу
+		//console.log('[flyByString] z,x,y:',z,x,y);
+		map.setZoom(z);
+		map.panTo(tileNum2degree(z,x,y));
+	}
+	else {	// это просто строка, возможно, с адресом, сделаем запрос к геосервису
+		let xhr = new XMLHttpRequest();
+		//const url = encodeURI('https://nominatim.openstreetmap.org/search/'+stringPos+'?format=jsonv2'); 	// прямое геокодирование
+		const url = encodeURI('https://nominatim.openstreetmap.org/search?q='+stringPos+'&format=jsonv2'); 	// прямое геокодирование
+		xhr.open('GET', url, true); 	// Подготовим асинхронный запрос
+		xhr.setRequestHeader('Referer',url); 	// nominatim.org требует? Теперь, .... требует.
+		xhr.send();
+		xhr.onreadystatechange = function() { // 
+			if (this.readyState != 4) return; 	// запрос ещё не завершился
+			if (this.status != 200) return; 	// что-то не то с сервером
+			const nominatim = JSON.parse(this.response);
+			//console.log(nominatim);
+			updGeocodeList(nominatim);
+		};
+	};
+}
+else{	// координаты нашли
 	map.setView(L.latLng([lat,lon])); 	// подвинем карту в указанное место
-	let xhr = new XMLHttpRequest();
+	let xhr = new XMLHttpRequest();	// Запросим сервис геокодирования на предмет - что у нас в этом месте
 	const url = encodeURI('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+lat+'&lon='+lon);
 	xhr.open('GET', url, true); 	// Подготовим асинхронный запрос
 	xhr.setRequestHeader('Referer',url); 	// nominatim.org требует?
@@ -1469,24 +1771,9 @@ try {
 		const nominatim = JSON.parse(this.response);
 		//console.log(nominatim);
 		updGeocodeList(nominatim);
-	}	
-} catch (error) { 	// строка - не координаты
-	//console.log(stringPos,error);
-	let xhr = new XMLHttpRequest();
-	//const url = encodeURI('https://nominatim.openstreetmap.org/search/'+stringPos+'?format=jsonv2'); 	// прямое геокодирование
-	const url = encodeURI('https://nominatim.openstreetmap.org/search?q='+stringPos+'&format=jsonv2'); 	// прямое геокодирование
-	xhr.open('GET', url, true); 	// Подготовим асинхронный запрос
-	xhr.setRequestHeader('Referer',url); 	// nominatim.org требует?
-	xhr.send();
-	xhr.onreadystatechange = function() { // 
-		if (this.readyState != 4) return; 	// запрос ещё не завершился
-		if (this.status != 200) return; 	// что-то не то с сервером
-		const nominatim = JSON.parse(this.response);
-		//console.log(nominatim);
-		updGeocodeList(nominatim);
-	}
-}
-} // end function flyByString
+	};
+};
+}; // end function flyByString
 
 function updGeocodeList(nominatim){
 if(!Array.isArray(nominatim)) nominatim = [nominatim];
@@ -2487,6 +2774,96 @@ else {	// изменили расположения переключателя �
 
 
 
+
+// Функции маршрутной точки
+function nextWPT(){
+/* Там, однако, может не быть соединения с сервером. */
+//console.log("nextWPT!",spatialWebSocket);
+//spatialWebSocket.send('?WPT={"action":"nextWPT"};');
+}; // end function nextWPT
+
+function prevWPT(){
+/**/
+//console.log("prevWPT!",spatialWebSocket);
+//spatialWebSocket.send('?WPT={"action":"prevWPT"};');
+}; // end function prevWPT
+
+function cancelFollowing(){
+//console.log("cancelFollowing!",spatialWebSocket);
+//spatialWebSocket.send('?WPT={"action":"cancel"};');
+}; // end function cancelFollowing
+
+function startFollowing(){
+/* Global currentRoute editableObjectLeafletID */
+//console.log("startFollowing!",editableObjectLeafletID.value,currentRoute.getLayerRecursive(editableObjectLeafletID.value));
+// Очистим возможное существующее указание на текущий маршрут и
+// найдём объект, который будет новым текущим маршрутом
+let target;
+currentRoute.eachLayerRecursive(function(layer){
+	if(currentRoute.getLayerId(layer)==editableObjectLeafletID.value) target = layer;
+	if(layer.feature && layer.feature.properties && layer.feature.properties.cmt) {
+		layer.feature.properties.cmt = layer.feature.properties.cmt.replace('current','');	// Во-первых, считаем, что current там встречается только один раз. Во-вторых, надеемся, что layer - это ссылка на соответствующий объект.
+	};
+})	// 
+if(target == null){
+	console.log("[startFollowing] Not found route to following in currentRoute:",currentRoute);
+	return;
+};
+target.feature.properties.name = editableObjectName.value;
+target.feature.properties.desc = editableObjectDescr.value;
+target.feature.properties.cmt = (target.feature.properties.cmt||'')+" current";	// обозначим, что этому надо следовать. "Это" может быть как rte, так и wpt
+DOsaveGPX(function (fileName){
+	cancelEditing();
+	fileName = `${selfServerPath}/${routeDir}/${fileName}`
+	//console.log('Тут надо послать сигнал про',fileName);
+	spatialWebSocket.send(`?WPT={"action":"start","wayFileName":"${fileName}"};`);
+});
+}; // end function startFollowing
+
+
+function WPTbuttonsON(){
+if(typeof followWPTbutton == 'undefined') return;	// кнопки могут отсутствовать у неполноценных юзеров
+nextWPTbutton.disabled = false;
+followWPTbutton.disabled = false;
+followWPTbutton.innerHTML = nofollowWPTbuttonTXT;
+followWPTbutton.removeEventListener('click',startFollowing);
+followWPTbutton.addEventListener('click',cancelFollowing);
+prevWPTbutton.disabled = false;
+}; // end function WPTbuttonsON
+
+function WPTbuttonsReady(){
+if(typeof followWPTbutton == 'undefined') return;	// кнопки могут отсутствовать у неполноценных юзеров
+// Неважно, есть ли уже режим следования или нет, делаем невозможным управление им
+nextWPTbutton.disabled = true;
+followWPTbutton.disabled = false;
+followWPTbutton.innerHTML = followWPTbuttonTXT;
+followWPTbutton.removeEventListener('click',cancelFollowing);
+followWPTbutton.addEventListener('click',startFollowing);
+prevWPTbutton.disabled = true;
+}; // end function WPTbuttonsON
+
+function WPTbuttonsOFF(){
+if(typeof followWPTbutton == 'undefined') return;	// кнопки могут отсутствовать у неполноценных юзеров
+nextWPTbutton.disabled = true;
+followWPTbutton.disabled = true;
+followWPTbutton.innerHTML = followWPTbuttonTXT;
+//followWPTbutton.addEventListener('click',startFollowing);	// оно не нужно
+prevWPTbutton.disabled = true;
+}; // end function WPTbuttonsOFF
+
+
+function WPTbuttonsNotReady(){
+if(typeof followWPTbutton == 'undefined') return;	// кнопки могут отсутствовать у неполноценных юзеров
+if(map.hasLayer(wptMarker)){	// на карте имеется путевая точка, режим следования включён?
+	WPTbuttonsON();
+}
+else {	// режим следования выключен
+	WPTbuttonsOFF();
+};
+};	// end function WPTbuttonsNotReady
+
+
+
 // Общие функции
 
 function loadScriptSync(scriptURL){
@@ -2536,6 +2913,17 @@ if(bearing >= 360) bearing = bearing-360;
 return bearing;
 } // end function bearing
 
+
+function tileNum2degree(zoom,xtile,ytile) {
+/* Tile numbers to lon./lat. left top corner
+// http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames
+*/
+const n = Math.pow(2, zoom)
+const lon_deg = xtile / n * 360.0 - 180.0;
+const nn = Math.PI - (2 * Math.PI * ytile) / Math.pow(2, zoom);
+const lat_deg = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(nn) - Math.exp(-nn)));
+return {'lat': lat_deg,'lng': lon_deg};
+}; // end function tileNum2degree
 
 /**
 Эти казлы так и ниасилили юникод в JavaScript. Багу более 15 лет.
@@ -2653,6 +3041,14 @@ fetch(dataUrl)
 
 
 /* Определения классов */
+String.prototype.encodeHTML = function () {
+    return this.replace(/&/g, '&amp;')
+               .replace(/</g, '&lt;')
+               .replace(/>/g, '&gt;')
+               .replace(/"/g, '&quot;')
+               .replace(/'/g, '&apos;');
+};
+
 // control для копирования в клипбоард
 L.Control.CopyToClipboard = L.Control.extend({
 	onAdd: function(map) {
@@ -2676,10 +3072,7 @@ L.LayerGroup.include({
 			if (layer._layers) layer.eachLayerRecursive(method, context);	// а почему они не применяют instanceof? Медленно? 
 			else method.call(context, layer);
 		});
-	}
-});
-
-L.LayerGroup.include({	
+	},
 	// рекурсивный hasLayer
 	hasLayerRecursive: function(what) {
 		let res = false;
@@ -2688,6 +3081,18 @@ L.LayerGroup.include({
 			if(!(layer instanceof L.LayerGroup)) continue;	// это не LayerGroup
 			if(layer.hasLayer(what)) return true;
 			else res = layer.hasLayerRecursive(what);
+		}
+		return res;
+	},
+	// рекурсивный getLayer
+	getLayerRecursive: function(what) {
+		let res = this.getLayer(what);
+		if(res!=null) return res;
+		for(const layer of this.getLayers()){	// нужно прекратить обход, eachLayer не подойдёт
+			if(!(layer instanceof L.LayerGroup)) continue;	// это не LayerGroup
+			res = layer.getLayer(what);
+			if(res!=null) return res;
+			else res = layer.getLayerRecursive(what);
 		}
 		return res;
 	}

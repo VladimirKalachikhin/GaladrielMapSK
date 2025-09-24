@@ -242,13 +242,15 @@ catch(error){
 	};
 };
 
-if(options.timeouts.PosFreshBefore == undefined) options.timeouts.PosFreshBefore = 5;
-if(options.timeouts.SpeedFreshBefore == undefined) options.timeouts.SpeedFreshBefore = 2;
-if(options.timeouts.DepthFreshBefore == undefined) options.timeouts.DepthFreshBefore = 2;
-if(options.timeouts.WindFreshBefore == undefined) options.timeouts.WindFreshBefore = 2;
-if(options.timeouts.aisFreshBefore == undefined) options.timeouts.aisFreshBefore = 600;
+if(options.timeouts.PosFreshBefore == null) options.timeouts.PosFreshBefore = 5;
+if(options.timeouts.SpeedFreshBefore == null) options.timeouts.SpeedFreshBefore = 2;
+if(options.timeouts.DepthFreshBefore == null) options.timeouts.DepthFreshBefore = 2;
+if(options.timeouts.WindFreshBefore == null) options.timeouts.WindFreshBefore = 2;
+if(options.timeouts.aisFreshBefore == null) options.timeouts.aisFreshBefore = 600;
 
 let trackDir = options.directory.trackDir;
+let trackFileList = fs.readdirSync(options.directory.routeDir);	// содержимое каталога track, чтобы можно было определять факт того, что из него что-то удалили
+trackFileList = trackFileList.filter(item => item.endsWith('.gpx'));
 
 function fileListHelper(request,response,fileDir,fileTypes,chkCurrent=false){
 // chkCurrent -- do check is gpx file the current writed gpx 
@@ -566,10 +568,12 @@ app.get(`/${plugin.id}/saveGPX/:name/:gpx`, function(request, response) {
 // предполагается, что маршрутов с целью динамического обновления
 app.get(`/${plugin.id}/checkRoutes`, function(request, response) {	
 	const fresh = 60*60*24*1000; 	//msec. The file was modified not later than this ago
-	let shanged = [];
 	let filesList = fs.readdirSync(options.directory.routeDir);	// 
 	filesList = filesList.filter(item => item.endsWith('.gpx'));
 	//app.debug(filesList);
+	//console.log(trackFileList.filter(element => !filesList.includes(element)));
+	let shanged = trackFileList.filter(element => !filesList.includes(element));
+	
 	for(const fileName of filesList){
 		const mTime = fs.statSync(options.directory.routeDir+'/'+fileName).mtimeMs;
 		//app.debug(fileName,fs.statSync(options.directory.routeDir+'/'+fileName).mtime);
@@ -583,6 +587,7 @@ app.get(`/${plugin.id}/checkRoutes`, function(request, response) {
 		shanged.push(fileName);
 	}
 	response.json(shanged);
+	trackFileList = filesList;
 });
 
 // Подготовим картинку для передачи её клиенту, чтобы тот мог видеть её и при потере связи с сервером

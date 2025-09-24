@@ -152,20 +152,8 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 			<div id='routeControls' class="routeControls" style="width:95%; padding:1rem 0 2rem; text-align: center;">
 				<input type="radio" name="routeControl" class='L' id="routeCreateButton"
 					onChange="
-						pointsControlsDisable();	// отключить кнопки точек
-						if(!currentRoute) currentRoute = dravingLines; 	// 
-						//console.log('[Кнопка Начать] currentRoute:',currentRoute._leaflet_id,'dravingLines:',dravingLines._leaflet_id);
-						let layer = map.editTools.startPolyline(false,drivedPolyLineOptions.options);
-						layer.options.color = '#FDFF00';
-						layer.feature = drivedPolyLineOptions.feature;
-						layer.on('editable:editing', function (event){event.target.updateMeasurements();});	// обновлять расстояния при редактировании
-						//layer.on('click', L.DomEvent.stop).on('click', tooggleEditRoute);
-						layer.on('click',tooggleEditRoute);
-						layer.addTo(currentRoute);
-						routeEraseButton.disabled=false;
-						//if(!routeSaveName.value || Date.parse(routeSaveName.value)) routeSaveName.value = new Date().toJSON(); 	// запишем в поле ввода имени дату, если там ничего не было или была дата
-						if(!routeSaveName.value) routeSaveName.value = new Date().toJSON(); 	// запишем в поле ввода имени дату, если там ничего не было
-						//console.log('[Кнопка Начать] layer:',layer);
+						startEditing();
+						//WPTbuttonsReady();	// Может быть, оно не надо? Кнопка Следовать появится после повторной активации режима редактирования. Типа, после завершения рисования...
 					"
 				>
 				<label for="routeCreateButton"><span id="routeControlsBeginTXT"></span></label>
@@ -193,22 +181,17 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 				</div>
 				<input id = 'editableObjectName' type="text" title="" placeholder='' size='255' style='width:90%;font-size:150%;'><br>
 				<textarea id = 'editableObjectDescr' title="" rows='3' cols='255' placeholder='' style='width:87%;padding: 0.5rem 3%;'></textarea><br>
+				<input id='editableObjectLeafletID' type="hidden">
 				<br>
-				<input type="radio" name="routeControl" id="routeEraseButton"
-					onChange="
-						delShapes(true);	// удалим все редактируемые объекты
-						routeControlsDeSelect();	// сделаем невыбранными кнопки управления рисованием маршрута
-						routeCreateButton.disabled=false; 	// - сделать доступной кнопку Начать
-						pointsControlsEnable();	// включим кнопки точек
-						this.disabled=true;
-						routeContinueButton.disabled=true;
-						// раз не осталось редактируемых объектов, редактирование завершено? Сохраним.
-						if(currentRoute==dravingLines)	doSaveMeasuredPaths();
-						//else saveGPX();	// ?но загруженный файл не будем сохранять, потому что он тогда перезагрузится, и перестанет быть текущим редактируемым
-						//currentRoute = null;	// ?не будем считать, что редактирование завершено
-					"
-				>
+				<input type="radio" name="routeControl" id="routeEraseButton" onChange="eraseEditable();">
 				<label for="routeEraseButton"><span id="routeControlsClearTXT"></span></label>
+<!--
+				<div style="margin: 2.5em 0;text-align: center;width:96%;">
+					<button id="prevWPTbutton" disabled onClick="prevWPT();" style="font-size:200%;padding:0 0.2em;">◁</button>
+					<button id="followWPTbutton" disabled  style="vertical-align:top;padding:0.7em 1.3em;margin:0.1em 0.5em;"><?php echo $followWPTbuttonTXT;?></button>
+					<button id="nextWPTbutton" disabled onClick="nextWPT();" style="font-size:200%;padding:0 0.2em;">▷</button>
+				</div>
+-->
 			</div>
 			<!-- Поиск места -->
 			<div style="width:95%;">
@@ -231,13 +214,12 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 				<h3 id="routeSaveTitle"></h3>
 				<input id = 'routeSaveName' type="text" title="" placeholder='' size='255' style='width:95%;font-size:150%;'>
 				<textarea id = 'routeSaveDescr' title="" rows='5' cols='255' placeholder='' style='width:93%;padding: 0.5rem 3%;'></textarea>
-				<button onClick="
-					saveGPX();
-					//currentRoute = null;
-					//routeSaveName.value = '';
-					//routeSaveDescr.value = '';" 
-					type='submit' class='okButton' style="float:right;"><img src="img/ok.svg" title="Ok" alt="Ok" width="16px"></button>
-				<button onClick='routeSaveName.value=""; routeSaveDescr.value="";' type='reset' class='okButton' style="float:left;"><img src="img/no.svg" title="<?php echo $clearTXT;?>" alt="<?php echo $clearTXT;?>" width="16px"></button>
+				<button onClick="DOsaveGPX();" type='submit' class='okButton' style="float:right;">
+					<img src="img/ok.svg" title="Ok" alt="Ok" width="16px">
+				</button>
+				<button onClick='routeSaveName.value=""; routeSaveDescr.value="";' type='reset' class='okButton' style="float:left;">
+					<img src="img/no.svg" alt="Clear" width="16px">
+				</button>
 				<div id='routeSaveMessage' style='margin: 1rem;'></div>
 			</div>			
 		</div>
@@ -1576,7 +1558,7 @@ function watchAISstart() {
 		// и тогда эта цель AIS будет показываться и как MOB, и как кораблик.
 		// Поэтому выделяем mmsi из ключа
 		if(!AISdata[vessel].mmsi) AISdata[vessel].mmsi = vessel.split(':').pop();	// последний элемент строки, mmsi
-		if(AISasMOB && AISdata[vessel].mmsi && (AISdata[vessel].mmsi.startsWith('972') || AISdata[vessel].mmsi.startsWith('974'))){
+		if(AISasMOB && AISdata[vessel].mmsi && (AISdata[vessel].mmsi.startsWith('970') || AISdata[vessel].mmsi.startsWith('972') || AISdata[vessel].mmsi.startsWith('974'))){
 		  	// Поскольку данные AIS MOB приходят всегда, изменилось там что-нибудь, или нет
 		  	// следует оставить их в AISdata, но показывать не как кораблик, а как MOB
 			//console.log('[aisWebSocket.onmessage] AIS MOB:',vessel,JSON.stringify(AISdata[vessel]));
@@ -1906,29 +1888,42 @@ function alarmWebSocketStop(message=''){
 
 // Динамическое обновление показываемых маршрутов
 var updateRoutesInterval;
-if(updateRouteServerURI) updateRoutesInterval = setInterval(realtime,3000,updateRouteServerURI,routeUpdate);
+if(! updateRoutesInterval) {	
+	// оно запускается в displayRoute, и может это делать раньше, чем тут.
+	// Но updateRoutesInterval уже есть?
+	// Потому что там запрос внешнего ресурса, и всё асинхронно
+	if(updateRouteServerURI) updateRoutesInterval = setInterval(realtime,3000,updateRouteServerURI,routeUpdate);
+};
 
 function routeUpdate(changedRouteNames) {
-/* Вызывается из-под realtime */
-//console.log('changedRouteNames:',changedRouteNames);
+/* Загружает изменённый слой как полностью новый, если он есть в trackDisplayed
+т.е., слои, для которых есть известные файлы.
+Вызывается из-под realtime 
+*/
+//console.log('[routeUpdate] changedRouteNames:',changedRouteNames);
 if(routeDisplayed.innerHTML.trim() == "") { 	// не показывается ни одного маршрута
 	updateRoutesInterval = clearInterval(updateRoutesInterval); 	// прекратим следить за изменениями
 	return;
-}
-/* в связи с возможностью наличия в trackDisplayed дублирующихся id --
-может быть, вместо document.getElementById(name) сделать цикл по потомкам routeDisplayed? */
+};
+
 let node;
 if(changedRouteNames.error) return;
 for(const name of changedRouteNames){
-	node = document.getElementById(name); 	// однако, в trackDisplayed могут быть те же имена. Забить? в querySelector требуется экранирование пробелов и спец-символов. Это секс.
-	//console.log('[routeUpdate] node:',name,node);
-	if(node.parentNode != routeDisplayed) continue; 	// элемент, конечно, всегда есть, нужно, чтобы он показывался
-	//console.log('[routeUpdate] replase node:',node);
-	savedLayers[name].remove(); 	// удалим слой с карты
-	savedLayers[name] = null; 	// обозначим, что слоя с таким именем у нас нет
-	displayRoute(node); 	// перересуем маршрут
-}
-} // end  function routeUpdate
+	// [... выражение] просто делает из результатов выражения массив
+	// но результат querySelectorAll и так массив (в отличии от)? Авотхрен, оно тоже NodeList, хоть и статический, и методы массива там ёк
+	let routeDisplayedLi = [... routeDisplayed.querySelectorAll('li')].filter(el => el.textContent == name)[0];	// элементы li из routeDisplayed с именем name. может, их там и несколько, но мы берём первый?	
+	if(!routeDisplayedLi) continue;	// li с таким значением нет в routeDisplayed
+	// Итак, слой показывается, но файл, из которого сделан этот слой, изменился. Нами или кем-то. 
+	if(currentRoute == savedLayers[name]){	// Однако, слой с изменённым файлом сейчас редактируется
+	};
+	displayRoute(routeDisplayedLi,true); 	// перересуем слой
+	// В результате, savedLayers[routeName] не тот savedLayers[routeName], который, возможно
+	// был currentRoute.
+	//if(currentRoute && incurrentRoute) currentRoute.addLayer(savedLayers[name]);
+	resetRouteButtons();	// 
+	//console.log('[routeUpdate] обновлён слой',name,savedLayers[name]._leaflet_id,savedLayers[name]);
+};
+}; // end  function routeUpdate
 
 // Текущий трек
 // Должен обновляться, даже если обновлялка не описана в конфиге, потому что трек может писать кто-то ещё. 
@@ -2012,7 +2007,7 @@ if(currentTrackUpdateProcess) {
 	clearInterval(currentTrackUpdateProcess);	
 	currentTrackUpdateProcess = null;
 }
-currentWaitTrackUpdateProcess = setInterval(loggingCheck,5000);	// раз в  секунд слежение за наличием текущего трека
+currentWaitTrackUpdateProcess = setInterval(loggingCheck,10000);	// раз в  секунд слежение за наличием текущего трека
 console.log('[startCurrentWaitTrackUpdateProcess] Logging check started',currentWaitTrackUpdateProcess);
 }; // end function startCurrentWaitTrackUpdateProcess
 
