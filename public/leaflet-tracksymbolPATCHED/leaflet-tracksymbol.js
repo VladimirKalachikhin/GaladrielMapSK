@@ -274,7 +274,7 @@ M ${center.x-4} ${center.y} L ${center.x+4} ${center.y} `;
 		<span >${this.options.destination||''}</span>
 	</div>
 ${this.options.hazard_text||''} ${this.options.loaded_text||''}<br>`;
-		if(this.options.mmsi && this.options.mmsi.substring(0,2)!=='97') PopupContent += `<span style='float:right;'>This on <a href='http://www.marinetraffic.com/ais/details/ships/mmsi:${this.options.mmsi}' target='_blank'>MarineTraffic.com</a></span>`;	// это не AIS-SART
+		if(aisData.imo && this.options.mmsi.substring(0,2)!=='97') PopupContent += `<span style='float:right;'>This on <a href='http://www.marinetraffic.com/${appLocale}/ais/details/ships/imo:${aisData.imo}' target='_blank'>MarineTraffic.com</a></span>`;	// это не AIS-SART
 		PopupContent += `<span>${dataStamp}</span>
 </div>
 		`;

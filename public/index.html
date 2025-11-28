@@ -1900,7 +1900,7 @@ function routeUpdate(changedRouteNames) {
 т.е., слои, для которых есть известные файлы.
 Вызывается из-под realtime 
 */
-//console.log('[routeUpdate] changedRouteNames:',changedRouteNames);
+console.log('[routeUpdate] changedRouteNames:',changedRouteNames);
 if(routeDisplayed.innerHTML.trim() == "") { 	// не показывается ни одного маршрута
 	updateRoutesInterval = clearInterval(updateRoutesInterval); 	// прекратим следить за изменениями
 	return;
@@ -1921,7 +1921,7 @@ for(const name of changedRouteNames){
 	// был currentRoute.
 	//if(currentRoute && incurrentRoute) currentRoute.addLayer(savedLayers[name]);
 	resetRouteButtons();	// 
-	//console.log('[routeUpdate] обновлён слой',name,savedLayers[name]._leaflet_id,savedLayers[name]);
+	console.log('[routeUpdate] обновлён слой',name,savedLayers[name]._leaflet_id,savedLayers[name]);
 };
 }; // end  function routeUpdate
 
