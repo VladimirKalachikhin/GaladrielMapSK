@@ -1679,91 +1679,106 @@ function flyByString(stringPos){
 /* Получает строку предположительно с координатами, и перемещает туда центр карты */
 //console.log('goToPositionButton',goToPositionButton.value,'goToPositionField',goToPositionField.value);
 if(!stringPos) stringPos = map.getCenter().lat+' '+map.getCenter().lng; 	// map -- глобально определённая карта
+stringPos = stringPos.trim();
 //console.log('[flyByString] stringPos=',stringPos);
-	// Это написал GigaChat, я так и ниасилил регулярные выражения
+	// Это написано с использованием аж трёх ИИ, сам я так и ниасилил регулярные выражения
+	// Но за то время, что я убил, добиваясь от ИИ правильного результата, я написал бы сам.
+	// Ещё и понимал бы, что здесь написано.
+	// Напиши регулярное выражение для javascript regex, извлекающее из строки первое число, следующее за указанной подстрокой через любое количество любых нецифровых символов. Число может быть отрицательными.
 	function extractNumberAfterKeyword(str, keyword) {
 		// Используем экранирование специальных символов регулярного выражения внутри keywor'd'
-		const escapedKeyword = keyword.replace(/[-/\\^$*+?.()|[$${}]/g, '\\$&');
+		const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 		// Регулярное выражение теперь включает аргумент keyword
-		const regex = new RegExp(`${escapedKeyword}[^0-9]*([+-]?\\d*\\.?\\d+)`, 'i');
+		const regex = new RegExp(`${escapedKeyword}[^\\d.-]*(-?\\d+(?:\\.\\d+)?)`, 'i');
 		// Выполняем поиск соответствия регулярному выражению
 		const match = str.match(regex);
+		//console.log('[extractNumberAfterKeyword] match:',match);
 		if (match && match.length > 1) { // Если найдено совпадение и оно имеет значение
 		    return parseFloat(match[1]); // Возвращаем найденное число
 		};
 		return null; // Если ничего не нашли — возвращаем null
 	};
 
-let error,lat,lon;
+let error,position,x,y,z;
 try {
     // Разберём строку как координаты https://github.com/otto-dev/coordinate-parser
     // Писал это дело законченный мудак, и там, кроме кучи бессмысленных объектных наворотов,
     // совершенно шизоидная логика. Исправить её невозможно - проще написать снова. Поэтому
     // проще то, что в этом парсере не предусмотрено, отдельно привести к виду, парсером
     // понимаемому.
-    var position = new Coordinates(stringPos); 	
-	//console.log('[flyByString] position:',position);
-	lat=position.getLatitude();
-	lon=position.getLongitude();
+	position = new Coordinates(stringPos);
+	position = {lon:position.longitude,lat:position.latitude};
+	//console.log('[flyByString] Координаты разобраны успешно, position:',position);
 } 
 catch (error) { 	// coordinate-parser обломался, строка - не координаты.
-	//console.log('[flyByString] stringPos=',stringPos,error);
+	//console.log('[flyByString] Координаты йок, stringPos=',stringPos,error);
 	// это возможно, строка с lon lat
-	lon = extractNumberAfterKeyword(stringPos, 'lon');
-	lat = extractNumberAfterKeyword(stringPos, 'lat');
-	if((lon == null) || (lat == null) || (lon == lat)){
-		lon = extractNumberAfterKeyword(stringPos, 'lng');
-		lat = extractNumberAfterKeyword(stringPos, 'lat');
-		if((lon == null) || (lat == null) || (lon == lat)){
-			lon = extractNumberAfterKeyword(stringPos, 'longitude');
-			lat = extractNumberAfterKeyword(stringPos, 'latitude');
+	position = {lon:extractNumberAfterKeyword(stringPos, 'lon'),lat:extractNumberAfterKeyword(stringPos, 'lat')};
+	//console.log('[flyByString] 1 lon=',lon,'lat=',lat);
+	if(position.lon == null){
+		position.lon = extractNumberAfterKeyword(stringPos, 'lng');
+		if(position.lon == null){
+			position.lon = extractNumberAfterKeyword(stringPos, 'longitude');
+		};
+	};
+	if(position.lat == null){
+		position.lat = extractNumberAfterKeyword(stringPos, 'lat');
+		if(position.lat == null){
+			position.lat = extractNumberAfterKeyword(stringPos, 'latitude');
+		};
+	};
+	if((position.lon == null) || (position.lat == null)){	// координат так и не нашли
+		//console.log("А не номер тайла ли там?");
+		x = extractNumberAfterKeyword(stringPos, 'x');
+		y = extractNumberAfterKeyword(stringPos, 'y');
+		z = extractNumberAfterKeyword(stringPos, 'z');
+		//console.log('[flyByString] номер тайла z,x,y:',z,x,y);
+		if((x == null) || (y == null) || (z == null)){	// координат так и не нашли
+			//console.log("Может быть, там номер тайла просто в виде трёх чисел zxy?");
+			const regex = /[-+]?\d*\.?\d+/g;	// все числа
+			const zxy = stringPos.match(regex).map(Number);
+			//console.log(zxy);
+			if((zxy.length == 3) && isValidTile(zxy[0],zxy[1],zxy[2])){
+				position = tileNum2degree(zxy[0],zxy[1],zxy[2]);
+				z=zxy[0];
+				//console.log('[flyByString] Да, это 3 числа. position=',position,'z=',z);
+			}
+			else {
+				position = null;
+			};
+		}
+		else{
+			position = tileNum2degree(z,x,y);
+			//console.log('[flyByString] Да, там номер тайла. position=',position,'z=',z);
 		};
 	};
 };
-
-if((lon == null) || (lat == null) || (lon == lat)){	// координат так и не нашли
-	// А не номер тайла ли там?
-	//const digits = stringPos.trim().match(new RegExp("/(?<!-|\.)\d+(?!\.)/g"));	// вытащим неотрицательные целые числа из строки. Выражение неправильное, оно возвращает вторые и далеее цифры после запятой. Но так бывает редко ;-)
-	const digits = stringPos.trim().match(/\d+/g);	// вытащим неотрицательные целые числа из строки. Выражение неправильное, оно возвращает вторые и далеее цифры после запятой. Но так бывает редко ;-)
-	//console.log('[flyByString] digits:',digits);
-	let x,y,z;
-	if (digits && digits.length == 3 && ((digits.join().length+11) > stringPos.trim().length)) {	// если чисел три, и добавление разумного количества разделителей и пробелов делает строку результата больше исходной. А иначе - это адрес с цифрами.
-		digits.map(Number);	// преобразуем строки в числа (оно и так, но так модно и прилично. Так ChatGPT говорит.)
-		[z,x,y] = digits;
-		let maxTileNum = Math.pow(2, z) - 1;
-		if (x > maxTileNum || y > maxTileNum) {
-			[x,y,z] = digits;
-			maxTileNum = Math.pow(2, z) - 1;
-			if (x > maxTileNum || y > maxTileNum) [z,x,y] = [null,null,null];
-		};
-	};
-	if(z && x && y){	// это похоже на номер тайла, переместимся к этому тайлу
-		//console.log('[flyByString] z,x,y:',z,x,y);
-		map.setZoom(z);
-		map.panTo(tileNum2degree(z,x,y));
-	}
-	else {	// это просто строка, возможно, с адресом, сделаем запрос к геосервису
-		let xhr = new XMLHttpRequest();
-		//const url = encodeURI('https://nominatim.openstreetmap.org/search/'+stringPos+'?format=jsonv2'); 	// прямое геокодирование
-		const url = encodeURI('https://nominatim.openstreetmap.org/search?q='+stringPos+'&format=jsonv2'); 	// прямое геокодирование
-		xhr.open('GET', url, true); 	// Подготовим асинхронный запрос
-		xhr.setRequestHeader('Referer',url); 	// nominatim.org требует? Теперь, .... требует.
-		xhr.send();
-		xhr.onreadystatechange = function() { // 
-			if (this.readyState != 4) return; 	// запрос ещё не завершился
-			if (this.status != 200) return; 	// что-то не то с сервером
-			const nominatim = JSON.parse(this.response);
-			//console.log(nominatim);
-			updGeocodeList(nominatim);
-		};
-	};
-}
-else{	// координаты нашли
-	map.setView(L.latLng([lat,lon])); 	// подвинем карту в указанное место
+//console.log('[flyByString] 3 position=',position,'z=',z);
+if(position){	// координаты нашли
+	if(z==null)	map.setView(position); 	// подвинем карту в указанное место
+	else map.setView(position,z); 	// подвинем карту в указанное место
 	let xhr = new XMLHttpRequest();	// Запросим сервис геокодирования на предмет - что у нас в этом месте
-	const url = encodeURI('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+lat+'&lon='+lon);
+	const url = encodeURI('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+position.lat+'&lon='+(position.lon || position.lng));
 	xhr.open('GET', url, true); 	// Подготовим асинхронный запрос
 	xhr.setRequestHeader('Referer',url); 	// nominatim.org требует?
+	xhr.send();
+	xhr.onreadystatechange = function() { // 
+		if (this.readyState != 4) return; 	// запрос ещё не завершился
+		if (this.status != 200) return; 	// что-то не то с сервером
+		//console.log('[flyByString] this.response=',this.response);
+		const nominatim = JSON.parse(this.response);
+		//console.log('[flyByString] nominatim:',nominatim);
+		updGeocodeList(nominatim);
+	};
+}
+else{
+	//console.log("это просто строка, возможно, с адресом, сделаем запрос к геосервису");
+	position = undefined;
+	let xhr = new XMLHttpRequest();
+	//const url = encodeURI('https://nominatim.openstreetmap.org/search/'+stringPos+'?format=jsonv2'); 	// прямое геокодирование
+	const url = encodeURI('https://nominatim.openstreetmap.org/search?q='+stringPos+'&format=jsonv2'); 	// прямое геокодирование
+	xhr.open('GET', url, true); 	// Подготовим асинхронный запрос
+	xhr.setRequestHeader('Referer',url); 	// nominatim.org требует? Теперь, .... требует.
 	xhr.send();
 	xhr.onreadystatechange = function() { // 
 		if (this.readyState != 4) return; 	// запрос ещё не завершился
@@ -2924,6 +2939,17 @@ const nn = Math.PI - (2 * Math.PI * ytile) / Math.pow(2, zoom);
 const lat_deg = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(nn) - Math.exp(-nn)));
 return {'lat': lat_deg,'lng': lon_deg};
 }; // end function tileNum2degree
+
+
+function isValidTile(z, x, y) {
+/* проверяет, номер тайла ли */
+if (!Number.isInteger(z) || z < 0 || z > 22) return false;
+const max = (1 << z) - 1;	// 2^z - 1   Максимальное количество тайлов в строке или колонке на уровне z
+if (!Number.isInteger(x) || x < 0 || x > max) return false;
+if (!Number.isInteger(y) || y < 0 || y > max) return false;
+return true;
+}; // end function isValidTile
+
 
 /**
 Эти казлы так и ниасилили юникод в JavaScript. Багу более 15 лет.
