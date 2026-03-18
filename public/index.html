@@ -79,55 +79,56 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 </script>
 -->
 		<!-- Карты -->
-		<div class="leaflet-sidebar-pane" id="home" style="height:100%;">
-			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="homeHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
-			<div style="min-height:92%;">
-				<br>
-				<ul id="mapDisplayed" class='commonList'>
+		<div class="leaflet-sidebar-pane" id="home" style="margin:0;padding:0;height:100%;overflow:hidden;">
+			<div style="margin:0;padding:0;height:100%;overflow:hidden;display:flex;flex-direction:column;">
+				<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="homeHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close"  height="100%"></span></h1>
+				<ul id="mapDisplayed" class="commonList"  style="height:10%;overflow:auto;"><?php // overflow не наследуется, но если здесь не указать - горизонтальной прокрутки не будет, как это указано в основном стиле для leaflet-sidebar-pane ?>
 				</ul>
-				<ul id="mapList" class='commonList'>
-						<li hiden class="template" onClick="{selectMap(event.currentTarget)}"></li>
+				<ul id="mapList" class='commonList' style="overflow:auto;height:90%;">
+					<li hiden class="template" onClick="{selectMap(event.currentTarget)}"></li>
 				</ul>
+				<div style="width:95%;height:1.5rem;text-align:center;margin:0 0 2px;padding: 0;">
+					<button id="showMapsToggler" onClick='showMapsToggle();' style="width:90%;height:100%;"></button>
+				</div>
 			</div>
-			<button id="showMapsToggler" onClick='showMapsToggle();' style="width:90%;height:1.5rem;margin-bottom:1rem;"></button>
 		</div>
 		<!-- Приборы -->
-		<div class="leaflet-sidebar-pane" id="dashboard" style="height:100%;">
-			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="dashboardHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
-			<div class="big_symbol"> <!-- передвинуть карту на место курсора -->
+		<div class="leaflet-sidebar-pane" id="dashboard" style="height:95%;">
+			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="dashboardHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close"  height="100%"></span></h1>
+			<div class="big_symbol centred_pane">
 				<div>
 					<div style="line-height:0.6;" onClick="map.setView(cursor.getLatLng());">				
-						<div style="font-size:50%;"><span id="dashboardSpeedTXT"></span></div><br>
-						<div id='velocityDial'></div><br>
-						<div style="font-size:50%;"><span id="dashboardSpeedMesTXT"></span></div>
+						<div><span id="dashboardSpeedTXT"></span></div><br>
+						<div id='velocityDial' style="font-size:200%;"></div><br>
+						<div><span id="dashboardSpeedMesTXT"></span></div>
 					</div>
-					<div id='depthDial' style="line-height:0.4;" onClick="map.setView(cursor.getLatLng());">				
+					<div id='depthDial' style="line-height:0.6;" onClick="map.setView(cursor.getLatLng());">				
 					</div>
-					<div style="line-height:0.6;" onClick="map.setView(cursor.getLatLng());">
-						<br><span style="font-size:50%;"><span id="dashboardCourseTXT"></span></span>
-						<span style="font-size:30%; "><br><span id="dashboardCourseAltTXT"></span></span>
+					<div style="line-height:0.9;" onClick="map.setView(cursor.getLatLng());">
+						<br><span><span id="dashboardCourseTXT"></span></span>
+						<span style="font-size:50%; "><br><span id="dashboardCourseAltTXT"></span></span>
+						<div style="font-size:200%;">
+							<span id='courseDisplay'></span>
+						</div>
 					</div>
-					<div style="">
-						<span id='courseDisplay'></span>
-					</div>
-					<div style="font-size:50%;line-height:0.6;" onClick="doCopyToClipboard(lat+' '+lng);" >
-						<br><span style="font-size:50%;" id="mobPosTXT"></span><br>
-						<span style="font-size:30%;" id="mobPosAltTXT"></span>
-					</div>
-					<div style="font-size:50%;" onClick="doCopyToClipboard(lat+' '+lng);">
-						<span id='locationDisplay'></span>
+					<div style="line-height:1;" onClick="doCopyToClipboard(lat+' '+lng);" >
+						<br><span id="mobPosTXT"></span><br>
+						<span style="font-size:50%;" id="mobPosAltTXT"></span>
+						<div style="font-size:150%;" onClick="doCopyToClipboard(lat+' '+lng);">
+							<span id='locationDisplay'></span>
+						</div>
 					</div>
 				</div>
 			</div>
 			<div id="positionTimeDisplay" style="float:left;position:relative;bottom:90%;left:-1rem;"></div>
-			<div class="scaledText" style="text-align:center; position: absolute; bottom: 0;">
+			<div style="text-align:center; position: absolute; bottom: 0;margin:0 0.5rem;">
 				<span id="dashboardSpeedZoomTXT"></span> <span id='velocityVectorLengthInMnDisplay'></span> <span id="dashboardSpeedZoomMesTXT"></span>.
 			</div>
 		</div>
 		<!-- Треки -->
-		<div class="leaflet-sidebar-pane" id="tracks">
-			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="tracksHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
-			<div style="margin: 1rem;">
+		<div class="leaflet-sidebar-pane" id="tracks" style="overflow:hidden;">
+			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="tracksHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close"  height="100%"></span></h1>
+			<div style="margin:0 1rem;float:right;">
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> 
 					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="loggingSwitch" onChange="loggingRun();" >
 					<label class="onoffswitch-label" for="loggingSwitch">
@@ -135,21 +136,23 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 						<span class="onoffswitch-switch"></span>
 					</label>
 				</div>
-				<div style="padding:1rem 0 0 0;font-size:120%">
-					<span id="loggingIndicator" style="font-size:100%;"></span> <span id="loggingTXT"></span>
-				</div>
 			</div>
-			<ul id="trackDisplayed" class='commonList'>
-			</ul>
-			<ul id="trackList" class='commonList'>
-				<li hidden class="template" onClick='{selectTrack(event.currentTarget,trackList,trackDisplayed,displayTrack)}' id='trackLiTemplate' class='currentTrackName' title=''></li>
-			</ul>
+			<div style="padding:1rem 0.5rem 0 0;font-size:120%;text-align:center;">
+					<span id="loggingIndicator" style="font-size:100%;"></span> <span id="loggingTXT"></span>
+			</div>
+			<div style="width:100%;overflow-x:auto;"><!-- Здесь только горизонтальная прокрутка, а вертикальная - в объемлющем div -->
+				<ul id="trackDisplayed" class='commonList'>
+				</ul>
+				<ul id="trackList" class='commonList'>
+					<li hidden class="template" onClick='{selectTrack(event.currentTarget,trackList,trackDisplayed,displayTrack)}' id='trackLiTemplate' class='currentTrackName' title=''></li>
+				</ul>
+			</div>
 		</div>
 		<!-- Расстояния -->
-		<div class="leaflet-sidebar-pane" id="measure">
-			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="measureHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
+		<div class="leaflet-sidebar-pane" id="measure" style="padding-bottom:1rem;">
+			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="measureHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close"  height="100%"></span></h1>
 			<!-- Кнопки создания/редактирования маршрута -->
-			<div id='routeControls' class="routeControls" style="width:95%; padding:1rem 0 2rem; text-align: center;">
+			<div id='routeControls' class="routeControls" style="width:94%; margin:1em 0.5rem;text-align:center;">
 				<input type="radio" name="routeControl" class='L' id="routeCreateButton"
 					onChange="
 						startEditing();
@@ -179,11 +182,10 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 					<button id='ButtonSetcaution' onClick='createEditableMarker(cautionIcon);' class='pointButton'><img src="leaflet-omnivorePATCHED/symbols/caution.png" alt="ok" width="100%"></button><br>
 					<br>
 				</div>
-				<input id = 'editableObjectName' type="text" title="" placeholder='' size='255' style='width:90%;font-size:150%;'><br>
-				<textarea id = 'editableObjectDescr' title="" rows='3' cols='255' placeholder='' style='width:87%;padding: 0.5rem 3%;'></textarea><br>
+				<input id = 'editableObjectName' type="text" title="" placeholder='' size='255' style='width:95%;font-size:120%;'><br>
+				<textarea id = 'editableObjectDescr' title="" rows='3' cols='255' placeholder='' style='width:95%;'></textarea><br>
 				<input id='editableObjectLeafletID' type="hidden">
-				<br>
-				<input type="radio" name="routeControl" id="routeEraseButton" onChange="eraseEditable();">
+				<input type="radio" name="routeControl" id="routeEraseButton" class='M' onChange="eraseEditable();">
 				<label for="routeEraseButton"><span id="routeControlsClearTXT"></span></label>
 <!--
 				<div style="margin: 2.5em 0;text-align: center;width:96%;">
@@ -194,7 +196,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 -->
 			</div>
 			<!-- Поиск места -->
-			<div style="width:95%;">
+			<div style="width:95%;margin:1em 0.5rem;">
 				<div style="margin:0;padding:0;">
 					<button onClick='goToPositionField.value = "";goToPositionField.focus();' style="width:2rem;height:1rem;margin:0 0.7rem 0 0;float:right;"><img src="img/no.svg" title="Clear" alt="Clear" width="8px" style="vertical-align:top;"></button>
 					<button onClick='goToPositionField.value += "°";goToPositionField.focus();' style="width:2rem;height:1rem;margin:0 0.7rem 0 0;"><span style="font-weight: bold; font-size:150%;">°</span></button>
@@ -203,75 +205,73 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 				</div>
 				<span id="routePosTXT"></span><br>
 				<input id='goToPositionField' type="text" title="" size='12' style='width:70%;font-size:150%;'>			
-				<button id='goToPositionButton' class='okButton' onClick='flyByString(goToPositionField.value);' style="float:right;"><img src="img/ok.svg" alt="Ok" width="16px"></button><br>
+				<button id='goToPositionButton' class='okButton' onClick='flyByString(goToPositionField.value);' style="float:right;"><img src="img/ok.svg" alt="Ok" style="width:var(--font-size);"></button><br>
 			</div>
-			<div  style='width:98%;height:12rem;overflow:auto;margin:0.3rem 0;'>
-				<ul id='geocodedList' class='commonList'>
-				</ul>
-			</div>
+			<ul id='geocodedList' class='commonList' style="width:100%;max-height:23vh;overflow:auto;">
+			</ul>
 			<!-- Сохранение маршрута -->
-			<div style="width:95%; padding: 1rem 0; text-align: center;">
+			<div style="width:94%;margin:1em 0.5rem;text-align:center;">
 				<h3 id="routeSaveTitle"></h3>
-				<input id = 'routeSaveName' type="text" title="" placeholder='' size='255' style='width:95%;font-size:150%;'>
-				<textarea id = 'routeSaveDescr' title="" rows='5' cols='255' placeholder='' style='width:93%;padding: 0.5rem 3%;'></textarea>
+				<input id = 'routeSaveName' type="text" title="" placeholder='' size='255' style='width:95%;font-size:120%;'>
+				<textarea id = 'routeSaveDescr' title="" rows='5' cols='255' placeholder='' style='width:95%;'></textarea>
 				<button onClick="DOsaveGPX();" type='submit' class='okButton' style="float:right;">
-					<img src="img/ok.svg" title="Ok" alt="Ok" width="16px">
+					<img src="img/ok.svg" title="Ok" alt="Ok" style="width:var(--font-size);">
 				</button>
 				<button onClick='routeSaveName.value=""; routeSaveDescr.value="";' type='reset' class='okButton' style="float:left;">
-					<img src="img/no.svg" alt="Clear" width="16px">
+					<img src="img/no.svg" alt="Clear" style="width:var(--font-size);">
 				</button>
-				<div id='routeSaveMessage' style='margin: 1rem;'></div>
+				<div id="routeSaveMessage" style="margin: 1rem;"></div>
 			</div>			
 		</div>
 		<!-- Места и маршруты -->
 		<div class="leaflet-sidebar-pane" id="routes">
-			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="routesHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
-			<ul id="routeDisplayed" class='commonList'>
-			</ul>
-			<ul id="routeList" class='commonList'>
-				<li hidden class="template" onClick='{selectTrack(event.currentTarget,routeList,routeDisplayed,displayRoute)}'></li>
-			</ul>
+			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"> <span id="routesHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close"  height="100%"></span></h1>
+			<div style="width:100%;overflow-x:auto;"><!-- Здесь только горизонтальная прокрутка, а вертикальная - в объемлющем div -->
+				<ul id="routeDisplayed" class='commonList'>
+				</ul>
+				<ul id="routeList" class='commonList'>
+					<li hidden class="template" onClick='{selectTrack(event.currentTarget,routeList,routeDisplayed,displayRoute)}'></li>
+				</ul>
+			</div>
 		</div>
 		<!-- MOB -->
 		<div class="leaflet-sidebar-pane" style="height:90%;" id="MOB">
-			<h1 class="leaflet-sidebar-header leaflet-sidebar-close" style="background-color:red;"><span id="mobTXT"></span><span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
-			<div style="margin: 1rem 1rem;width:90%;text-align: center;">
+			<h1 class="leaflet-sidebar-header leaflet-sidebar-close" style="background-color:red;"><span id="mobTXT"></span><span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close"  height="100%"></span></h1>
+			<div style="margin:1rem 0;width:100%;text-align: center;">
 				<button onClick='MOBalarm();' style="width:75%;"><span style=""><span id="addMarkerTXT"></span></span></button>
 			</div>
-			<div class="big_symbol" style="line-height: normal;align-items: center;height:70%;" onClick="map.setView(currentMOBmarker.getLatLng());"> <!--  передвинуть карту на место текущего маркера MOB -->
-				<div style=''><!-- объемлющий div необходим -->
-						<div style="font-size:50%;">
-							<span style="font-size:50%;display:block;" id="bearingTXT"></span>
-							<span style="font-size:40%;display:block;" id="altBearingTXT"></span>
-							<span style="margin:0.5rem;display:block;" id='azimuthMOBdisplay'> </span>
-						</div>
-						<div style="font-size:75%;margin:1rem 0;">
-							<span style="font-size:40%;display:block;"><span id="distanceTXT"></span>, <span id="dashboardMeterMesTXT"></span></span>
-							<span style="font-size:30%;display:block;" id="altDistanceTXT"></span>
-							<span style="margin:0.5rem;display:block;" id='distanceMOBdisplay'> </span>
-							<span style="font-size:75%;margin:0.5rem;display:block;" id='directionMOBdisplay'></span>
-						</div>
-						<div style="font-size:50%;" onClick="doCopyToClipboard(Math.round(currentMOBmarker.getLatLng().lat*10000)/10000+' '+Math.round(currentMOBmarker.getLatLng().lng*10000)/10000);" >
-							<span style="font-size:50%;display:block;" id="dashboardPosTXT"></span>
-							<span style="font-size:40%;display:block;" id="dashboardPosAltTXT"></span>
-							<span style="margin:0.3rem;display:block;" id='locationMOBdisplay'></span>
-						</div>
+			<div class="big_symbol centred_pane" style="height:85%;overflow:auto;" onClick="map.setView(currentMOBmarker.getLatLng());"> <!--  передвинуть карту на место текущего маркера MOB -->
+				<div><!-- объемлющий div необходим -->
+					<div style="margin:0.5rem 0;">
+						<span style="display:block;" id="bearingTXT"></span>
+						<span style="font-size:75%;display:block;" id="altBearingTXT"></span>
+						<span style="font-size:200%;margin:0.5rem;display:block;" id='azimuthMOBdisplay'> </span>
+					</div>
+					<div style="margin:0.5rem 0;">
+						<span style="display:block;"><span id="distanceTXT"></span>, <span id="dashboardMeterMesTXT"></span></span>
+						<span style="font-size:75%;display:block;" id="altDistanceTXT"></span>
+						<span style="font-size:200%;margin:0.5rem;display:block;" id='distanceMOBdisplay'> </span>
+						<span style="font-size:120%;margin:0.5rem;display:block;" id='directionMOBdisplay'></span>
+					</div>
+					<div onClick="doCopyToClipboard(Math.round(currentMOBmarker.getLatLng().lat*10000)/10000+' '+Math.round(currentMOBmarker.getLatLng().lng*10000)/10000);" >
+						<span style="display:block;" id="dashboardPosTXT"></span>
+						<span style="font-size:75%;display:block;" id="dashboardPosAltTXT"></span>
+						<span style="font-size:130%;margin:0.3rem;display:block;" id='locationMOBdisplay'></span>
+					</div>
 				</div>
 			</div>
-			<div style="position: absolute; bottom: 1rem;width:90%;text-align: center;"> <!-- Отбой -->
-				<button onClick='delMOBmarker();' id='delMOBmarkerButton' style="width:80%;margin:1rem 0;font-size:75%;" disabled ><span style="" id="removeMarkerTXT"></span></button>
-				<div>
-				<a style="position:relative;left:-1rem;font-size:100%;color:gray;" onClick='
+			<div style="position: absolute; bottom: 1rem;width:100%;text-align: center;"> <!-- Отбой -->
+				<button onClick='delMOBmarker();' id='delMOBmarkerButton' style="width:75%;margin:1.5rem 0;" disabled ><span style="" id="removeMarkerTXT"></span></button><br>
+				<a style="position:relative;left:0rem;vertical-align:revert;color:gray;font-size:150%;" onClick='
 					this.nextElementSibling.disabled=false;
 					this.style.color="green";
-				'>&#x2B24;</a>
-				<button onClick='realMOBclose();' style="width:75%;" disabled><span style="" id="cancelMOBTXT"></span></button>
-				</div>
+				'>&FilledSmallSquare;</a>
+				<button onClick='realMOBclose();' style="position:relative;rigt:1rem;width:70%;" disabled><span style="" id="cancelMOBTXT"></span></button><br>
 			</div>
 		</div>
 		<!-- Настройки -->
 		<div class="leaflet-sidebar-pane" id="settings">
-			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"><span id="settingsHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close" width="16px"></span></h1>
+			<h1 class="leaflet-sidebar-header leaflet-sidebar-close"><span id="settingsHeaderTXT"></span> <span class="leaflet-sidebar-close-icn"><img src="img/Triangle-left.svg" alt="close"  height="100%"></span></h1>
 			<div style="margin:  0.7em 1em;"> <!-- Следование за курсором -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
 					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="followSwitch" onChange="noFollowToCursor=!noFollowToCursor; CurrnoFollowToCursor=noFollowToCursor;" checked>
@@ -280,7 +280,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 						<span class="onoffswitch-switch"></span>
 					</label>
 				</div>
-				<span style="font-size:120%" id="settingsCursorTXT"></span>
+				<span id="settingsCursorTXT"></span>
 			</div>
 			<br>
 			<div style="margin:  0.7em 1em;"> <!-- Текущий трек всегда показывается -->
@@ -291,7 +291,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 						<span class="onoffswitch-switch"></span>
 					</label>
 				</div>
-				<span style="font-size:120%" id="settingsTrackTXT"></span>
+				<span id="settingsTrackTXT"></span>
 			</div>
 			<br>
 			<div style="margin:  0.7em 1em;"> <!-- Выбранные маршруты всегда показываются -->
@@ -302,7 +302,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 						<span class="onoffswitch-switch"></span>
 					</label>
 				</div>
-				<span style="font-size:120%" id="settingsRoutesAlwaysTXT"></span>
+				<span id="settingsRoutesAlwaysTXT"></span>
 			</div>
 			<br>
 			<div style="margin:  0.7em 1em;"> <!-- Показывать окружности дистанции -->
@@ -313,18 +313,18 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 						<span class="onoffswitch-switch"></span>
 					</label>
 				</div>
-				<span style="font-size:120%" id="settingsdistCirclesTXT"></span>
+				<span id="settingsdistCirclesTXT"></span>
 			</div>
 			<br>
 			<div style="margin:  0.7em 1em;"> <!-- Показывать символ ветра -->
 				<div class="onoffswitch" style="float:right;margin: 1rem auto;"> <!--  Переключатель https://proto.io/freebies/onoff/  -->
-					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="windSwitch"  onChange="windSwitchToggler();">
+					<input type="checkbox" name="onoffswitch" class="onoffswitch-checkbox" id="windSwitch"  onChange="windSwitchToggler();" checked>
 					<label class="onoffswitch-label" for="windSwitch">
 						<span class="onoffswitch-inner"></span>
 						<span class="onoffswitch-switch"></span>
 					</label>
 				</div>
-				<span style="font-size:120%" id="settingsdistWindTXT"></span>
+				<span id="settingsdistWindTXT"></span>
 			</div>
 			<br>
 			<div style="margin: 3em 1em 0.1em;"> <!-- Показ целей AIS -->
@@ -335,7 +335,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 						<span class="onoffswitch-switch"></span>
 					</label>
 				</div>
-				<span style="font-size:120%;" id="DisplayAIS_TXT"></span>
+				<span id="DisplayAIS_TXT"></span>
 			</div>
 			<br>
 			<div style="margin: 3em 1em 0.1em;"> <!-- Сокрытие элементов управления -->
@@ -346,7 +346,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 						<span class="onoffswitch-switch"></span>
 					</label>
 				</div>
-				<span style="font-size:120%;" id="hideControlsSwitchTXT"></span><br><br>
+				<span id="hideControlsSwitchTXT"></span><br><br>
 				<div>
 					<div style="float: right;"> 
 						<input style="width:1em;" type="radio" name="hideControlPosition" value="topleft" disabled onChange="hideControlsToggler(this);">
@@ -359,7 +359,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 						<input style="width:1em;" type="radio" name="hideControlPosition" value="bottommiddle" checked disabled onChange="hideControlsToggler(this);">
 						<input style="width:1em;" type="radio" name="hideControlPosition" value="bottomright" disabled onChange="hideControlsToggler(this);">
 					</div>
-					<span style="font-size:100%; margin:100% 0 100% 0;" id="hideControlsPositionTXT"></span>
+					<span style="margin:100% 0 100% 0;" id="hideControlsPositionTXT"></span>
 				</div>
 			</div>
 			<br>
@@ -374,7 +374,7 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 					"
 					>
 				</div>
-				<span style="font-size:120%;" id="minWATCHintervalTXT"></span>
+				<span id="minWATCHintervalTXT"></span>
 			</div>
 		</div>
 	</div>
@@ -386,6 +386,10 @@ infoBox.innerText='width: '+window.outerWidth+' height: '+window.outerHeight;
 
 <script> "use strict";
 // Глобальные переменные
+// для загрузки Mapbox GL при необходимости. Из-за чего-то надо так.
+var mapboxGLscript = null;	// скрипт Mapbox GL, загружается при открытии соответствующей карты. Эти глобальные переменные ни нафиг не нужны, но если грузить скрипты Mapbox GL где-то в глубине -- при закрытии карты возникает мутная ошибка.
+var mapboxLeafletscript = null;	// скрипт mapbox-gl-leaflet
+var mapboxCountourscript = null;	// скрипт mapbox-contour
 // Карта
 var showMapsList = storageHandler.restore('showMapsList') || [];	// массив названий избранных карт
 var savedLayers = []; 	// массив для хранения объектов, когда они не на карте
@@ -1900,7 +1904,7 @@ function routeUpdate(changedRouteNames) {
 т.е., слои, для которых есть известные файлы.
 Вызывается из-под realtime 
 */
-console.log('[routeUpdate] changedRouteNames:',changedRouteNames);
+//console.log('[routeUpdate] changedRouteNames:',changedRouteNames);
 if(routeDisplayed.innerHTML.trim() == "") { 	// не показывается ни одного маршрута
 	updateRoutesInterval = clearInterval(updateRoutesInterval); 	// прекратим следить за изменениями
 	return;
@@ -1921,7 +1925,7 @@ for(const name of changedRouteNames){
 	// был currentRoute.
 	//if(currentRoute && incurrentRoute) currentRoute.addLayer(savedLayers[name]);
 	resetRouteButtons();	// 
-	console.log('[routeUpdate] обновлён слой',name,savedLayers[name]._leaflet_id,savedLayers[name]);
+	//console.log('[routeUpdate] обновлён слой',name,savedLayers[name]._leaflet_id,savedLayers[name]);
 };
 }; // end  function routeUpdate
 

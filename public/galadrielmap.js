@@ -364,7 +364,195 @@ else {	// текущий режим - "все карты"
 removeMap(node.id);	// SignalK
 }
 
-function displayMap(mapname) {
+
+function displayMap(mapname,mapParm={}) {	// mapParm  Нет в этой версии!
+if(savedLayers[mapname] == null) {
+	const layer = realDisplayMap(mapname,mapParm);
+	if(layer == null) return;
+	if(typeof layer.options.javascriptOpen === 'function') {
+		layer.options.javascriptOpen(layer);
+	};
+	if(savedLayers[mapname]) savedLayers[mapname].remove();
+	savedLayers[mapname] = layer;
+	//console.log('[displayMap] mapname=',mapname,'savedLayers[mapname]:',savedLayers[mapname]);
+	savedLayers[mapname].addTo(map);
+}
+else {	// такая карта уже есть, просто покажем
+	if(typeof savedLayers[mapname].options.javascriptOpen === 'function') {
+		savedLayers[mapname].options.javascriptOpen(savedLayers[mapname]);
+	};
+	savedLayers[mapname].addTo(map);
+};
+//console.log('[displayMap] mapname=',mapname,'mapParm:',savedLayers[mapname].options.mapParm);
+//autoMapUpdate(savedLayers[mapname],true) // Нет в этой версии! Включить автоматическое обновление
+//
+//if(map.hasLayer(tileGrid)) displayMapBounds();	// Нет в этой версии! перерисуем границы карт, если показываем сетку
+}; // end function displayMap
+
+
+function contourLines(mapname,mapParm={}){
+/**/
+function realContourLines(maplibreMap){
+//console.log('[realContourLines] maplibreMap:',maplibreMap);
+if(maplibreMap.isStyleLoaded()){
+	//console.log('[realContourLines] maplibreMap style:',maplibreMap.getStyle());
+	const style = maplibreMap.getStyle();
+	let layer;
+	for(layer of style.layers){
+		if(layer.type == 'hillshade'){
+			//console.log('[realContourLines] слой',layer,'является тонировкой рельефа');
+			//console.log('[realContourLines] слой найден в maplibreMap:',maplibreMap);
+			break;	// там только один слой hillshade? Ну, по логике вещей...
+		};
+	};
+	if(layer.type != 'hillshade') return;	// слоя hillshade в карте maplibre нет.
+	//console.log('[realContourLines] Загружена ли maplibre-contour?:',mapboxCountourscript);
+	if(!mapboxCountourscript){	// библиотека maplibre-contour ещё не загружена
+		if(mapboxCountourscript=loadScriptSync("maplibre-contour/dist/index.js")) console.log("[realDisplayMap] maplibre-contour is loaded");
+		else return;	// не удалось загрузить библиотеку maplibre-contour
+	};
+
+	// У этих придурков "The URL must be absolute, containing the scheme, authority and path components." https://maplibre.org/maplibre-style-spec/glyphs/
+	//console.log(window.location.origin,window.location.pathname);
+	// Ещё у этих придурков не работают функции getGlyphs() и setGlyphs().
+	// Однако, версия @5.19.0 (последняя), имеет встроенный шрифт, и может обходиться без glyphs.
+	// Но она на 300K больше.
+	// Но @5.19.0 не падает на .getStyle() после замены glyphs в setStyle
+	if(!style.glyphs) {
+		//console.log('[realContourLines] glyphs нет, добавляем');
+		//maplibreMap.setGlyphs(`${window.location.origin}${window.location.pathname}styles/fonts/{fontstack}/{range}.pbf`);
+		style.glyphs = `${window.location.origin}${window.location.pathname}styles/fonts/{fontstack}/{range}.pbf`;
+		maplibreMap.setStyle(style);	// стиль будет полностью заменён?, потому что изменён glyphs
+		setTimeout(realContourLines,10,maplibreMap);	// запустим ожидание обновления стиля. Строго говоря, даже повторная проверка на наличие слоя hillshade будет уместна - вдруг его кто-то удалит?
+		return;	// и на этом всё, ибо считаем, что без glyphs упс.
+	};
+
+	//console.log('[realContourLines] Стиль есть, можно рисовать карту',maplibreMap.getStyle())
+	// Итак, glyphs есть. Пора рисовать горизонтали.
+	//console.log('Объект sources для найденного слоя типа hillshade:',style.sources[layer.source]);
+	//console.log('Объект sources для найденного слоя типа hillshade с ID:',layer.id,maplibreMap.getSource(layer.id));	// Стиль, сцуко, в этот момент ещё не загружен, и их горбатая функция возвращает undefined
+	const url = style.sources[layer.source].tiles[0];
+	const maxzoom = style.sources[layer.source].maxzoom || 17;
+	//console.log('url=',url,'maxzoom=',maxzoom);
+	//let DEMencoding = mapParm.clientData.DEMencoding;
+	let DEMencoding;	// В SignalK нет способа передать...
+	if(DEMencoding != 'mapbox') DEMencoding = 'terrarium';
+	let demSource = new mlcontour.DemSource({
+		"url" : url,
+		// А какого хрена кодировка DEM не указывается в стиле, если там есть "type": "hillshade"?
+		// а потому что для hillshade не нужна абсолютная высота, а относительные одинаковые в обоих кодировках.
+		// "mapbox" or "terrarium" default="terrarium"
+		"encoding" : DEMencoding, 
+		"maxzoom" : maxzoom,
+		"worker" : true, // offload isoline computation to a web worker to reduce jank
+		//cacheSize: 100, // number of most-recent tiles to cache
+		timeoutMs: 10_000, // timeout on fetch requests
+	});
+	demSource.setupMaplibre(maplibregl);
+	// Then configure a new contour source and add it to your map:
+	/*/
+	The demSource.contourProtocolUrl thresholds parameter in MapLibre/maplibre-contour defines elevation intervals for minor and major contour lines, mapped by zoom level (zoom: [minor, major]). It controls which contour lines are displayed (e.g., every 50m/200m or 20m/100m) to reduce clutter at different map scales. 
+	Common Threshold Configurations (Zoom: [Minor, Major]):
+		Detailed (Zoom 14+): 14: [50, 200] or 14: [20, 100] for high-resolution terrain.
+		Mid-range (Zoom 11-13): 11: [200, 1000], 12: [100, 500].
+		Example Usage: thresholds: { 11: [200, 1000], 12: [100, 500], 14: [50, 200], 15: [20, 100] }. 
+	Key Details:
+		Units: Values are generally in meters unless a multiplier is applied (e.g., 3.28084 for feet).
+		Structure: Defines when to show lighter, thin lines (minor) and darker, thick lines (major).
+		Alternative Inline Format: In URLs, these can be specified as 11*250*1000 (Zoom * Minor * Major).
+	/*/    
+	maplibreMap.addSource("contourSource", {
+		"type": "vector",
+		"tiles": [
+			demSource.contourProtocolUrl({
+				// convert meters to feet, default=1 for meters
+				//"multiplier": 3.28084,
+				"thresholds": {
+					// zoom: [minor, major]
+					11: [100, 500],
+					12: [50, 500],
+					13: [10, 200],
+					14: [5, 100],
+					15: [2, 100]
+				},
+				// optional, override vector tile parameters:
+				"contourLayer": "contours",
+				"elevationKey": "ele",	// имя свойства mlcontour в maplibre style
+				"levelKey": "level",	// "major" contours have level=1, "minor" have level=0
+				"overzoom": 1,
+				//"extent": 4096,
+				//"buffer": 1,
+			})
+		],
+		"maxzoom": maxzoom
+	});
+	// Then add contour line and label layers:
+	maplibreMap.addLayer({
+		"id": "contourLines",	// Подразумевается, что там высот < 0 нет, хотя никто не запрещает.
+		"type": "line",
+		"source": "contourSource",
+		"source-layer": "contours",
+		"filter": ["!=", ["get", "ele"], 0],
+		"paint": {
+			//"line-color": "rgba(0,0,0, 30%)",
+			"line-color": "rgba(230,135,30, 75%)",
+			//"line-color": "red",
+			// level = highest index in thresholds array the elevation is a multiple of
+			"line-width": ["match", ["get", "level"], 1, 1, 0.5],
+		},
+	});
+	maplibreMap.addLayer({
+		"id": "contourLabels",
+		"type": "symbol",
+		"source": "contourSource",
+		"source-layer": "contours",
+		"filter": ["all",
+			["!=", ["get", "ele"], 0],
+			[">", ["get", "level"], 0]
+		],
+		"layout": {
+			"symbol-placement": "line",
+			"text-size": 10,
+			//"text-field": ["concat", ["number-format", ["get", "ele"], {}], "'"],
+			"text-field": ["number-format", ["get", "ele"], {}],
+			"text-font": ["Noto Sans Bold"],
+		},
+		"paint": {
+			"text-halo-color": "white",
+			"text-halo-width": 1,
+		},
+	});
+}
+else {
+	//console.log('[realContourLines] Стилей ещё нет, ждём');
+	setTimeout(realContourLines,100,maplibreMap);
+};
+}; // end function realContourLines
+
+function  waitMapLibreMap(Llayer){
+// У этих придурков объект _glMap появляется в объекте l.maplibreGL только после .addTo(map)? Не, когда всё загрузится. Или на следующий оборот?
+if(typeof Llayer.getMaplibreMap === 'function'){
+	//console.log('[waitMapLibreMap] Это Leaflet слой maplibre');
+	const Mmap = Llayer.getMaplibreMap();
+	if(Mmap === undefined) setTimeout(waitMapLibreMap,100,Llayer);	// но карты maplibre там нет
+	else realContourLines(Mmap);
+};
+}; // end function  waitMapLibreMap
+
+let mapObj;
+if(typeof mapname === 'string') mapObj = savedLayers[mapname];
+else mapObj = mapname;
+if(mapObj instanceof L.LayerGroup) { 	// это layerGroup
+	for(let layer of mapObj.getLayers()){
+		waitMapLibreMap(layer);
+	};
+}
+else waitMapLibreMap(mapObj);
+//
+}; // end function contourLines
+
+
+function realDisplayMap(mapname,mapParm={}) {
 /* Создаёт leaflet lauer с именем, содержащемся в mapParm, и заносит его на карту
 Для SignalK mapname -- это identifier в смысле chart-plugin.
 Делает запрос к SignalK для получения параметров карты
@@ -372,87 +560,237 @@ function displayMap(mapname) {
 */
 mapname=mapname.trim(mapname);
 // Всегда будем спрашивать параметры карты
-let mapParm = new Array(); 	// переменная для параметров карты
 const xhr = new XMLHttpRequest();
 xhr.open('GET', '/signalk/v1/api/resources/charts/'+mapname, false); 	// Подготовим синхронный запрос
 xhr.send();
 if (xhr.status == 200) { 	// Успешно
+	let skMapParm;
 	try {
-		const skMapParm = JSON.parse(xhr.responseText); 	// параметры карты
-		mapParm.identifier=mapname;
-		mapParm.name=skMapParm.name;
-		mapParm.ext=skMapParm.format;
-		mapParm.minZoom=skMapParm.minzoom;
-		mapParm.maxZoom=skMapParm.maxzoom;
-		mapParm.tileCacheURI=skMapParm.tilemapUrl;
-		mapParm.data=skMapParm.data;	// Этого там нет, и неизвестно, будет ли
-		mapParm.mapboxStyle=skMapParm.mapboxStyle;	// имя файла стиля mapbox, для векторных тайлов. Этого там нет, и неизвестно, будет ли
+		skMapParm = JSON.parse(xhr.responseText); 	// параметры карты
 	}
 	catch(err) { 	// 
-		console.error('Get chart '+mapname+' metainfo error:',err);
-	}
-}
-// javascript в загружаемом источнике на открытие карты
-//console.log(mapParm);
-if(mapParm['data'] && mapParm['data']['javascriptOpen']) eval(mapParm['data']['javascriptOpen']);
-// Загружаемая карта - многослойная?
-if(Array.isArray(additionalTileCachePath)) { 	// глобальная переменная - дополнительный кусок пути к талам между именем карты и /z/x/y.png Используется в версионном кеше, например, в погоде. Без / в конце, но с / в начале, либо пусто. Например, Weather.php.  Присваивается в javascriptOpen в параметрах карты. Или ещё где-нибудь.
-	let currZoom; 
-	if(savedLayers[mapname]) {
-		if(savedLayers[mapname].options.zoom) currZoom = savedLayers[mapname].options.zoom;
-		savedLayers[mapname].remove();
-	}
-	savedLayers[mapname]=L.layerGroup();
-	if(currZoom) savedLayers[mapname].options.zoom = currZoom;
-	for(let addPath of additionalTileCachePath) {
-		let tileCacheURIthis = mapParm.tileCacheURI+addPath; 	// 
-		if(mapParm['ext'])	tileCacheURIthis = tileCacheURIthis.replace('{ext}',mapParm['ext']); 	// при таком подходе можно сделать несколько слоёв с одним запросом параметров
-		//console.log(tileCacheURIthis);
-		//console.log('mapname=',mapname,savedLayers[mapname]);
-		if((mapParm['epsg']&&String(mapParm['epsg']).indexOf('3395')!=-1)||(mapParm.name.indexOf('EPSG3395')!=-1)||(mapParm.identifier.indexOf('EPSG3395')!=-1)) {
-			savedLayers[mapname].addLayer(L.tileLayer.Mercator(tileCacheURIthis, {minZoom:mapParm.minZoom,maxZoom:mapParm.maxZoom}));
-		}
-		else if(mapParm['mapboxStyle']) { 	// векторные тайлы
-			savedLayers[mapname].addLayer(L.mapboxGL({style: mapParm['mapboxStyle'],minZoom:mapParm.minZoom}));
-		}
-		else {
-			savedLayers[mapname].addLayer(L.tileLayer(tileCacheURIthis, {minZoom:mapParm.minZoom,maxZoom:mapParm.maxZoom}));
-		}
-	}
+		console.log('[realDisplayMap] Get chart '+mapname+' metainfo error:',err);
+		return;
+	};
+	//console.log('[displayMap] skMapParm:',skMapParm);
+	mapParm.identifier=mapname;	// Для SignalK mapname -- это identifier в смысле chart-plugin.
+	mapParm.name=skMapParm.name;
+	mapParm.ext=skMapParm.format;
+	mapParm.minZoom=skMapParm.minzoom || 0;
+	mapParm.maxZoom=skMapParm.maxzoom || 16;
+	mapParm.mapTiles=skMapParm.tilemapUrl;
+	//mapParm.data=skMapParm.data;	// Этого там нет, и неизвестно, будет ли
+	mapParm.vectorTileStyleURL=skMapParm.style;	// имя файла стиля mapbox, для векторных тайлов. Этого там нет, и неизвестно, будет ли
+	if(skMapParm.bounds && ((skMapParm.bounds[0]!=-180)&&(skMapParm.bounds[1]!=-90)&&(skMapParm.bounds[2]!=180)&&(skMapParm.bounds[3]!=90))){
+		// In format: {"leftTop":{"lat":lat,"lng":lng},"rightBottom":{"lat":lat,"lng":lng}}
+		mapParm.bounds = {"leftTop":{"lat":skMapParm.bounds[1],"lng":skMapParm.bounds[0]},"rightBottom":{"lat":skMapParm.bounds[3],"lng":skMapParm.bounds[2]}};
+	};
+	mapParm.skMapParm = skMapParm;	// у них там тривиальные наименования, и у меня тоже. Но смысл-то разный.
 }
 else {
-	let tileCacheURIthis = mapParm.tileCacheURI; 	// 
-	if(mapParm['ext'])	tileCacheURIthis = tileCacheURIthis.replace('{ext}',mapParm['ext']); 	// при таком подходе можно сделать несколько слоёв с одним запросом параметров
-	//console.log(tileCacheURIthis);
-	if((mapParm['epsg']&&String(mapParm['epsg']).indexOf('3395')!=-1)||(mapParm.name.indexOf('EPSG3395')!=-1)||(mapParm.identifier.indexOf('EPSG3395')!=-1)) {
-		if(!savedLayers[mapname])	savedLayers[mapname] = L.tileLayer.Mercator(tileCacheURIthis, {minZoom:mapParm.minZoom,maxZoom:mapParm.maxZoom});
-	}
-	else if(mapParm['mapboxStyle']) { 	// векторные тайлы
-		if(!savedLayers[mapname])	savedLayers[mapname] = L.mapboxGL({style: mapParm['mapboxStyle'],minZoom:mapParm.minZoom});
-	}
-	else {
-		if(!savedLayers[mapname])	savedLayers[mapname] = L.tileLayer(tileCacheURIthis, {minZoom:mapParm.minZoom,maxZoom:mapParm.maxZoom});
-	}
+	console.log('[realDisplayMap] xhr request ERROR:',xhr.status);
+	return;
+};
+// используются ли векторные тайлы
+const isVector = (mapParm.ext=='pbf') || (mapParm.ext=='mvt');
+
+if(!mapParm.mapTiles && !isVector){	// не указано, как получать тайлы. Однако, если mvt - то там это указано в стиле?
+	return;
+};
+
+let minNativeZoom,maxNativeZoom;
+if(mapParm.minZoom>9){
+	minNativeZoom = mapParm.minZoom;
+	mapParm.minZoom = 9;
+};
+if(mapParm.maxZoom<16){
+	maxNativeZoom = mapParm.maxZoom;
+	mapParm.maxZoom += 2;
+};
+mapParm.minNativeZoom = minNativeZoom;
+mapParm.maxNativeZoom = maxNativeZoom;
+
+let layerParm;
+if(isVector){ 
+	layerParm = {	// здесь всё в стиле, и, например, указание minzoom даёт весёлые визуальные эффекты
+		"style": mapParm.vectorTileStyleURL,
+	};
 }
-//console.log(savedLayers[mapname]);
-// установим текущий масштаб в пределах возможного для загружаемой карты
-if(! savedLayers[mapname].options.zoom) {
+else {
+	layerParm = {
+		"minZoom":mapParm.minZoom,
+		"maxZoom":mapParm.maxZoom,
+		"minNativeZoom":mapParm.minNativeZoom,
+		"maxNativeZoom":mapParm.maxNativeZoom
+	};
+	if(mapParm.bounds && (JSON.stringify(mapParm.bounds)!='[]')) {
+		//console.log('[realDisplayMap] mapParm.bounds:',JSON.stringify(mapParm.bounds));
+		let leftTop = {};
+		leftTop.lng = mapParm.bounds.leftTop.lng;	// а иначе оно ссылка, б...!
+		leftTop.lat = mapParm.bounds.leftTop.lat;
+		let rightBottom = {};
+		rightBottom.lng = mapParm.bounds.rightBottom.lng;
+		rightBottom.lat = mapParm.bounds.rightBottom.lat;
+		if(mapParm.bounds.leftTop.lng>0 && mapParm.bounds.rightBottom.lng<=0){	// граница переходит антимередиан
+			// Не вполне понятна глубинная суть этого деяния, но факт в том, что если не вычитать/прибавлять,
+			// то не видны либо левые, либо правые части. А если ничего не делать - то не видно ничего.
+			leftTop.lng -= 360;
+			rightBottom.lng += 360;
+		};
+		layerParm.bounds = L.latLngBounds(leftTop,rightBottom);
+	};
+};
+
+let mapTilesURIthis;
+if(mapParm.r) mapTilesURIthis = mapParm.mapTiles.replace('{map}',mapParm.r.trim());	// нужно, как минимум, для COVER.
+else mapTilesURIthis = mapParm.mapTiles.replace('{map}',mapname);
+if(mapParm.requestOptions) mapTilesURIthis = mapTilesURIthis.replace('{options}',JSON.stringify(mapParm.requestOptions));
+else mapTilesURIthis = mapTilesURIthis.replace('{options}','');
+if(mapParm.ext)	mapTilesURIthis = mapTilesURIthis.replace('{ext}',mapParm.ext);
+//console.log('[realDisplayMap] mapTilesURIthis:',mapTilesURIthis);
+//console.log('[realDisplayMap] layerParm:',layerParm);
+
+let layer;
+if((mapParm.epsg && String(mapParm.epsg).indexOf('3395')!=-1)||(mapname.indexOf('EPSG3395')!=-1)) {
+	layer = L.tileLayer.Mercator(mapTilesURIthis, layerParm);
+}
+else if(isVector) { 	// векторные тайлы
+	if(typeof L.maplibreGL === 'undefined'){	// если ещё не загружено
+	//if(typeof L.mapboxGL === 'undefined'){	// если ещё не загружено
+		let link = document.createElement('link');
+		link.type = 'text/css';
+		link.href = 'style.css';
+		link.rel = 'maplibre-gl/dist/mapbox-gl.css';
+		//link.rel = 'mapbox-gl-js/dist/mapbox-gl.css';
+		document.head.appendChild(link);
+		if(!(mapboxGLscript=loadScriptSync("maplibre-gl/dist/maplibre-gl.js"))) return;	// Нахрена присваивать глобальной переменной, которая нигде не используется -- неясно, но без этого возникает ошибка при закрытии карты.
+		if(!(mapboxLeafletscript=loadScriptSync("maplibre-gl-leaflet/leaflet-maplibre-gl.js"))) return;
+		//if(!(mapboxGLscript=loadScriptSync("mapbox-gl-js/dist/mapbox-gl.js"))) return;
+		//if(!(mapboxLeafletscript=loadScriptSync("mapbox-gl-leaflet/leaflet-mapbox-gl.js"))) return;
+		console.log("[realDisplayMap] gl & gl-leaflet is loaded");
+	};
+	layer = L.maplibreGL(layerParm);
+	//layer = L.mapboxGL(layerParm);
+	contourLines(layer,mapParm);
+}
+else if(mapParm.skMapParm.type == 'WMS'){
+	if(mapParm.skMapParm.chartLayers) layerParm.layers = mapParm.skMapParm.chartLayers.join();	// параметр карты wms
+	layerParm.style = mapParm.vectorTileStyleURL || '',
+	layer = L.tileLayer.wms(mapTilesURIthis, layerParm);
+}
+else {
+	layer = L.tileLayer(mapTilesURIthis, layerParm);
+};
+layer.options.mapname = mapname;
+//console.log('[realDisplayMap] mapParm:',mapParm);
+layer.options.mapParm = mapParm;
+
+// установим текущий масштаб в пределах возможного для указанной карты
+// Это всё должно быть в displayMap, а не здесь?
+if(!layer.options.zoom) {	// т.е., не устанавливали уже масштаб по какому-то слою
 	let currZoom = map.getZoom();
-	if(mapParm['maxZoom'] < currZoom) {
-		map.setZoom(mapParm['maxZoom']);
-		savedLayers[mapname].options.zoom = currZoom;
+	//console.log('[realDisplayMap] currZoom=',currZoom,'mapParm.maxZoom=',mapParm.maxZoom);
+	if(mapParm.maxNativeZoom < currZoom) {
+		map.setZoom(mapParm.maxZoom);	// установим масштаб в видимость этого слоя
+		layer.options.zoom = currZoom;	// запомним, какой был, чтобы потом восстановить
 	}
-	else if(mapParm['minZoom'] > currZoom) { 
-		map.setZoom(mapParm['minZoom']);
-		savedLayers[mapname].options.zoom = currZoom;
+	else if(mapParm.minNativeZoom > currZoom) { 
+		map.setZoom(mapParm.minZoom);
+		layer.options.zoom = currZoom;
 	}
-	else savedLayers[mapname].options.zoom = false;
-}
+	else layer.options.zoom = false;
+};
+
+if(layer.options.mapParm.bounds) {	// карте указаны рамки в описании. LayerGroup не имеет свойства bounds
+	// Если карта составная, то в каждой составляющей - свои границы. Но к этому моменту те границы
+	// уже сработали?, и здесь будет позиционировано в пределах границ объемлющей карты.
+	const bondsPoint = isPointInBounds(map.getCenter(),layer.options.mapParm.bounds);
+	if(bondsPoint !== true) map.setView(bondsPoint);
+};
+
 // javascript в загружаемом источнике на закрытие карты
-if(mapParm['data'] && mapParm['data']['javascriptClose']) savedLayers[mapname].options.javascriptClose = mapParm['data']['javascriptClose'];
-// Наконец, покажем
-savedLayers[mapname].addTo(map);
-} // end function displayMap
+// window.eval выполняет eval в глобальном контексте, в результате можно в eval объявить
+// глобальные функции и переменные
+if(mapParm.clientData && (typeof mapParm.clientData.javascriptClose  === "string")) {
+	layer.options.javascriptClose = window.eval(mapParm.clientData.javascriptClose);	// eval должен возвращать функцию
+};
+// javascript в загружаемом источнике на открытие карты
+if(mapParm.clientData && (typeof mapParm.clientData.javascriptOpen  === "string")) {
+	layer.options.javascriptOpen = window.eval(mapParm.clientData.javascriptOpen);	// eval должен возвращать функцию
+};
+//console.log('[realDisplayMap] layer:',layer);
+return layer;
+} // end function realDisplayMap
+
+
+function isPointInBounds(point,bounds){
+/* Находится ли точка в границах, а если нет - где ближайшая граница */
+const nearestPoint = {"lat":null,"lng":null};
+// Широта
+if(point.lat > bounds.leftTop.lat){
+	// Точка севернее рамки, т.е., не в границах.
+	// Очевидно, ближайшая широтная граница рамки - северная
+ 	nearestPoint.lat = bounds.leftTop.lat;
+}
+else if(point.lat < bounds.rightBottom.lat){
+	// Точка южнее рамки, т.е., не в границах.
+	// Очевидно, ближайшая широтная граница рамки - южная
+ 	nearestPoint.lat = bounds.rightBottom.lat;
+}
+// иначе - точка по широте в пределах рамки
+
+// Долгота
+const dLon = Math.abs(bounds.leftTop.lng - bounds.rightBottom.lng);
+if(dLon < 180) {	//console.log("рамка не пересекает антимеридиан");
+	if(point.lng < bounds.leftTop.lng){
+		//console.log("Точка западнее левой рамки и восточнее антимередиана, т.е., не в границах");
+		const dL = bounds.leftTop.lng-point.lng;	// градусов между долготой точки и долготой левой границы рамки
+		const dR = 360-bounds.rightBottom.lng-point.lng;	// оставшаяся часть круга, градусов между долготой точки и долготой правой границы рамки
+		if(dL<dR){	// до западной границы рамки ближе, чем до восточной
+		 	nearestPoint.lng = bounds.leftTop.lng;
+		}
+		else{
+		 	nearestPoint.lng = bounds.rightBottom.lng;
+		};
+	}
+	else if(point.lng > bounds.rightBottom.lng){
+		//console.log("Точка восточнее правой рамки и западнее антимередиана, т.е., не в границах");
+		const dR = point.lng - bounds.rightBottom.lng;	// градусов между долготой точки и долготой правой границы рамки
+		const dL = 360-point.lng-bounds.leftTop.lng;	// оставшаяся часть круга, градусов между долготой точки и долготой левой границы рамки
+		if(dL<dR){	// до западной границы рамки ближе, чем до восточной
+		 	nearestPoint.lng = bounds.leftTop.lng;
+		}
+		else{
+		 	nearestPoint.lng = bounds.rightBottom.lng;
+		};
+	};
+}
+else {	//console.log("рамка пересекает антимередиан");
+	if((point.lng < bounds.leftTop.lng) && (point.lng > bounds.rightBottom.lng)){
+		//console.log("Точка западнее левой рамки и восточнее правой, т.е., не в границах");
+		const dL = Math.abs(bounds.leftTop.lng-point.lng);	// градусов между долготой точки и долготой левой границы рамки
+		let dR = Math.abs(bounds.rightBottom.lng-point.lng);	// оставшаяся часть круга, градусов между долготой точки и долготой правой границы рамки
+		//console.log('от левой рамки до точки:',dL,'от правой рамки до точки:',dR);
+		if(dL<dR){	// до левой границы рамки ближе, чем до правой
+		 	nearestPoint.lng = bounds.leftTop.lng;
+		}
+		else{
+		 	nearestPoint.lng = bounds.rightBottom.lng;
+		};
+	};
+};
+
+if((nearestPoint.lat===null)&&(nearestPoint.lng===null)) return true;	// точка внутри рамки
+else if(nearestPoint.lat===null){	//console.log(" точка в пределах широты, но не попадает по долготе");
+	nearestPoint.lat = point.lat;
+}
+else if(nearestPoint.lng===null){	//console.log("точка в пределах долготы, но не попадает по широте");
+	nearestPoint.lng = point.lng;
+}
+// иначе - точка вне рамки
+return nearestPoint;
+}; // end function isPointInBounds
+
 
 function removeMap(mapname) {
 // Для SignalK mapname -- это identifier в смысле chart-plugin.

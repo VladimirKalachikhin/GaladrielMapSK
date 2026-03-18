@@ -5,7 +5,7 @@
 <div style='float:right;'><a href='https://github.com/VladimirKalachikhin/Galadriel-map/discussions'>Форум</a>
 </div>
 
-## v. 0.12
+## v. 0.13
 
 Это веб-приложение является модификацией картплотера [GaladrielMap](https://vladimirkalachikhin.github.io/Galadriel-map/README.ru-RU) для работы в среде SignalK, и обладает всеми возможностями оригинального приложения, за исключением нижеуказанных. Для ознакомления с возможностями и получения информации обращайтесь к [документации](https://vladimirkalachikhin.github.io/Galadriel-map/README.ru-RU) оригинального приложения.
 
@@ -13,10 +13,21 @@
 * GaladrielMap SignalK edition использует [@signalk/charts-plugin](https://www.npmjs.com/package/@signalk/charts-plugin) для предоставления карт вместо [GaladrielCache](https://github.com/VladimirKalachikhin/Galadriel-cache). Поэтому многие карты, имеющиеся в GaladrielMap недоступны, в частности -- [карта погоды](http://weather.openportguide.de/index.php/en/). Отсутствует также кеширование тайлов из сетевых источников.
 * SignalK не имеет штатных средств контроля актуальности данных, наподобие тех, что имеются у [gpsdPROXY](https://github.com/VladimirKalachikhin/gpsdPROXY) в GaladrielMap. Поэтому в GaladrielMap SignalK edition добавлены самые базовые средства такого контроля. Текущее время запаздывания данных отображается в верхнем левом углу вкладки "Скорость и направление".  
 * Из-за особенностей организации SignalK в редакторе маршрутов нельзя сохранить на сервере файл .gpx размером больше 4Кб.
+* Карты DigitalElevationModel (DEM) поддерживаются только в нотации *terrarium*, потому что нет способа указать нотацию.
 
 ## Возможности
 GaladrielMap SignalK edition поддерживает систему оповещений SignalK, поэтому, если установлен плагин [collision-detector](https://www.npmjs.com/package/collision-detector), GaladrielMap SignalK edition  обозначает потенциально опасные суда значком на карте, и одновременно рисует стрелку в направлении опасности внутри значка, указывающего собственное положение.  
 Если установлен плагин [naivegpxlogger](https://www.npmjs.com/package/naivegpxlogger), можно вести запись пути в формате gpx. 
+
+### Векторные карты
+Поддерживаются векторные карты в нотации mapbox. Вы должны поместить файлы стилей, шрифтов и значков в таком месте файловой системы, которое доступно для **GaladrielMap SignalK edition** по протоколу http. 
+Например, в `/usr/local/lib/node_modules/galadrielmap_sk/public/styles/`  
+Вы должны поменять в файлах стилей все url на адреса ваших тайлов, стилей и значков, при этом url ДОЛЖНЫ быть абсолютными. Так решили в [mapbox](https://www.mapbox.com/).  
+В настройках плагина [@signalk/charts-plugin](https://www.npmjs.com/package/@signalk/charts-plugin) сконфигурируйте *Provider*, указав *Format* как pbf (вне зависимости от реального формата тайлов), а в поле *Vector Map Style* укажите url вашего стиля.
+
+### Карта DigitalElevationModel (DEM)
+Карта DEM поддерживается только в нотации *terrarium*.  
+Для подключения карты DEM настройках плагина [@signalk/charts-plugin](https://www.npmjs.com/package/@signalk/charts-plugin) сконфигурируйте *Provider*, указав *Format* как pbf (именно, хотя тайл DEM растровый), а в поле *Vector Map Style* укажите url вашего стиля DEM.
 
 ## Установка и конфигурирование
 
